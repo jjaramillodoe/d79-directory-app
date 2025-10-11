@@ -30,70 +30,121 @@ const Step4StudenttoStudentSexualHarassment = ({ stepData, updateStepData, isAct
 
     if (question.type === 'checkbox') {
       return (
-        <div className="flex items-start gap-3">
+          <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-colors duration-200">
           <input
             type="checkbox"
             id={question.id}
             checked={value}
             onChange={(e) => handleInputChange(question.id, e.target.checked)}
-            className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            className="mt-1 w-5 h-5 text-blue-600 bg-white border-gray-300 rounded-md focus:ring-blue-500 focus:ring-2 cursor-pointer"
           />
-          <label htmlFor={question.id} className="text-sm text-gray-700">
+          <label htmlFor={question.id} className="text-base text-gray-700 cursor-pointer flex-1 whitespace-pre-line">
             {question.title}
           </label>
         </div>
       );
     }
 
+    if (question.type === 'text') {
+      return (
+        <input
+          type="text"
+          id={question.id}
+          value={value}
+          onChange={(e) => handleInputChange(question.id, e.target.value)}
+          placeholder={question.placeholder}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
+        />
+      );
+    }
+
     return (
-      <textarea
-        id={question.id}
-        value={value}
-        onChange={(e) => handleInputChange(question.id, e.target.value)}
-        placeholder={question.placeholder}
-        rows={4}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-      />
+      <div>
+        <label htmlFor={question.id} className="block text-base font-semibold text-gray-700 mb-3 whitespace-pre-line">
+          {question.title}
+        </label>
+        <textarea
+          id={question.id}
+          value={value}
+          onChange={(e) => handleInputChange(question.id, e.target.value)}
+          placeholder={question.placeholder}
+          rows={5}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none hover:border-gray-400"
+        />
+      </div>
     );
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-50 to-violet-100 border-2 border-purple-200 rounded-xl p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 mb-8 shadow-lg">
+        <div className="flex items-center gap-6 mb-6">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md">
+            <Shield className="w-8 h-8 text-blue-600" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-purple-800">
-              Step 4: Student to Student Sexual Harassment
+          <div className="flex-1">
+            <h2 className="text-3xl font-bold text-white mb-2">
+              Section 3: Student to Student Sexual Harassment
             </h2>
-            <p className="text-purple-600">
+            <p className="text-blue-100 text-lg">
               Prevention and intervention protocols for student safety and respect
+            </p>
+          </div>
+        </div>
+        
+        {/* Important Information */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mt-6">
+          <div className="space-y-3 text-white">
+            <p className="leading-relaxed">
+              <a 
+                href="https://www.schools.nyc.gov/docs/default-source/default-document-library/a-832-student-to-student-discrimination-harassment-intimidation-and-or-bullying" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:text-blue-100 transition-colors font-semibold"
+              >
+                Respect for All: Making School Safe and Supportive for All Students
+              </a>
+              . A RESPONSE TO EVERY QUESTION IN THIS SECTION IS REQUIRED.
+            </p>
+            <p className="leading-relaxed">
+              In accordance with{' '}
+              <a 
+                href="https://www.schools.nyc.gov/docs/default-source/default-document-library/a-831-10-23-2019-final-remediated-wcag2-0" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:text-blue-100 transition-colors font-semibold"
+              >
+                (Chancellor's Regulation A-831)
+              </a>
+              , all schools must submit the name of designated staff member who will receive reports of student-to-student sexual harassment and a plan for providing training on this regulation to all students and staff annually.
             </p>
           </div>
         </div>
       </div>
 
       {/* Information Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="w-5 h-5 text-purple-600" />
-            <span className="font-semibold text-purple-800">Prevention Focus</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-lg font-bold text-blue-800">Prevention Focus</span>
           </div>
-          <p className="text-purple-700 text-sm">
+          <p className="text-blue-700 leading-relaxed">
             This step establishes comprehensive protocols for preventing and addressing student-to-student sexual harassment, ensuring a safe and respectful school environment.
           </p>
         </div>
-        
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-blue-800">Training Requirements</span>
+
+        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-400 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-lg font-bold text-yellow-800">Training Requirements</span>
           </div>
-          <p className="text-blue-700 text-sm">
+          <p className="text-yellow-800 leading-relaxed">
             All staff must complete training by October 31st on Chancellor's Regulation A-831 policies and procedures for sexual harassment prevention and intervention.
           </p>
         </div>
@@ -101,24 +152,32 @@ const Step4StudenttoStudentSexualHarassment = ({ stepData, updateStepData, isAct
 
       {/* Questions */}
       <div className="space-y-6">
-        {questions.map((question) => (
-          <div key={question.id} className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                {question.title}
-              </h3>
+        {questions.map((question, index) => (
+          <div key={question.id} className="bg-white border-2 border-gray-200 rounded-xl p-8 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200">
+            <div className="mb-6">
+              <div className="flex items-start gap-4 mb-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+                  {question.question_number}
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 flex-1 whitespace-pre-line">
+                  {question.title}
+                </h3>
+              </div>
               {question.description && (
-                <p className="text-gray-600 text-sm mb-3">
+                <p className="text-gray-600 ml-12 leading-relaxed whitespace-pre-line">
                   {question.description}
                 </p>
               )}
             </div>
-            
-            {renderQuestion(question)}
-            
+
+            <div className="ml-12">
+              {renderQuestion(question)}
+            </div>
+
             {question.required && (
-              <p className="text-red-600 text-sm mt-2">
-                * This field is required
+              <p className="text-red-600 text-sm mt-3 ml-12 flex items-center gap-1">
+                <span className="text-red-500">*</span>
+                This field is required
               </p>
             )}
           </div>
@@ -126,12 +185,14 @@ const Step4StudenttoStudentSexualHarassment = ({ stepData, updateStepData, isAct
       </div>
 
       {/* Footer Alert */}
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-purple-600" />
-          <span className="font-semibold text-purple-800">Safe Learning Environment</span>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+            <Shield className="w-6 h-6 text-blue-600" />
+          </div>
+          <span className="text-xl font-bold text-white">Safe Learning Environment</span>
         </div>
-        <p className="text-purple-700 text-sm mt-2">
+        <p className="text-blue-50 leading-relaxed">
           Sexual harassment prevention is essential for creating a safe and respectful learning environment. Ensure all protocols are clearly documented and staff are properly trained to recognize and respond to incidents.
         </p>
       </div>

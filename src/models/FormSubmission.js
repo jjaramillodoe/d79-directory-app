@@ -44,15 +44,15 @@ const FormSubmissionSchema = new mongoose.Schema({
       revisionCount: { type: Number, default: 0 },
     },
     // Step 2: Principal Letter
-    principalLetter: {
-      completed: { type: Boolean, default: false },
-      data: { type: mongoose.Schema.Types.Mixed, default: {} },
-      startedAt: { type: Date },
-      lastUpdated: { type: Date },
-      timeSpent: { type: Number, default: 0 }, // seconds
-      revisionCount: { type: Number, default: 0 },
-    },
-    // Step 3: Child Abuse Prevention Plan
+    //principalLetter: {
+    //  completed: { type: Boolean, default: false },
+    //  data: { type: mongoose.Schema.Types.Mixed, default: {} },
+    //  startedAt: { type: Date },
+    //  lastUpdated: { type: Date },
+    //  timeSpent: { type: Number, default: 0 }, // seconds
+    //  revisionCount: { type: Number, default: 0 },
+    //},
+    // Step 2: Child Abuse Prevention Plan
     childAbuseIntervention: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -61,7 +61,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 4: Student to Student Sexual Harassment
+    // Step 3: Student to Student Sexual Harassment
     sexualHarassment: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -70,7 +70,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 5: Respect For All Plan
+    // Step 4: Respect For All Plan
     respectForAll: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -79,7 +79,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 6: School Crisis Intervention Plan
+    // Step 5: School Crisis Intervention Plan
     suicidePrevention: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -88,7 +88,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 7: School Attendance Plan
+    // Step 6: School Attendance Plan
     attendancePlan: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -97,7 +97,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 8: Students in Temporary Housing Program
+    // Step 7: Students in Temporary Housing Program
     temporaryHousing: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -106,7 +106,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 9: Service In Schools Plan
+    // Step 8: Service In Schools Plan
     serviceInSchools: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -115,7 +115,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 10: Planning Interviews
+    // Step 9: Planning Interviews
     planningInterviews: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -124,7 +124,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 11: Military Recruitment Opt-Out
+    // Step 10: Military Recruitment Opt-Out
     militaryRecruitment: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -133,7 +133,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 12: School Culture Plan
+    // Step 11: School Culture Plan
     schoolCulture: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -142,7 +142,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 13: After School Programs
+    // Step 12: After School Programs
     afterSchoolPrograms: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -151,7 +151,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 14: Cell Phone Policy
+    // Step 13: Cell Phone Policy
     cellPhonePolicy: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -160,7 +160,7 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
-    // Step 15: School Counseling Plan
+    // Step 14: School Counseling Plan
     counselingPlan: {
       completed: { type: Boolean, default: false },
       data: { type: mongoose.Schema.Types.Mixed, default: {} },

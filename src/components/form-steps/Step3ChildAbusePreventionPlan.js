@@ -11,7 +11,7 @@ const Step3ChildAbusePreventionPlan = ({ stepData, updateStepData, isActive }) =
   });
 
   const [formData, setFormData] = useState({});
-  
+
   useEffect(() => {
     if (stepData) {
       // stepData is already the actual data object, not wrapped in .data
@@ -27,25 +27,19 @@ const Step3ChildAbusePreventionPlan = ({ stepData, updateStepData, isActive }) =
 
   const renderQuestion = (question) => {
     const value = formData[question.id] || (question.type === 'checkbox' ? false : '');
-    // In your component
-    // Or use CSS: white-space: pre-line
-    // <label htmlFor={question.id} className="text-sm text-gray-700 whitespace-pre-line">
-    //   {formattedTitle}
-    // </label>
-    const formattedTitle = question.title.replace(/\n/g, '<br />');
 
     if (question.type === 'checkbox') {
       return (
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-colors duration-200">
           <input
             type="checkbox"
             id={question.id}
             checked={value}
             onChange={(e) => handleInputChange(question.id, e.target.checked)}
-            className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            className="mt-1 w-5 h-5 text-blue-600 bg-white border-gray-300 rounded-md focus:ring-blue-500 focus:ring-2 cursor-pointer"
           />
-          <label htmlFor={question.id} className="text-sm text-gray-700">
-            {formattedTitle}
+          <label htmlFor={question.id} className="text-base text-gray-700 cursor-pointer flex-1 whitespace-pre-line">
+            {question.title}
           </label>
         </div>
       );
@@ -59,60 +53,90 @@ const Step3ChildAbusePreventionPlan = ({ stepData, updateStepData, isActive }) =
           value={value}
           onChange={(e) => handleInputChange(question.id, e.target.value)}
           placeholder={question.placeholder}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
         />
       );
     }
 
     return (
-      <textarea
-        id={question.id}
-        value={value}
-        onChange={(e) => handleInputChange(question.id, e.target.value)}
-        placeholder={question.placeholder}
-        rows={4}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-      />
+      <div>
+        <label htmlFor={question.id} className="block text-base font-semibold text-gray-700 mb-3 whitespace-pre-line">
+          {question.title}
+        </label>
+        <textarea
+          id={question.id}
+          value={value}
+          onChange={(e) => handleInputChange(question.id, e.target.value)}
+          placeholder={question.placeholder}
+          rows={5}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none hover:border-gray-400"
+        />
+      </div>
     );
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-50 to-rose-100 border-2 border-red-200 rounded-xl p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 mb-8 shadow-lg">
+        <div className="flex items-center gap-6 mb-6">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md">
+            <Shield className="w-8 h-8 text-blue-600" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-red-800">
-              Step 3: Child Abuse and Neglect Intervention
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Section 2: Child Abuse and Neglect Intervention and Prevention School Plan
             </h2>
-            <p className="text-red-600">
+            <p className="text-blue-100 text-lg">
               Comprehensive prevention and intervention protocols for child safety
+            </p>
+          </div>
+        </div>
+
+        {/* Important Information */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mt-6">
+          <div className="space-y-3 text-white">
+            <p className="leading-relaxed">
+              <a
+                href="https://www.schools.nyc.gov/school-life/special-situations/child-abuse"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-blue-100 transition-colors font-semibold"
+              >
+                (Chancellor's Regulation A-750)
+              </a> - A response to every question in this section is required.
+            </p>
+            <p className="leading-relaxed">
+              While all school staff members are required to personally report any cases of suspected child abuse or maltreatment
+              to the State Central Register, the Designated Liaison is the school's point person on child protection and foster care
+              matters.
             </p>
           </div>
         </div>
       </div>
 
       {/* Information Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="w-5 h-5 text-red-600" />
-            <span className="font-semibold text-red-800">Critical Safety Protocols</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-lg font-bold text-blue-800">Critical Safety Protocols</span>
           </div>
-          <p className="text-red-700 text-sm">
+          <p className="text-blue-700 leading-relaxed">
             This step establishes essential protocols for preventing and responding to child abuse and neglect, ensuring student safety and compliance with regulations.
           </p>
         </div>
-        
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-5 h-5 text-blue-600" />
-            <span className="font-semibold text-blue-800">Training Requirements</span>
+
+        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-400 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-lg font-bold text-yellow-800">Training Requirements</span>
           </div>
-          <p className="text-blue-700 text-sm">
+          <p className="text-yellow-800 leading-relaxed">
             All staff must receive training by October 31st on signs of abuse, reporting procedures, and legal aspects including confidentiality.
           </p>
         </div>
@@ -120,24 +144,32 @@ const Step3ChildAbusePreventionPlan = ({ stepData, updateStepData, isActive }) =
 
       {/* Questions */}
       <div className="space-y-6">
-        {questions.map((question) => (
-          <div key={question.id} className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                {question.title}
-              </h3>
+        {questions.map((question, index) => (
+          <div key={question.id} className="bg-white border-2 border-gray-200 rounded-xl p-8 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200">
+            <div className="mb-6">
+              <div className="flex items-start gap-4 mb-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+                  {question.question_number}
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 flex-1 whitespace-pre-line">
+                  {question.title}
+                </h3>
+              </div>
               {question.description && (
-                <p className="text-gray-600 text-sm mb-3">
+                <p className="text-gray-600 ml-12 leading-relaxed whitespace-pre-line">
                   {question.description}
                 </p>
               )}
             </div>
-            
-            {renderQuestion(question)}
-            
+
+            <div className="ml-12">
+              {renderQuestion(question)}
+            </div>
+
             {question.required && (
-              <p className="text-red-600 text-sm mt-2">
-                * This field is required
+              <p className="text-red-600 text-sm mt-3 ml-12 flex items-center gap-1">
+                <span className="text-red-500">*</span>
+                This field is required
               </p>
             )}
           </div>
@@ -145,12 +177,14 @@ const Step3ChildAbusePreventionPlan = ({ stepData, updateStepData, isActive }) =
       </div>
 
       {/* Footer Alert */}
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-red-600" />
-          <span className="font-semibold text-red-800">Student Safety Priority</span>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+            <Shield className="w-6 h-6 text-blue-600" />
+          </div>
+          <span className="text-xl font-bold text-white">Student Safety Priority</span>
         </div>
-        <p className="text-red-700 text-sm mt-2">
+        <p className="text-blue-50 leading-relaxed">
           Child abuse prevention and intervention is a critical component of school safety. Ensure all protocols are clearly documented and staff are properly trained to recognize and respond to potential abuse situations.
         </p>
       </div>

@@ -40,8 +40,26 @@ const FormViewer = ({ form }) => {
   // Export to PDF
   const exportToPDF = async () => {
     try {
+      // Check if required libraries are available
+      if (typeof jsPDF === 'undefined' || typeof html2canvas === 'undefined') {
+        alert('PDF export libraries not loaded. Please refresh the page and try again.');
+        return;
+      }
+
       const element = document.getElementById('form-viewer-content');
-      if (!element) return;
+      if (!element) {
+        console.error('Form viewer content element not found');
+        alert('Error: Could not find form content to export');
+        return;
+      }
+
+      // Show loading message
+      console.log('Starting PDF generation...');
+      console.log('Browser info:', {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled
+      });
 
       // Create a temporary container for better PDF formatting
       const tempContainer = document.createElement('div');
@@ -55,27 +73,104 @@ const FormViewer = ({ form }) => {
       tempContainer.style.fontSize = '12px';
       tempContainer.style.lineHeight = '1.4';
       
-      // Clone the content
+      // Clone the content and remove problematic SVG elements
       const clonedContent = element.cloneNode(true);
+      
+      // Remove or replace problematic SVG elements that might cause issues
+      const removeProblematicElements = (node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // Remove SVG elements that might have read-only properties
+          if (node.tagName === 'svg') {
+            // Replace SVG with a placeholder div
+            const placeholder = document.createElement('div');
+            placeholder.textContent = '[Icon]';
+            placeholder.style.display = 'inline-block';
+            placeholder.style.width = '20px';
+            placeholder.style.height = '20px';
+            placeholder.style.backgroundColor = '#f0f0f0';
+            placeholder.style.border = '1px solid #ccc';
+            placeholder.style.textAlign = 'center';
+            placeholder.style.fontSize = '10px';
+            placeholder.style.lineHeight = '20px';
+            placeholder.style.margin = '0 5px';
+            placeholder.style.verticalAlign = 'middle';
+            
+            if (node.parentNode) {
+              node.parentNode.replaceChild(placeholder, node);
+            }
+            return;
+          }
+          
+          // Process children
+          if (node.children) {
+            // Create a copy of children array to avoid modification during iteration
+            const children = Array.from(node.children);
+            children.forEach(removeProblematicElements);
+          }
+        }
+      };
+      
+      removeProblematicElements(clonedContent);
       
       // Clean up the cloned content for PDF
       const cleanForPDF = (node) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
-          // Remove print-specific classes
-          node.className = node.className.replace(/print:/g, '');
+          // Check if this is an SVG element or has SVG children
+          const isSVGElement = node.tagName === 'svg' || 
+                               node.tagName === 'path' || 
+                               node.tagName === 'circle' || 
+                               node.tagName === 'rect' || 
+                               node.tagName === 'line' || 
+                               node.tagName === 'polygon' ||
+                               node.tagName === 'g' ||
+                               node.tagName === 'text' ||
+                               node.tagName === 'foreignObject';
           
-          // Ensure text colors are readable
-          if (node.style.color) {
-            node.style.color = '#000000';
+          // For SVG elements, only process children, don't modify properties
+          if (isSVGElement) {
+            if (node.children) {
+              Array.from(node.children).forEach(cleanForPDF);
+            }
+            return;
+          }
+
+          // For regular HTML elements, safely modify properties
+          try {
+            // Remove print-specific classes
+            if (node.className) {
+              if (typeof node.className === 'string') {
+                node.className = node.className.replace(/print:/g, '');
+              } else if (typeof node.className.toString === 'function') {
+                const className = node.className.toString();
+                node.className = className.replace(/print:/g, '');
+              }
+            }
+          } catch (error) {
+            console.warn('Cannot modify className on element:', node.tagName, error.message);
           }
           
-          // Ensure background colors are white
-          if (node.style.backgroundColor && node.style.backgroundColor !== 'white') {
-            node.style.backgroundColor = 'white';
+          try {
+            // Ensure text colors are readable
+            if (node.style && node.style.color) {
+              node.style.color = '#000000';
+            }
+          } catch (error) {
+            console.warn('Cannot modify style.color on element:', node.tagName, error.message);
+          }
+          
+          try {
+            // Ensure background colors are white
+            if (node.style && node.style.backgroundColor && node.style.backgroundColor !== 'white') {
+              node.style.backgroundColor = 'white';
+            }
+          } catch (error) {
+            console.warn('Cannot modify style.backgroundColor on element:', node.tagName, error.message);
           }
           
           // Process children
-          Array.from(node.children).forEach(cleanForPDF);
+          if (node.children) {
+            Array.from(node.children).forEach(cleanForPDF);
+          }
         }
       };
       
@@ -90,19 +185,32 @@ const FormViewer = ({ form }) => {
         allowTaint: true,
         backgroundColor: '#ffffff',
         width: 800,
-        height: tempContainer.scrollHeight
+        height: tempContainer.scrollHeight,
+        logging: false, // Disable console logging
+        ignoreElements: (element) => {
+          // Skip problematic SVG elements that might cause issues
+          return element.tagName === 'svg' && element.querySelector('defs');
+        }
       });
 
       // Clean up temporary container
-      document.body.removeChild(tempContainer);
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
 
       // Create PDF
+      console.log('Converting canvas to image...');
       const imgData = canvas.toDataURL('image/png');
+      console.log('Image data length:', imgData.length);
+      
+      console.log('Creating PDF document...');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = pdfWidth - 20; // 10mm margin on each side
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      console.log('PDF dimensions:', { pdfWidth, pdfHeight, imgWidth, imgHeight });
       
       let heightLeft = imgHeight;
       let position = 10; // Top margin
@@ -119,13 +227,75 @@ const FormViewer = ({ form }) => {
         heightLeft -= (pdfHeight - 20);
       }
 
-      // Save PDF
+      // Save PDF with improved download handling
       const fileName = `School-Plan-Form-${form.schoolName?.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
+      
+      console.log('Attempting to download PDF:', fileName);
+      console.log('PDF size:', pdf.internal.getNumberOfPages(), 'pages');
+      
+      // Check if browser supports downloads
+      const supportsDownload = 'download' in document.createElement('a');
+      console.log('Browser supports download attribute:', supportsDownload);
+      
+      try {
+        // Method 1: Try direct save first (most reliable)
+        console.log('Trying pdf.save() method...');
+        pdf.save(fileName);
+        console.log('PDF download initiated via pdf.save()');
+        
+        // Give it a moment, then show success message
+        setTimeout(() => {
+          console.log('PDF export completed successfully!');
+          alert(`✅ PDF exported successfully!\n\nFile: ${fileName}\nLocation: Your Downloads folder\n\nIf you don't see the file, check your browser's download settings or try right-clicking the page and selecting "Save As".`);
+        }, 1000);
+        
+      } catch (saveError) {
+        console.error('pdf.save() failed, trying alternative method:', saveError);
+        
+        // Method 2: Alternative download using blob
+        try {
+          const pdfBlob = pdf.output('blob');
+          const url = URL.createObjectURL(pdfBlob);
+          
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          link.style.display = 'none';
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Clean up
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 100);
+          
+          console.log('PDF download initiated via blob method');
+          alert(`PDF exported successfully as: ${fileName}\nCheck your Downloads folder.`);
+          
+        } catch (blobError) {
+          console.error('Blob method failed, trying data URI:', blobError);
+          
+          // Method 3: Fallback to data URI
+          const pdfDataUri = pdf.output('datauristring');
+          const link = document.createElement('a');
+          link.href = pdfDataUri;
+          link.download = fileName;
+          link.style.display = 'none';
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          console.log('PDF download initiated via data URI method');
+          alert(`PDF generated! If download didn't start automatically, check your browser's download folder for: ${fileName}`);
+        }
+      }
 
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      alert(`Error generating PDF: ${error.message || 'Unknown error occurred. Please try again.'}`);
     }
   };
 
@@ -215,7 +385,7 @@ const FormViewer = ({ form }) => {
               <CheckCircle className="w-5 h-5 text-blue-600" />
               <span className="font-semibold text-blue-800">Progress:</span>
               <span className="text-blue-700">
-                {form.completedSteps?.length || 0}/15 steps completed
+                {form.completedSteps?.length || 0}/14 steps completed
               </span>
             </div>
           </div>

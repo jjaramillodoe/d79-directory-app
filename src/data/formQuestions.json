@@ -7,869 +7,1080 @@
             "questions": [
                 {
                     "id": "screen1question1",
+                    "question_number": "1",
                     "title": "Table of Contents",
                     "placeholder": "Please confirm that you have reviewed the table of contents for this comprehensive school plan.",
                     "type": "checkbox",
                     "required": false,
-                    "description": "This step confirms your understanding of the 15-step school plan structure."
+                    "description": "This step confirms your understanding of the 14-step school plan structure."
                 }
             ]
         },
         {
             "id": 2,
-            "key": "principalLetter",
-            "title": "Principal Letter",
+            "key": "childAbuseIntervention",
+            "title": "Child Abuse and Neglect Intervention",
             "questions": [
                 {
-                    "id": "screen2question1",
-                    "title": "Principal Letter",
-                    "placeholder": "Please provide a brief letter or statement from the principal outlining the school's commitment to implementing this comprehensive plan...",
-                    "type": "checkbox",
+                    "id": "screen4question1",
+                    "question_number": "1",
+                    "title": "Child Abuse & Maltreatment Prevention and Intervention Designated Liaison",
+                    "placeholder": "Enter the full name and official title of the Designated Liaison responsible for child abuse and maltreatment prevention and intervention at your school.",
+                    "type": "text",
+                    "required": true,
+                    "description": "Provide the individual’s full name and professional title designated as the school liaison for child abuse and maltreatment prevention and intervention."
+                },
+                {
+                    "id": "screen4question2",
+                    "question_number": "2",
+                    "title": "List names and titles of members of your school's Child Abuse/Maltreatment Prevention & Intervention Team (including the staff member responsible for updating information for students in foster care):",
+                    "placeholder": "List all team members involved in prevention and intervention efforts, including names, job titles, and the staff member handling foster care updates.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include all team members involved in child abuse prevention/intervention, with each name, title, and foster care data responsibilities."
+                },
+                {
+                    "id": "screen4question3",
+                    "question_number": "3",
+                    "title": "Staff Training: Summarize Chancellor's Regulation A-750 training",
+                    "placeholder": "Provide the scheduled training dates, details of attendance sheet forwarding, and materials used to train staff on Chancellor’s Regulation A-750 by October 31st.",
+                    "type": "text",
+                    "required": true,
+                    "description": "State the dates and logistics of staff training for child abuse and maltreatment regulation topics, including documentation procedures."
+                },
+                {
+                    "id": "screen4question4",
+                    "question_number": "4",
+                    "title": "Parental Involvement and Outreach Efforts",
+                    "placeholder": "Describe all planned activities and community outreach targeting parental engagement in child abuse prevention and intervention.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "List all initiatives and events aimed at educating and involving parents in the school’s child abuse prevention and intervention efforts."
+                },
+                {
+                    "id": "screen4question5",
+                    "question_number": "5",
+                    "title": "Student Education for Child Abuse and Neglect Prevention",
+                    "placeholder": "Detail the programs and activities scheduled to teach students about recognizing and preventing child abuse, neglect, and personal safety.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Provide examples of curricular activities or programs supporting student education around abuse, neglect prevention, and personal safety."
+                },
+                {
+                    "id": "screen4question6",
+                    "question_number": "6",
+                    "title": "Collaboration with Local Agencies",
+                    "placeholder": "List all local agencies partnered with to support child abuse prevention, and provide contact names for each partner.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Specify external agencies and contact people involved in collaborative child abuse prevention and intervention for students, parents, and staff."
+                },
+                {
+                    "id": "screen4question7",
+                    "question_number": "7",
+                    "title": "Foster Care Support Plan",
+                    "placeholder": "Describe your school’s comprehensive plan for supporting students in foster care, including details on stability, transportation, attendance, counseling, and weekly check-ins.",
+                    "type": "textarea",
                     "required": false,
-                    "description": "This letter demonstrates leadership commitment to the school plan implementation."
+                    "description": "Outline support procedures for foster care students regarding school stability, transportation logistics, regular attendance, counseling services, and monitoring."
+                },
+                {
+                    "id": "screen4question8",
+                    "question_number": "8",
+                    "title": "Foster Care Staff Responsibilities",
+                    "placeholder": "List the names and titles of all staff responsible for (1) updating student addresses, (2) arranging timely transportation after ACS placement notification, and (3) completing and returning the Student Input Form for BID.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Identify staff in charge of address updates, transportation arrangements, and BID form submission for foster care students after ACS notifications."
+                },
+                {
+                    "id": "screen4question9",
+                    "question_number": "9",
+                    "title": "Individual Progress Review for Foster Care Students",
+                    "placeholder": "Summarize procedures and assign staff to ensure all foster care students receive an early Individual Progress Review (IPR).",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Describe the process and assign responsible staff to conduct Individual Progress Reviews for foster care students at the start of the year."
+                },
+                {
+                    "id": "screen4question10",
+                    "question_number": "10",
+                    "title": "Uninterrupted Scholars Act – Foster Care Student Protections",
+                    "placeholder": "Explain your school’s plan and list staff assigned to protect foster care students from academic or disciplinary consequences related to absences due to foster care status.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Report the plan and staff involved in ensuring foster care students are not penalized or disadvantaged due to attendance issues caused by their placement."
+                },
+                {
+                    "id": "screen4question11",
+                    "question_number": "11",
+                    "title": "Foster Care Agency Outreach Procedures",
+                    "placeholder": "Describe outreach procedures and assign staff responsible for contacting the foster care agency after case planning responsibility is established.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Summarize outreach methods and assign designated staff to liaise with foster care agencies post initial contact with foster parents."
+                },
+                {
+                    "id": "screen4question12",
+                    "question_number": "12",
+                    "title": "Erin's Law Implementation – Sexual Abuse Prevention Education",
+                    "placeholder": "Describe your school’s plan for K–8 instructional programs covering sexual abuse, exploitation, and human trafficking prevention.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Explain instructional approaches and detail faculty responsibilities for sexual abuse, exploitation, and trafficking prevention education required under Erin's Law."
+                },
+                {
+                    "id": "screen4question13",
+                    "question_number": "13",
+                    "title": "Staff and Parent Education for Sexual Abuse Prevention",
+                    "placeholder": "Outline your school’s plan and program for training staff and parents/caregivers to prevent sexual abuse and exploitation.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "List educational programs and assign staff responsible for training all staff and parents on sexual abuse prevention."
+                },
+                {
+                    "id": "screen4question14",
+                    "question_number": "14",
+                    "title": "Tiered Response Protocol – Attendance Monitoring for Child Welfare-Involved Students",
+                    "placeholder": "Provide the full name and title of the staff member designated as your school's Tiered Response Protocol designee for monitoring the attendance of welfare-involved students.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Identify the staff member assigned to monitor attendance and coordinate Tiered Response interventions for child welfare-involved students as per Chancellor's Regulation A-750."
                 }
             ]
         },
         {
             "id": 3,
-            "key": "childAbuseIntervention",
-            "title": "Child Abuse and Neglect Intervention",
+            "key": "sexualHarassment",
+            "title": "Student to Student Sexual Harassment",
             "questions": [
                 {
-                    "id": "screen3question1",
-                    "title": "1. Child Abuse & Maltreatment Prevention and Intervention Designated Liaison",
-                    "placeholder": "Enter the name and title of your school's\nDesignated Liaison for Child Abuse & Maltreatment Prevention and Intervention.",
-                    "type": "text",
-                    "required": true,
-                    "description": "Provide the name and title of your school's\nDesignated Liaison for Child Abuse & Maltreatment Prevention and Intervention."
-                },
-                {
-                    "id": "screen3question2",
-                    "title": "2. List names and titles of members of your school’s Child Abuse/Maltreatment Prevention & Intervention Team:",
-                    "placeholder": "List names and titles of members of your school’s\nChild Abuse/Maltreatment Prevention & Intervention Team.",
+                    "id": "screen5question1",
+                    "question_number": "1",
+                    "title": "Enter the primary Sexual Harassment Prevention (SHP) liaison who will receive reports of student-to-student sexual harassment, serve as a resource to students and staff, and be listed as the SHP Liaison on the school's webpage and posters. The SHP liaison must be a licensed administrator, supervisor, teacher, guidance counselor, school psychologist, or social worker who works in the school full-time.",
+                    "placeholder": "Enter the full name, job title, and role of the primary SHP Liaison who receives reports, provides support, and is posted as the main contact for sexual harassment prevention.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Enter the names and titles of all members of your school’s\nChild Abuse/Maltreatment Prevention & Intervention Team."
+                    "description": "Identify a staff member who meets SHP liaison requirements and will act as the primary contact for student-to-student sexual harassment cases."
                 },
                 {
-                    "id": "screen3question3",
-                    "title": "3. All staff, including pedagogical and non-pedagogical staff, must be provided with copies of the Blue Card highlights of Chancellor's Regulation A-750, and receive training from your school's Designated Liaison on the following topics by October 31st:\na) signs of child abuse and maltreatment;\nb) when a report of suspected child abuse or maltreatment must be made and how to make a report;\nc) techniques for managing and working with students and parents before, during and after reporting incidents of child abuse and/or maltreatment;\nd) legal aspects and implications relating to reporting child abuse and maltreatment, including but not limited to confidentiality and failure to make a report. Indicate below the scheduled dates of your trainings.",
-                    "placeholder": "Indicate the scheduled training dates for all staff\non the required topics by October 31st.",
+                    "id": "screen5question2",
+                    "question_number": "2",
+                    "title": "The mandated OSYD training required by Chancellor's Regulation A-831.",
+                    "placeholder": "Describe when and how the primary SHP Liaison completed the required OSYD training as mandated by Chancellor's Regulation A-831.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Ensure the primary liaison completed all mandatory sexual harassment prevention training developed by OSYD."
+                },
+                {
+                    "id": "screen5question3",
+                    "question_number": "3",
+                    "title": "Please enter the names of all additional 'Sexual Harassment Prevention' Liaisons who have completed the mandated training.",
+                    "placeholder": "List the names and titles of all additional 'Sexual Harassment Prevention' Liaisons who have finished the required OSYD sexual harassment prevention training.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Name any other 'Sexual Harassment Prevention' liaisons, apart from the primary, who have completed training as required by Chancellor's Regulation A-831."
+                },
+                {
+                    "id": "screen5question4",
+                    "question_number": "4",
+                    "title": "Enter the names of any staff members that conduct investigations of student-to-student sexual harassment.",
+                    "placeholder": "Enter the names and roles of staff members qualified and assigned to investigate student-to-student sexual harassment cases.",
+                    "type": "textarea",
+                    "required": false,
+                    "description": "Identify each staff member authorized to investigate sexual harassment cases between students."
+                },
+                {
+                    "id": "screen5question5",
+                    "question_number": "5",
+                    "title": "All principals and individuals designated to conduct A-831 investigations are required to annually take the training developed by OSYD, 'Chancellor's Regulations A-832 & A-831'. Confirm that the principal and any staff who conducts investigations of student-to-student sexual harassment complete the mandated OSYD training for principals/designees by October 31st?",
+                    "placeholder": "Describe when and how the principal and any staff who conducts investigations of student-to-student sexual harassment complete the mandated OSYD training for principals/designees by October 31st.",
                     "type": "checkbox",
                     "required": true,
-                    "description": "Provide the scheduled training dates for all staff\non the required child abuse and maltreatment topics by October 31st."
+                    "description": "Verification that the principal and investigation staff completed training is required for compliance each year."
                 },
                 {
-                    "id": "screen3question4",
-                    "title": "4. What activities and outreach efforts have you scheduled for parental involvement and support of child abuse prevention and intervention?",
-                    "placeholder": "Describe activities and outreach efforts scheduled\nfor parental involvement and support of child abuse prevention and intervention.",
+                    "id": "screen5question6",
+                    "question_number": "6",
+                    "title": "Confirm that students have been provided with information and training on the policy and procedures outlined in Chancellor’s Regulation A-831 by October 31st as required by the regulation using the training deck on the Respect for All InfoHub that is aligned with their grade level.",
+                    "placeholder": "Describe when and how all students have completed training by October 31st on sexual harassment policy and procedure, using the Respect for All InfoHub grade-level decks.",
+                    "type": "checkbox",
+                    "required": true,
+                    "description": "All students are required to receive annual policy training by October 31st using the Respect for All InfoHub materials."
+                },
+                {
+                    "id": "screen5question7",
+                    "question_number": "7",
+                    "title": "Confirm that staff members (including non-instructional staff) have been provided with information and training on the policy and procedures outlined in Chancellor’s Regulation A-831 by October 31st as required by the regulation, using the training deck Respect for All: Making School Safe and Supportive for All Students.",
+                    "placeholder": "Describe when and how all instructional and non-instructional staff have received annual sexual harassment prevention training by October 31st.",
+                    "type": "checkbox",
+                    "required": true,
+                    "description": "Annual training for all staff, instructional and non-instructional, is mandatory for compliance."
+                },
+                {
+                    "id": "screen5question8",
+                    "question_number": "8",
+                    "title": "Confirm that the agenda, signed attendance roster(s) and a copy of all training materials to document the annual staff training are on file at the school.",
+                    "placeholder": "Describe when and how the school has kept training agendas, signed attendance rosters, and all staff training materials on file.",
+                    "type": "checkbox",
+                    "required": true,
+                    "description": "Documentation of annual staff sexual harassment prevention training must be maintained on-site."
+                },
+                {
+                    "id": "screen5question9",
+                    "question_number": "9",
+                    "title": "Enter a plan for preventing and addressing student-to-student sexual harassment, including cyber content. Note: Please see the Office of Safety and Youth Development's Guide to Implementing Respect for All and the Guidelines on Gender Inclusion. \nAll Staff received SOPM SY2025-2026 of Chancellor's Regulations during the faculty meeting of September 2, 2025. Staff shared same information on an ongoing basis with students delineating rules and responsibilities. Respect for All posters in classrooms. Standard Operating Procedures Manual was distributed electronically and reviewed during staff meeting. Team approach is utilized when dealing with students issues and all stakeholders are communicated with. All staff are actively involved in taking a proactive approach in communicating appropriate behavior. Positive pro-social behavior is continuously addressed and modelled for students.",
+                    "placeholder": "Describe strategies, programs, and resources your school uses to prevent and address student-to-student sexual harassment (including online or cyber incidents).",
                     "type": "textarea",
                     "required": true,
-                    "description": "Enter the planned activities and outreach efforts\nfor involving parents in child abuse prevention and intervention."
+                    "description": "Schools must detail and document their comprehensive plan for sexual harassment prevention and response."
                 },
                 {
-                    "id": "screen3question5",
-                    "title": "5. What activities have you planned for student education on child abuse and neglect prevention (including personal safety)?",
-                    "placeholder": "Describe activities planned for student education\non child abuse and neglect prevention (including personal safety).",
+                    "id": "screen5question10",
+                    "question_number": "10",
+                    "title": "Indicate locations in which \"Check & Respect\" posters are displayed:",
+                    "placeholder": "List specific locations (e.g., hallways, cafeteria, auditorium) where \"Check & Respect\" posters are posted.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Provide details of activities and programs\nfor student education on child abuse and neglect prevention,\nincluding personal safety."
+                    "description": "Posters must be visible in frequent student and staff areas for accessibility and awareness."
                 },
                 {
-                    "id": "screen3question6",
-                    "title": "6. With what local agencies have you connected to support students, parents and staff around child abuse prevention and intervention? List the agencies and contact people.",
-                    "placeholder": "List local agencies and contact people\nthat support students, parents, and staff\naround child abuse prevention and intervention.",
-                    "type": "textarea",
+                    "id": "screen5question11",
+                    "question_number": "11",
+                    "title": "Check this box to confirm that SHP Liaison name(s) is/are listed on posters.",
+                    "placeholder": "Check to confirm SHP Liaison name(s) appear on all sexual harassment prevention posters in the school.",
+                    "type": "checkbox",
                     "required": true,
-                    "description": "Provide the names of local agencies and contact people\nconnected with your school for child abuse prevention and intervention support."
+                    "description": "Ensure the primary contact(s) for sexual harassment reporting is clearly listed on all prevention materials."
                 },
                 {
-                    "id": "screen3question7",
-                    "title": "7. Tiered Response Protocol Designee (Elementary and Middle Schools Only)",
-                    "placeholder": "Enter the name and title of your school's\nTiered Response Protocol designee\n(Elementary and Middle Schools only).",
-                    "type": "text",
-                    "required": false,
-                    "description": "Provide the name and title of your school's\nTiered Response Protocol designee\n(Elementary and Middle Schools only)."
+                    "id": "screen5question12",
+                    "question_number": "12",
+                    "title": "Confirm that the written materials prepared by OSYD highlighting the policies and procedures in Chancellor’s Regulations A-831 have been or will be distributed or made electronically available to all school staff, parents, and students. Parents and students entering the school during the school year must receive this information upon enrollment.",
+                    "placeholder": "Describe when and how the written materials prepared by OSYD highlighting the policies and procedures in Chancellor’s Regulations A-831 have been or will be distributed or made electronically available to all school staff, parents, and students. Parents and students entering the school during the school year must receive this information upon enrollment.",
+                    "type": "checkbox",
+                    "required": true,
+                    "description": "Verification of policy material distribution or availability is required for all community members each year."
                 }
             ]
         },
         {
             "id": 4,
-            "key": "sexualHarassment",
-            "title": "Student to Student Sexual Harassment",
+            "key": "respectForAll",
+            "title": "Respect For All Plan",
             "questions": [
                 {
-                    "id": "screen4question1",
-                    "title": "1. Enter the primary Sexual Harassment Prevention liaison who will receive reports of student-to-student sexual harassment, serve as a resource to students and staff, and whose name will be posted as the SHP Liaison on the school's webpage and posters. An SHP liaison must be a licensed administrator, supervisor, teacher, guidance counselor, school psychologist, or social worker who works at the school full-time.",
-                    "placeholder": "Enter the primary Sexual Harassment Prevention liaison\nwho will:\n- Receive reports of student-to-student sexual harassment\n- Serve as a resource to students and staff\n- Be listed as the SHP Liaison on the school's webpage and posters",
+                    "id": "screen6question1",
+                    "question_number": "1",
+                    "title": "Enter primary \"Respect For All\" Liaison (who will receive reports of bias-based harassment, intimidation and/or bullying and whose name will be posted as the RFA Liaison on the school's webpage). The RFA Liaison must be a licensed administrator, supervisor, teacher, guidance counselor, school psychologist, or social worker who works at the school fulltime.",
+                    "placeholder": "Provide the full name, job title, and contact information of the primary RFA Liaison who receives harassment reports and serves as the main resource for school climate and safety.",
                     "type": "textarea",
                     "required": true,
-                    "description": "The SHP liaison must be a licensed administrator, supervisor,\nteacher, guidance counselor, school psychologist, or social worker\nwho works at the school full-time."
+                    "description": "Identify the full-time staff member acting as the RFA liaison (administrator, supervisor, teacher, counselor, psychologist, or social worker)."
                 },
                 {
-                    "id": "screen4question2",
-                    "title": "2. Confirm that the primary SHP liaison has completed the mandated OSYD training required by Chancellor's Regulation A-831",
-                    "placeholder": "Confirm the primary SHP liaison has completed the mandated OSYD training\nrequired by Chancellor's Regulation A-831.",
+                    "id": "screen6question1a",
+                    "question_number": "1a",
+                    "title": "The mandated OSYD training required by Chancellor's Regulation A-832.",
+                    "placeholder": "Describe when and how the RFA liaison completed the required OSYD training for A-832 compliance (include date and format of training, if available).",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Ensure the primary RFA liaison has completed A-832-mandated OSYD training. Indicate completion date and details as needed."
+                },
+                {
+                    "id": "screen6question2",
+                    "question_number": "2",
+                    "title": "Confirm that staff members, including non-instructional staff, have been provided with the information and training on the policy and procedures outlined in Chancellor’s Regulation A-832 by October 31st as required by the regulation, using the training deck \"Respect for All: Making School Safe and Supportive for All Student\"",
+                    "placeholder": "Describe when and how all staff, including non-instructional, have completed the required OSYD A-832 Respect For All training using official resources by October 31st.",
                     "type": "checkbox",
                     "required": false,
-                    "description": "Check this box if the primary liaison\nhas already completed the required training."
+                    "description": "Confirm all staff received annual Respect For All policy and procedure training by the required deadline."
                 },
                 {
-                    "id": "screen4question3",
-                    "title": "3. Confirm that the primary SHP liaison will complete the mandated training required by Chancellor's Regulation A-831",
-                    "placeholder": "Confirm the primary SHP liaison will complete the mandated training\nrequired by Chancellor's Regulation A-831.",
+                    "id": "screen6question3",
+                    "question_number": "3",
+                    "title": "Confirm that the agenda, signed attendance roster(s), and copies of all training materials documenting the annual staff training are on file at the school.",
+                    "placeholder": "Check to confirm staff training documentation (agendas, attendance sheets, training materials) is retained at the school for compliance purposes.",
                     "type": "checkbox",
                     "required": false,
-                    "description": "Check this box if the primary liaison\nwill complete the required training."
+                    "description": "Verification that annual training records and supporting materials are maintained at the school."
                 },
                 {
-                    "id": "screen4question4",
-                    "title": "4. Enter the names of all additional \"Sexual Harassment Prevention\" Liaisons who have completed the mandated training...",
-                    "placeholder": "Enter the names of all additional\n\"Sexual Harassment Prevention\" Liaisons\nwho have completed the mandated training.",
-                    "type": "textarea",
+                    "id": "screen6question4",
+                    "question_number": "4",
+                    "title": "Confirm that students have been provided with information and training on the policy and procedures outlined in Chancellor’s Regulation A-832 by October 31st as required by the regulation, using the grade appropriate training decks, \"Respect For All A-832, Elementary or Secondary Grades\", found on the InfoHub under Presentation for Students https://infohub.nyced.org/nyc-doe-topics/students-and-families/school-culture-and-climate/respect-for-all",
+                    "placeholder": "Describe or check that students at all grade levels have received annual Respect For All training, as per A-832, with materials from the InfoHub by October 31st.",
+                    "type": "checkbox",
                     "required": false,
-                    "description": "List any additional SHP liaisons\nwho have completed the required training."
+                    "description": "Document how students received A-832 policy and procedure training using DOE-approved guides and presentations."
                 },
                 {
-                    "id": "screen4question5",
-                    "title": "5. Enter the names of any staff members that conduct investigations of student-to-student sexual harassment...",
-                    "placeholder": "Enter the names of staff members\nwho conduct investigations of student-to-student sexual harassment.",
+                    "id": "screen6question5",
+                    "question_number": "5",
+                    "title": "Enter a plan for preventing and addressing harassment, discrimination, intimidation, and/or bullying. \nNote: Please see the Office of Safety and Youth Development’s Guide to Implementing Respect For All for specific information and guidance. Since harassment can occur through electronic media, it is important to include cyber-bullying in your planning. \nNote: Please also see the Office of Safety and Youth Development Guide to Implementing Respect For All and the Guidelines on Gender Inclusion. \nNote: Please also visit the Office of Safety and Youth Development Guidelines and Best Practices webpage.",
+                    "placeholder": "Describe your school's strategies, programs, and practices for preventing and responding to harassment, discrimination, intimidation, bullying, and cyberbullying.",
                     "type": "textarea",
                     "required": true,
-                    "description": "All principals and individuals designated to conduct A-831 investigations\nmust annually complete the OSYD training:\n\"Chancellor's Regulations A-832 & A-831\"."
+                    "description": "Schools are required to maintain proactive plans and documentation addressing all forms of bias-based behavior and support compliance with Respect For All."
                 },
                 {
-                    "id": "screen4question6",
-                    "title": "6. Confirm that the principal and any staff who conducts investigations of student-to-student sexual harassment complete the mandated OSYD training for principals/designees by October 31st",
-                    "placeholder": "Confirm the principal and staff investigators\ncomplete the mandated OSYD training\nfor principals/designees by October 31st.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Annual training is required by October 31st\nfor all principals and investigation staff."
-                },
-                {
-                    "id": "screen4question7",
-                    "title": "7. Confirm that students have been provided with information and training on the policy and procedures outlined in Chancellor's Regulation A-831 by October 31st as required by the regulation using the training deck on the Respect for All InfoHub that is aligned with their grade level",
-                    "placeholder": "Confirm students have been provided with training\non Chancellor's Regulation A-831 policies and procedures\nusing the grade-level training deck\nfrom the Respect for All InfoHub by October 31st.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Students must receive training by October 31st\nusing the grade-level appropriate deck\non the Respect for All InfoHub."
-                },
-                {
-                    "id": "screen4question8",
-                    "title": "8. Confirm that staff members (including non-instructional staff) have been provided with information and training on the policy and procedures outlined in Chancellor's Regulation A-831 by October 31st as required by the regulation",
-                    "placeholder": "Confirm staff (including non-instructional)\nreceived training on Chancellor's Regulation A-831\npolicies and procedures by October 31st.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "All staff, including non-instructional,\nare required to complete this training by October 31st."
-                },
-                {
-                    "id": "screen4question9",
-                    "title": "9. Confirm that the agenda, signed attendance roster(s) and a copy of all training materials to document the annual staff training are on file at the school",
-                    "placeholder": "Confirm agenda, signed attendance roster(s),\nand training materials are on file at the school\nfor annual staff training.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Schools must maintain documentation\nfor compliance purposes."
-                },
-                {
-                    "id": "screen4question10",
-                    "title": "10. Enter a plan for preventing and addressing student-to-student sexual harassment, including cyber content...",
-                    "placeholder": "Enter a plan for preventing and addressing\nstudent-to-student sexual harassment,\nincluding cyber content.",
+                    "id": "screen6question6",
+                    "question_number": "6",
+                    "title": "Indicate locations in which \"Respect For All\" posters are displayed:",
+                    "placeholder": "List all areas (e.g., hallways, main office, cafeteria, entryways) where \"Respect For All\" posters are currently posted and viewable to the school community.",
                     "type": "textarea",
                     "required": true,
-                    "description": "See the Office of Safety and Youth Development's\nGuide to Implementing Respect for All\nand the Guidelines on Gender Inclusion."
+                    "description": "Poster locations must be highly visible to students, staff, and visitors according to DOE regulations."
                 },
                 {
-                    "id": "screen4question11",
-                    "title": "11. Indicate locations in which \"Check & Respect\" posters are displayed:",
-                    "placeholder": "Indicate locations where\n\"Check & Respect\" posters are displayed.",
+                    "id": "screen6question7",
+                    "question_number": "7",
+                    "title": "Confirm that RFA Liaison's name(s) are listed on posters with room numbers.",
+                    "placeholder": "Check to confirm that the names and room numbers of all current RFA Liaisons are listed on every poster throughout the school.",
+                    "type": "checkbox",
+                    "required": false,
+                    "description": "Confirm the information on public RFA posters includes liaison names and room numbers for reporting access."
+                },
+                {
+                    "id": "screen6question8",
+                    "question_number": "8",
+                    "title": "Please enter the names of all additional \"Respect For All\" Liaisons who have completed or will complete the mandated training.",
+                    "placeholder": "List any additional RFA Liaisons, with names and completion status for A-832 training (completed or scheduled).",
                     "type": "textarea",
                     "required": true,
-                    "description": "Posters must be visible\nin key school locations."
+                    "description": "Document all trained personnel serving as RFA contacts at the school."
                 },
                 {
-                    "id": "screen4question12",
-                    "title": "12. Check this box to confirm that SHP Liaison name(s) is/are listed on posters",
-                    "placeholder": "Check this box to confirm\nSHP Liaison name(s) are listed on posters.",
+                    "id": "screen6question9",
+                    "question_number": "9",
+                    "title": "Confirm that the written materials prepared by OSYD highlighting the policies and procedures in Chancellor’s Regulations A-832 have been or will be distributed or made electronically available to all school staff, parents, and students. Parents and students entering the school during the school year must receive this information upon enrollment. Written materials for distribution or electronic availability can be found here: https://www.schools.nyc.gov/school-life/school-environment/respect-for-all/respect-for-all-handouts",
+                    "placeholder": "Check or describe how all school staff, parents, and students (including newcomers) receive OSYD Respect For All written/online materials each year.",
                     "type": "checkbox",
                     "required": true,
-                    "description": "Liaison names must be displayed\non all prevention posters."
-                },
-                {
-                    "id": "screen4question13",
-                    "title": "13. Confirm that the written materials prepared by OSYD highlighting the policies and procedures in Chancellor's Regulations A-831 have been or will be distributed or made electronically available to all school staff, parents, and students",
-                    "placeholder": "Confirm OSYD written materials on Chancellor's Regulation A-831\nhave been distributed or made electronically available\nto all staff, parents, and students.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "OSYD materials must be distributed\nor made electronically available to all stakeholders."
+                    "description": "Ensure compliance by confirming wide distribution or access to Respect For All regulatory materials for the entire school community."
                 }
             ]
         },
         {
             "id": 5,
-            "key": "respectForAll",
-            "title": "Respect For All Plan",
+            "key": "suicidePrevention",
+            "title": "Suicide Prevention and Crisis Intervention",
             "questions": [
                 {
-                    "id": "screen5question1",
-                    "title": "1. Enter the primary \"Respect For All\" liaison who will receive reports of bias-based harassment, serve as a resource to students and staff, and whose name will be posted as the RFA Liaison on the school's webpage and posters...",
-                    "placeholder": "Enter the primary \"Respect For All\" liaison\nwho will:\n- Receive reports of bias-based harassment\n- Serve as a resource to students and staff\n- Be posted as the RFA Liaison on the school's webpage and posters",
+                    "id": "screen7question1",
+                    "question_number": "1",
+                    "title": "Crisis Team Leader:",
+                    "placeholder": "Enter the full name, official title, and contact details of your school's Crisis Team Leader.",
                     "type": "textarea",
                     "required": true,
-                    "description": "The RFA liaison must be a licensed administrator, supervisor,\nteacher, guidance counselor, school psychologist, or social worker\nwho works at the school full-time."
+                    "description": "Specify the staff member leading crisis response, including name, title, and role."
                 },
                 {
-                    "id": "screen5question2",
-                    "title": "2. Confirm that the primary RFA liaison has completed the mandated OSYD training required by Chancellor's Regulation A-832",
-                    "placeholder": "Confirm the primary RFA liaison has completed the mandated OSYD training\nrequired by Chancellor's Regulation A-832.",
-                    "type": "checkbox",
-                    "required": false,
-                    "description": "Check this box if the primary liaison\nhas already completed the required training."
-                },
-                {
-                    "id": "screen5question3",
-                    "title": "3. Confirm that the primary RFA liaison will complete the mandated training required by Chancellor's Regulation A-832",
-                    "placeholder": "Confirm the primary RFA liaison will complete the mandated training\nrequired by Chancellor's Regulation A-832.",
-                    "type": "checkbox",
-                    "required": false,
-                    "description": "Check this box if the primary liaison\nwill complete the required training."
-                },
-                {
-                    "id": "screen5question4",
-                    "title": "4. Enter the names of all additional \"Respect for All\" Prevention Liaisons who have completed the mandated training...",
-                    "placeholder": "Enter the names of all additional\n\"Respect For All\" Prevention Liaisons\nwho have completed the mandated training.",
-                    "type": "textarea",
-                    "required": false,
-                    "description": "List the names of any additional RFA liaisons\nwho have completed the required training."
-                },
-                {
-                    "id": "screen5question5",
-                    "title": "5. Confirm that the agenda, signed attendance roster(s) and a copy of all training materials to document the annual staff training are on file at the school",
-                    "placeholder": "Confirm the agenda, signed attendance roster(s),\nand training materials are on file at the school\nfor annual staff training.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Schools must maintain documentation\nfor compliance purposes."
-                },
-                {
-                    "id": "screen5question6",
-                    "title": "6. Enter a plan for preventing and addressing bias-based harassment, including cyber content...",
-                    "placeholder": "Enter a plan for preventing and addressing\nbias-based harassment, including cyber content.",
+                    "id": "screen6question2",
+                    "question_number": "2",
+                    "title": "Suicide Prevention Liaison:",
+                    "placeholder": "Provide the full name, title, and duties of your school's Suicide Prevention Liaison.",
                     "type": "textarea",
                     "required": true,
-                    "description": "See the Office of Safety and Youth Development's\nGuide to Implementing Respect for All\nand the Guidelines on Gender Inclusion."
+                    "description": "Identify the person responsible for suicide prevention coordination and staff training."
                 },
                 {
-                    "id": "screen5question7",
-                    "title": "7. Indicate locations in which \"Respect for All\" posters are displayed:",
-                    "placeholder": "Indicate locations where\n\"Respect For All\" posters are displayed.",
+                    "id": "screen6question3",
+                    "question_number": "3",
+                    "title": "Crisis Intervention Team Member(s):",
+                    "placeholder": "List names, job titles, and assigned roles for all Crisis Intervention Team members.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Posters must be visible\nin key school locations."
+                    "description": "Include every team member’s name, position, and specific duty on the intervention team."
                 },
                 {
-                    "id": "screen5question8",
-                    "title": "8. Check this box to confirm that RFA Liaison name(s) is/are listed on posters",
-                    "placeholder": "Check this box to confirm\nRFA Liaison name(s) are listed on posters.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Liaison names must be displayed\non all prevention posters."
-                },
-                {
-                    "id": "screen5question9",
-                    "title": "9. Please enter the names of all additional \"Respect for All\" Liaisons who have completed the mandated training:",
-                    "placeholder": "Confirm OSYD written materials on Chancellor's Regulation A-832\nhave been distributed or made electronically available\nto all staff, parents, and students.",
+                    "id": "screen6question4",
+                    "question_number": "4",
+                    "title": "List projected schedule of the dates and times the crisis intervention team will meet (recommended monthly). An agenda and the attendance of these meetings must be kept on file.",
+                    "placeholder": "State meeting dates and times for the Crisis Intervention Team and describe how attendance and agendas will be tracked.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Required distribution of OSYD materials\nto all stakeholders."
+                    "description": "Document expected meeting schedule and record-keeping procedures for the team."
                 },
                 {
-                    "id": "screen5question10",
-                    "title": "10. Confirm that the written materials prepared by OSYD highlighting the policies and procedures in Chancellor's Regulations A-832 have been or will be distributed or made electronically available to all school staff, parents, and students",
-                    "placeholder": "Confirm OSYD written materials on Chancellor's Regulation A-832\nhave been distributed or made electronically available\nto all staff, parents, and students.",
+                    "id": "screen6question5",
+                    "question_number": "5",
+                    "title": "Describe specific procedures and protocols that are in place when a crisis/traumatic event which affects the school community-occurs (e.g. death of staff member, student death, traumatic event affecting school community); and indicate support services that are available immediately following a crisis/traumatic event-to support students and their families (see below for protocols and policies regarding de-escalation of individual students in behavioral crisis): A description of protocols and policies regarding de-escalation of individual students in behavioral crisis should be entered below.",
+                    "placeholder": "Explain the school’s crisis response protocols and describe immediate support services available, including behavioral de-escalation approaches.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Outline crisis response steps, available supports, and protocols for behavioral crisis de-escalation."
+                },
+                {
+                    "id": "screen6question6",
+                    "question_number": "6",
+                    "title": "Identify notification procedures for informing students, staff and parents when a crisis/traumatic event occurs which affects the school community.",
+                    "placeholder": "Describe how and when students, staff, and parents are notified during school-wide crisis events.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include communication channels, responsible staff, and notification timelines."
+                },
+                {
+                    "id": "screen6question7",
+                    "question_number": "7",
+                    "title": "Identify professional development and trainings planned for your school community (e.g., teachers, students, parents, and extended staff) to address crises/traumatic events. \nSelect from the list below (you may select more than one option).",
+                    "placeholder": "List all planned training topics, dates, and audiences (staff, students, parents) related to crisis prevention and intervention.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Detail professional development activities and their focus areas for crisis preparedness."
+                },
+                {
+                    "id": "screen6question8",
+                    "question_number": "8",
+                    "title": "List community resources and partnerships that support the Crisis Intervention Team and/or school community in addressing crises/traumatic events.",
+                    "placeholder": "Provide names and contact information for external agencies and community partners supporting crisis response.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Name organizations, agencies, and partnerships involved in school crisis support."
+                },
+                {
+                    "id": "screen6question9",
+                    "question_number": "9",
+                    "title": "Describe the interventions and supports provided to students and their families when there is a concern that the student may be at-risk for suicide as well as follow up supports.",
+                    "placeholder": "Detail intervention procedures, counseling supports, and follow-up actions for students/families at risk of suicide.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Explain available assessment, counseling, and monitoring for at-risk students."
+                },
+                {
+                    "id": "screen6question10",
+                    "question_number": "10",
+                    "title": "Describe the interventions and supports provided to the student and their family when there is a suicide attempt as well as follow up supports.",
+                    "placeholder": "Describe support procedures, crisis response, and steps for student and family after a suicide attempt.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "List response actions and continuing supports for post-attempt situations."
+                },
+                {
+                    "id": "screen6question11",
+                    "question_number": "11",
+                    "title": "Describe the interventions and supports provided to a student and their family when the student is inflicting self-harm not connected to suicidal behavior.",
+                    "placeholder": "Explain counseling and monitoring procedures for students engaged in non-suicidal self-harm and family supports.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Document all procedures and interventions for self-harm incidents."
+                },
+                {
+                    "id": "screen6question12",
+                    "question_number": "12",
+                    "title": "Confirm that all staff members have been trained in the suicide prevention/intervention measures by the Crisis Team by October 31st as required by Chancellor's Regulation A-755.",
+                    "placeholder": "Check this box to certify full staff completion of suicide prevention training by October 31st.",
                     "type": "checkbox",
                     "required": true,
-                    "description": "OSYD materials must be distributed\nor made electronically available to all stakeholders."
+                    "description": "Confirm compliance with annual staff training requirements for suicide prevention."
+                },
+                {
+                    "id": "screen6question13",
+                    "question_number": "13",
+                    "title": "Identify suicide prevention trainings that your school staff will participate in this school year.",
+                    "placeholder": "List suicide prevention trainings to be attended by staff, including dates and providers.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Provide specific details on training plans, including schedule and topic."
+                },
+                {
+                    "id": "screen6question14",
+                    "question_number": "14",
+                    "title": "Identify available in school and community resources for suicide prevention and intervention (e.g. mental health clinics, mobile crisis teams, hotlines, facilities that provide urgent/same-day mental health assessments).",
+                    "placeholder": "List all accessible school and community resources for suicide prevention, intervention, and urgent mental health care.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include names, locations, and contact info for each resource or support service."
+                },
+                {
+                    "id": "screen6question15",
+                    "question_number": "15",
+                    "title": "Indicate school-wide strategies and approaches used in your school to minimize crisis situations and de-escalate behavioral crises(e.g. school-wide positive behavioral interventions and support (PBIS); peer leadership programs; social emotional learning programs; school-wide and ongoing professional development; parent workshops):",
+                    "placeholder": "Describe all school-wide strategies and programs in place to prevent and de-escalate crisis situations (PBIS, SEL, workshops, etc).",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Explain all universal or ongoing approaches designed for creating a safe environment."
+                },
+                {
+                    "id": "screen6question16",
+                    "question_number": "16",
+                    "title": "Indicate intervention measures used in your school to support a student in behavioral crisis (e.g. collaboration with school crisis intervention team, referral to school counselor; counselor/teacher developed intervention plans; restorative circles; peer or staff led conflict resolution programs; peer meditation; mentoring programs; and referring students to the pupil personnel team):",
+                    "placeholder": "Describe methods used to intervene and support students in behavioral crisis, including referrals, intervention plans, and restorative practices.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "List all intervention strategies and responsible staff for behavioral crisis support."
+                },
+                {
+                    "id": "screen6question17",
+                    "question_number": "17",
+                    "title": "Describe the strategies and protocols used by your school to de-escalate a student in a behavioral crisis.",
+                    "placeholder": "Explain the de-escalation protocols in detail, specifying strategies and responsible staff.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include all steps, roles, and training for behavioral de-escalation."
+                },
+                {
+                    "id": "screen6question18",
+                    "question_number": "18",
+                    "title": "Identify staff member(s) trained in TCIS and/or LSCI and other de-escalation techniques (e.g. Conflict Resolution, PBIS). Include the name of the person, the title and the technique the individual is trained in.",
+                    "placeholder": "List staff trained in de-escalation methods (e.g., TCIS, LSCI, PBIS), noting names, job titles, and specific techniques.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Document staff expertise, training completion, and respective de-escalation techniques."
+                },
+                {
+                    "id": "screen6question19",
+                    "question_number": "19",
+                    "title": "Indicate the support location(s) in your school where students in crisis may be taken and the DOE staff member who will escort the student(s). There should be a support location and escort available for every part of the school day (be as specific as possible in designating times and escorts):",
+                    "placeholder": "Provide all support locations, assigned staff escorts, and coverage times for students in crisis.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Indicate supervision and space available for crisis situations during all school hours."
+                },
+                {
+                    "id": "screen6question20",
+                    "question_number": "20",
+                    "title": "Indicate the specific location(s) in your building where other students may be taken, if necessary, in the event the incident occurs in an instructional area and the student in crisis cannot or should not be brought to a different location. There should be a location and DOE escort available for every part of the school day (be as specific as possible in designating times and escorts):",
+                    "placeholder": "List designated locations and assigned escorts for other students during crisis events, including schedules.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Document alternate spaces, escorts, and timing for relocated students in crisis scenarios."
+                },
+                {
+                    "id": "screen6question21",
+                    "question_number": "21",
+                    "title": "Identify in-school and community resources that are available to the school and parents for supporting students dealing with behavioral issues and crises (e.g. mental health clinics, mobile crisis teams, hotlines, facilities that provide urgent/same-day mental health assessment):",
+                    "placeholder": "List all in-school and community mental health, crisis prevention, and urgent care resources accessible to students and families.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Identify available resources, including names, contact info, and types of support."
+                },
+                {
+                    "id": "screen6question22",
+                    "question_number": "22",
+                    "title": "Each Crisis Intervention Team is required to conduct an orientation session regarding this de-escalation plan and Chancellor's Regulation A-411 for all DOE school staff, including non-instructional staff (e.g., custodians, school counselors, kitchen staff, paras, parent coordinators, school aides, secretaries) by October 31st. This orientation session can held for the entire school staff or can occur at several meetings by various departments. Click here to access the PowerPoint that must be used to conduct the orientation session. Indicate below the date(s) on which this orientation session(s) were held for instructional and non-instructional staff.",
+                    "placeholder": "List the date(s) of orientation session(s) for staff about the de-escalation plan and CR A-411 requirements.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include conduct dates and record attendance for each session."
+                },
+                {
+                    "id": "screen6question23",
+                    "question_number": "23",
+                    "title": "Additionally, the school must discuss CR A-411 and this De-escalation Plan at a School Safety Committee meeting. Indicate below the date(s) on which this orientation session(s) were held.",
+                    "placeholder": "Provide date(s) when the School Safety Committee reviewed the de-escalation plan and CR A-411.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include dates and documentation details for Safety Committee meetings."
+                },
+                {
+                    "id": "screen6question24",
+                    "question_number": "24",
+                    "title": "All non-DOE staff who work with the school in providing services to students (e.g., cbos, related service providers) should be provided with information about Chancellor's Regulation A-411 and the behavioral de-escalation plan. Confirm that such staff have been provided with this information.",
+                    "placeholder": "Check this box to certify non-DOE staff have received information regarding CR A-411 and the de-escalation plan.",
+                    "type": "checkbox",
+                    "required": true,
+                    "description": "Confirm delivery of protocol information to all external service providers."
+                },
+                {
+                    "id": "screen6question25",
+                    "question_number": "25",
+                    "title": "Indicate any additional methods or meetings (other than the mandated orientation sessions noted above) by which crisis de-escalation and response protocols are communicated to school staff (e.g., handbooks, department meetings, newsletters)",
+                    "placeholder": "List other ways or meetings staff receive information about crisis de-escalation and response protocols.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include details on supplementary communications used for staff."
+                },
+                {
+                    "id": "screen6question26",
+                    "question_number": "26",
+                    "title": "I certify that one or more orientation session(s) was/were conducted by October 31st at which the following information was communicated to all DOE staff, including non-instructional staff: \n a) The policies and procedures contained in Chancellor's Regulation A-411; \n b) The contents of the school's Crisis De-escalation Plan; \n c) The fact that staff must make every effort to de-escalate behavioral crises, where possible, using strategies and interventions for addressing behavioral crises and in-school and community resources identified in the school's Crisis De-Escalation Plan; d) The fact that 911 must be contacted when a student's behavior poses an imminent and substantial risk of injury to himself or others and the situation cannot be safely addressed by school staff or the in-school or community resources identified in the Crisis De-escalation Plan; e) The fact that 911 should not be called in response to a behavioral crisis unless the student's behavior poses an imminent and substantial risk of serious injury to the student and/or others and cannot be safely addressed using deescalation strategies and/or school resources:and f) The fact that opportunities for training on de-escalation may become available throughout the year and staff should contact the principal/designee for further information.",
+                    "placeholder": "Check this box to certify a staff orientation session communicated all required de-escalation policies by October 31st.",
+                    "type": "checkbox",
+                    "required": true,
+                    "description": "Confirm that full orientation for DOE staff occurred, as described, by the deadline."
+                },
+                {
+                    "id": "screen6question27",
+                    "question_number": "27",
+                    "title": "I certify that on or before October 31st, Chancellor's Regulation A-411 and this Crisis De-Escalation Plan was discussed at a School Safety Committee meeting.",
+                    "placeholder": "Check this box to certify the Safety Committee discussion of CR A-411 and the de-escalation plan by October 31st.",
+                    "type": "checkbox",
+                    "required": true,
+                    "description": "Confirm and certify annual compliance for School Safety Committee meetings."
                 }
             ]
         },
         {
             "id": 6,
-            "key": "suicidePrevention",
-            "title": "Suicide Prevention and Crisis Intervention",
-            "questions": [
-                {
-                    "id": "screen6question1",
-                    "title": "1. Crisis Intervention Team Chair",
-                    "placeholder": "Enter the name and title of your school's\nCrisis Intervention Team Chair.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide the name and title of the staff member\nwho coordinates the school's crisis response team."
-                },
-                {
-                    "id": "screen6question2",
-                    "title": "2. Suicide Prevention Designated Liaison:",
-                    "placeholder": "Enter the name and title of your school's\nSuicide Prevention Designated Liaison.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide the staff member responsible for coordinating\nsuicide prevention efforts and training."
-                },
-                {
-                    "id": "screen6question3",
-                    "title": "3. Crisis Intervention Team Member(s):",
-                    "placeholder": "List the names and titles of all\nCrisis Intervention Team members.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include all members who serve on the\nschool's Crisis Intervention Team."
-                },
-                {
-                    "id": "screen6question4",
-                    "title": "4. List projected schedule of the dates and times the crisis intervention team will meet (recommended monthly). It is suggested that you maintain a record (i.e. attendance, agenda) of each meeting.",
-                    "placeholder": "List projected schedule of Crisis Intervention Team meetings\n(include dates and times, recommended monthly).",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide the schedule of team meetings\nand indicate how records will be maintained."
-                },
-                {
-                    "id": "screen6question5",
-                    "title": "5. Describe specific procedures and protocols that are in place when a crisis/traumatic event which affects the school community occurs (e.g. death of staff member, student death, traumatic event affecting school community); and indicate support services that are available immediately following a crisis/traumatic event to support students and their families (see below for protocols and policies regarding de-escalation of individual students in behavioral crisis): A description of protocols and policies regarding de-escalation of individual students in behavioral crisis should be entered below.",
-                    "placeholder": "Describe your school's procedures and protocols\nfor responding to crises/traumatic events,\nincluding supports and de-escalation strategies.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide procedures for crisis response, support services,\nand de-escalation of behavioral crises."
-                },
-                {
-                    "id": "screen6question6",
-                    "title": "6. Identify notification procedures for informing students, staff and parents when a crisis/traumatic event occurs which affects the school community.",
-                    "placeholder": "Describe your school's notification procedures\nfor students, staff, and parents during crises.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include methods and timelines for notifying stakeholders."
-                },
-                {
-                    "id": "screen6question7",
-                    "title": "7. Identify professional development and trainings planned for your school community (e.g., teachers, students, parents, and extended staff) to address crises/traumatic events.",
-                    "placeholder": "List professional development and training activities\nplanned for staff, students, parents, and extended staff.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Describe PD and training initiatives\nrelated to crisis prevention and intervention."
-                },
-                {
-                    "id": "screen6question8",
-                    "title": "8. List community resources or partnerships that support the Crisis Intervention Team and/or school community in addressing crises/traumatic events.",
-                    "placeholder": "List community resources and partnerships\nthat support the Crisis Intervention Team.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include agencies, organizations, or partnerships\nthat provide crisis-related support."
-                },
-                {
-                    "id": "screen6question9",
-                    "title": "9. Describe the interventions and supports provided to students and their families when there is a concern that the student may be at-risk for suicide as well as follow up supports.",
-                    "placeholder": "Describe interventions and follow-up supports\nfor students at risk of suicide and their families.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include assessment, counseling, and follow-up procedures."
-                },
-                {
-                    "id": "screen6question10",
-                    "title": "10. Describe the interventions and supports provided to the student and their family when there is a suicide attempt as well as follow up supports.",
-                    "placeholder": "Describe interventions and follow-up supports\nfor students and families after a suicide attempt.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include crisis response procedures and ongoing supports."
-                },
-                {
-                    "id": "screen6question11",
-                    "title": "11. Describe the interventions and supports provided to a student and their family when the student is inflicting self-harm not connected to suicidal behavior.",
-                    "placeholder": "Describe interventions and supports\nfor students engaging in self-harm\nnot connected to suicide.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include counseling, referrals, and monitoring procedures."
-                },
-                {
-                    "id": "screen6question12",
-                    "title": "12. Confirm that all staff members have been trained in the suicide prevention/intervention measures by the Crisis Team by October 31st as required by Chancellor's Regulation A-755.",
-                    "placeholder": "Confirm that all staff members have been trained\nin suicide prevention and intervention measures\nby October 31st.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Check this box to confirm staff completion\nof suicide prevention training by October 31st."
-                },
-                {
-                    "id": "screen6question13",
-                    "title": "13. Identify suicide prevention trainings that your school staff will participate in this school year.",
-                    "placeholder": "List suicide prevention trainings\nthat school staff will participate in this year.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include training topics, providers, and schedules."
-                },
-                {
-                    "id": "screen6question14",
-                    "title": "14. Indicate school-wide strategies and approaches used in your school to create a supportive school environment (e.g. PBIS, peer leadership, SEL, professional development, parent workshops).",
-                    "placeholder": "List school-wide strategies and approaches\nused to create a supportive environment.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include PBIS, SEL, peer programs, PD, and workshops."
-                },
-                {
-                    "id": "screen6question15",
-                    "title": "15. Indicate intervention measures used in your school to respond to student behavioral issues (e.g. referral to counselor, restorative circles, peer mediation, mentoring).",
-                    "placeholder": "List intervention measures your school uses\nto respond to student behavioral issues.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include strategies like referrals, restorative practices,\npeer mediation, and mentoring."
-                },
-                {
-                    "id": "screen6question16",
-                    "title": "16. Describe the strategies and protocols used by your school to de-escalate a student in a behavioral crisis.",
-                    "placeholder": "Describe strategies and protocols\nused to de-escalate students in crisis.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include prevention, intervention, and follow-up protocols."
-                },
-                {
-                    "id": "screen6question17",
-                    "title": "17. Identify staff member(s) trained in TCIS and/or LSCI and other de-escalation techniques (e.g. Conflict Resolution, PBIS). Include the name of the person, the title and the technique the individual is trained in.",
-                    "placeholder": "List staff members trained in TCIS, LSCI,\nor other de-escalation techniques.\nInclude name, title, and technique.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide staff details and the de-escalation methods\nin which they are trained."
-                },
-                {
-                    "id": "screen6question18",
-                    "title": "18. Indicate the support location(s) in your school where students in crisis may be taken and the DOE staff member who will escort the student(s).",
-                    "placeholder": "List designated support locations\nand staff escorts for students in crisis.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide specific locations and staff assignments."
-                },
-                {
-                    "id": "screen6question19",
-                    "title": "19. Indicate the specific location(s) in your building where other students may be taken if the student in crisis cannot be moved.",
-                    "placeholder": "List alternative locations for other students\nduring a crisis incident.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide specific locations and supervision arrangements."
-                },
-                {
-                    "id": "screen6question20",
-                    "title": "20. Identify in-school and community resources that are available to the school and parents for supporting students dealing with behavioral issues and crises. Each Crisis Intervention Team is required to conduct an orientation session regarding this de-escalation plan and Chancellor's Regulation A-411 for all DOE school staff by October 31st.",
-                    "placeholder": "List in-school and community resources\nthat support students and families in crisis.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include mental health clinics, crisis teams,\nand required orientation session details."
-                },
-                {
-                    "id": "screen6question21",
-                    "title": "21. Indicate below the date(s) on which this orientation session(s) were held for instructional and non-instructional staff.",
-                    "placeholder": "List the dates of orientation sessions\nfor instructional and non-instructional staff.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide all dates of orientation sessions held."
-                },
-                {
-                    "id": "screen6question22",
-                    "title": "22. Additionally, the school must discuss CR A-411 and this De-escalation Plan at a School Safety Committee meeting at which an in-house School Safety Agent Level III/Designee was present.",
-                    "placeholder": "List the dates School Safety Committee meetings\nwere held to discuss CR A-411 and the De-escalation Plan.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Provide meeting dates and attendance details."
-                },
-                {
-                    "id": "screen6question23",
-                    "title": "23. All non-DOE staff who work with the school in providing services to students (e.g., CBOs, related service providers) should be provided with information about Chancellor's Regulation A-411 and the behavioral de-escalation plan.",
-                    "placeholder": "Describe how non-DOE staff are provided\nwith information on CR A-411 and de-escalation plan.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include orientation and training methods\nfor non-DOE staff."
-                },
-                {
-                    "id": "screen6question24",
-                    "title": "24. Indicate any additional methods or meetings (other than the mandated orientation sessions noted above) by which crisis de-escalation and response protocols are communicated to school staff (e.g., handbooks, department meetings, newsletters).",
-                    "placeholder": "Describe additional methods used to communicate\ncrisis de-escalation and response protocols.",
-                    "type": "textarea",
-                    "required": true,
-                    "description": "Include handbooks, newsletters, meetings, and digital methods."
-                },
-                {
-                    "id": "screen6question25",
-                    "title": "25. I certify that one or more orientation session(s) was/were conducted by October 31st at which the following information was communicated to all DOE staff...",
-                    "placeholder": "Confirm that required orientation sessions\nwere conducted and documented by October 31st.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Check this box to certify compliance\nwith required orientation sessions."
-                },
-                {
-                    "id": "screen6question26",
-                    "title": "26. I certify that on or before October 31st, Chancellor's Regulation A-411 and this Crisis De-Escalation Plan was discussed at a School Safety Committee meeting at which an in-house School Safety Agent Level III/Designee was present.",
-                    "placeholder": "Confirm that the Crisis De-Escalation Plan\nwas discussed at a School Safety Committee meeting\nby October 31st.",
-                    "type": "checkbox",
-                    "required": true,
-                    "description": "Check this box to certify that the required discussion\ntook place in the School Safety Committee meeting."
-                }
-            ]
-        },
-        {
-            "id": 7,
             "key": "attendancePlan",
             "title": "School Attendance Plan",
             "questions": [
                 {
                     "id": "screen7question1",
-                    "title": "1. Provide the name and contact information of your school’s attendance coordinator, the mandated pedagogue responsible for the implementation and coordination of this plan. (Cannot be a shared attendance teacher, PAS, school aide or family assistant. Must be a pedagogue or an administrator.) Grades K-8: The attendance coordinator will report to/work closely with the Principal's Designee responsible for Tiered Response Protocol:",
-                    "placeholder": "Enter the name and contact information\nof your school's Attendance Coordinator.",
+                    "question_number": "1",
+                    "title": "Provide the name and contact information of your school’s attendance coordinator, the mandated pedagogue responsible for the implementation and coordination of this plan. (Cannot be a shared attendance teacher, PAS, school aide or family assistant. Must be a pedagogue or an administrator.)",
+                    "placeholder": "Provide the full name, job title, and contact information for your Attendance Coordinator.",
                     "type": "text",
                     "required": true,
-                    "description": "Provide the name and contact details of the mandated pedagogue\nresponsible for implementing and coordinating the attendance plan."
+                    "description": "Mandated pedagogue responsible for implementing and coordinating your attendance plan; include contact details."
                 },
                 {
                     "id": "screen7question2",
-                    "title": "2. Provide at least one Every Student Every Day strategy that your school will use to increase attendance and reduce absenteeism. School Attendance Policies: As per Chancellor's Regulation A-210 - Minimum Standards for Attendance Programs, schools are required to develop, communicate and implement policies that define lateness and the process for leaving school early; the reasons and documentation required for excused lateness or absences; how the school wants to be notified of absences or reasons for absences; and the benefits of good attendance and the consequences/interventions for missing school.",
-                    "placeholder": "Describe at least one Every Student Every Day strategy\nyour school will use to increase attendance\nand reduce absenteeism.\nAlso describe your school's attendance policies\n(as per Chancellor's Regulation A-210).",
+                    "question_number": "2",
+                    "title": "Describe your attedance improvement strategy and how you connect with every chronically absent student every day.",
+                    "placeholder": "Describe daily outreach strategies for every chronically absent student and summarize your school's attendance improvement approaches and policies.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include strategies, policies, documentation requirements,\nnotification process, and consequences for absences."
+                    "description": "Include a detailed outline of outreach, documentation, notification, and response strategies for absenteeism."
                 },
                 {
                     "id": "screen7question3",
-                    "title": "3. Confirm that you have developed such attendance polices.",
-                    "placeholder": "Confirm that your school has developed\nattendance policies as required.",
+                    "question_number": "3",
+                    "title": "Confirm that you have developed such attendance policies. Note: Use the sample template here.",
+                    "placeholder": "Check to confirm attendance policies are developed in accordance with regulations.",
                     "type": "checkbox",
                     "required": true,
-                    "description": "Check this box to confirm your school has developed\nattendance policies aligned with Chancellor’s Regulation A-210."
+                    "description": "Verify the development of attendance policies aligned with Chancellor’s Regulation A-210."
                 },
                 {
                     "id": "screen7question4",
-                    "title": "3a. Describe how you will communicate your school's attendance policies for students, families and staff.",
-                    "placeholder": "Describe how your school communicates\nattendance policies to students, families, and staff.",
+                    "question_number": "3a",
+                    "title": "Describe how you will communicate your school's attendance policies for students, families and staff.",
+                    "placeholder": "Explain communication channels (e.g. handbooks, meetings, digital platforms) used to share attendance policies.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include methods such as meetings, handbooks,\nnewsletters, and digital communications."
+                    "description": "Directly describe outreach methods to students, families, and staff regarding attendance policies."
                 },
                 {
                     "id": "screen7question5",
-                    "title": "4. Please specify the attendance data reports (e.g.: Insight, New Visions, ATS, etc.) used during Attendance Committee meetings to identify students with patterns of absences and describe the standard intervention procedures used during initial outreach to students with consecutive absences, or before a 407 is issued.",
-                    "placeholder": "List attendance data reports used by your school\n(e.g. Insight, New Visions, ATS, etc.)\nand describe standard intervention procedures.",
+                    "question_number": "4",
+                    "title": "Please specify the attendance data reports (e.g.: Insight, New Visions, ATS, etc.) used during Attendance Committee meetings to identify students with patterns of absences and describe the standard intervention procedures used during initial outreach to students with consecutive absences, or before a 407 is issued.",
+                    "placeholder": "List all attendance reports reviewed during committee meetings and detail standard procedures for outreach before a 407 is issued.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include the reports reviewed and the steps taken\nfor early outreach and intervention."
+                    "description": "Identify key reports and articulate steps for early intervention and documentation."
                 },
                 {
                     "id": "screen7question6",
-                    "title": "5. Describe efforts made for students likely to experience attendance challenges, child-welfare involved students, students in temporary housing and students who were chronically absent the year before (student indicator - chronic abs). How do you closely monitor their attendance and quickly respond to reasons for absences, starting early in the school year?",
-                    "placeholder": "Describe efforts to support students with attendance challenges,\nincluding child-welfare involved students, students in temporary housing,\nand those who were chronically absent the year before.",
+                    "question_number": "5",
+                    "title": "Please enter the person that facilitates the Attendance Committee meetings.",
+                    "placeholder": "Enter the name and title of the committee facilitator and describe their support strategies for at-risk students.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include monitoring strategies and early response actions\nfor at-risk students."
+                    "description": "List the facilitator's details plus strategies used for students with attendance challenges."
                 },
                 {
                     "id": "screen7question7",
-                    "title": "6. Describe your school’s transition program for students who return to school after an extended period of absence (e.g., returning from suspensions, incarcerations or hospitalizations, extended vacations, or any student who has been successfully reengaged).",
-                    "placeholder": "Describe your school's transition program\nfor students returning after extended absences.",
+                    "question_number": "6",
+                    "title": "Please enter the dates and times for the Attendance Committee meetings for the current school year.",
+                    "placeholder": "List all scheduled dates and times of Attendance Committee meetings for this school year.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include supports such as counseling, mentoring,\nand reintegration plans."
+                    "description": "Document meeting schedule and related support mechanisms."
                 },
                 {
                     "id": "screen7question8",
-                    "title": "7 How are attendance outreach and intervention efforts coordinated among staff?",
-                    "placeholder": "Describe how attendance outreach and intervention\nefforts are coordinated among staff.",
+                    "question_number": "7",
+                    "title": "Describe efforts made for students likely to experience attendance challenges, child-welfare involved students, student in temporary housing and students who were chronically absent the year before (student indicator - chronic abs). How do you closely monitor their attendance and quickly respond to reasons for absences, starting early in the school year?",
+                    "placeholder": "Describe monitoring and rapid response strategies for students with specific challenges or chronic absenteeism.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include coordination methods and staff roles."
+                    "description": "Include tracking procedures and methods used to respond to absences for high-risk student groups."
                 },
                 {
                     "id": "screen7question9",
-                    "title": "7a. How are attendance outreach and intervention efforts documented? How does the school ensure that relevant case notes are entered in ILOG, as required?",
-                    "placeholder": "Describe how attendance outreach and interventions\nare documented, including ILOG case notes.",
+                    "question_number": "8",
+                    "title": "Describe your school’s transition program for students who return to school after an extended period of absence (e.g., returning from suspensions, incarcerations or hospitalizations, extended vacations, or any student who has been successfully reengaged).",
+                    "placeholder": "Outline how transition support and outreach for students reentering after long absences is documented, including in ILOG case notes.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Explain documentation procedures and compliance with ILOG requirements."
+                    "description": "Summarize documentation and support processes, with reference to ILOG compliance."
                 },
                 {
                     "id": "screen7question10",
-                    "title": "8. Describe the procedures for the collection and recording of period or subject attendance if you do not use ATS SPAT sheets. (For high schools and schools that schedule periods of instruction.)",
-                    "placeholder": "Describe procedures for collecting and recording\nperiod or subject attendance (if ATS SPAT not used).",
+                    "question_number": "9",
+                    "title": "How are attendance outreach and intervention efforts coordinated among staff?",
+                    "placeholder": "Describe staff roles and procedures for coordinating attendance outreach interventions.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include processes for accurate daily attendance collection."
+                    "description": "Detail internal coordination methods and role assignments for attendance efforts."
                 },
                 {
                     "id": "screen7question11",
-                    "title": "9. Describe your school’s process for determining the accuracy of student attendance records monthly and before final attendance is recorded for the year. Include any dispute/appeals process you provide for families.",
-                    "placeholder": "Describe how your school ensures accuracy\nof attendance records monthly and before year-end,\nincluding dispute/appeals processes.",
+                    "question_number": "9a",
+                    "title": "How are attendance outreach and intervention efforts documented? How does the school ensure that relevant case notes are entered in ILOG, as required?",
+                    "placeholder": "Explain how documentation is maintained and accuracy of ILOG case notes ensured.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Provide methods for verification and family appeal procedures."
+                    "description": "Clarify verification and appeal processes for attendance recordkeeping."
                 },
                 {
                     "id": "screen7question12",
-                    "title": "10. Distribute Scan Sheets:",
-                    "placeholder": "Describe how Scan Sheets are distributed.",
+                    "question_number": "10",
+                    "title": "Describe the procedures for the collection and recording of period or subject attendance. (For high schools and schools that schedule periods of instruction.)",
+                    "placeholder": "Describe period/subject attendance collection and recording procedures, including Scan Sheet management.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include staff roles and procedures for distribution."
+                    "description": "Explain staff roles and sequential procedures for attendance data handling."
                 },
                 {
                     "id": "screen7question13",
-                    "title": "11. Collect Scan Sheets:",
-                    "placeholder": "Describe how Scan Sheets are collected.",
+                    "question_number": "11",
+                    "title": "Describe your school’s process for determining the accuracy of student attendance records monthly and before final attendance is recorded for the year. Include any dispute/appeals process you provide for families.",
+                    "placeholder": "Summarize your process for monthly/year-end verification and family appeals regarding attendance records.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include staff roles and procedures for collection."
+                    "description": "Include responsibilities for accuracy checks and dispute resolution procedures."
                 },
                 {
                     "id": "screen7question14",
-                    "title": "12. Scanning (this person must have ATS access):",
-                    "placeholder": "Identify the staff member responsible for scanning\nand entering attendance (must have ATS access).",
+                    "question_number": "12",
+                    "title": "Distribute Scan Sheets:",
+                    "placeholder": "State who is responsible for distributing and scanning attendance records (ATS access required).",
                     "type": "textarea",
                     "required": true,
-                    "description": "Provide the name and role of the staff member handling scanning."
+                    "description": "Provide the staff responsible for scanning and handling attendance sheets."
                 },
                 {
                     "id": "screen7question15",
-                    "title": "13. Attendance data coordinator (Optional):",
-                    "placeholder": "Identify the Attendance Data Coordinator (if applicable).",
+                    "question_number": "13",
+                    "title": "Collect Scan Sheets:",
+                    "placeholder": "Provide the assigned attendance data coordinator, if applicable.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Provide name and role of the optional attendance data coordinator."
+                    "description": "List the name and role of the optional coordinator."
                 },
                 {
                     "id": "screen7question16",
-                    "title": "14. Update Student Attendance and/or Reversals:",
-                    "placeholder": "Describe procedures for updating attendance\nand processing reversals.",
+                    "question_number": "14",
+                    "title": "Scanning (this person must have ATS access):",
+                    "placeholder": "List procedures for maintaining and updating attendance records, including reversals.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include roles and responsibilities for updates/reversals."
+                    "description": "State the duties and process for attendance updates and reversals."
                 },
                 {
                     "id": "screen7question17",
-                    "title": "15. Coordinates calls home for unexplained absences:",
-                    "placeholder": "Identify who coordinates calls home\nfor unexplained absences.",
+                    "question_number": "15",
+                    "title": "Data coordinator or point person for GAMA-related concerns (Optional):",
+                    "placeholder": "Identify the individual responsible for following up on unexplained absences.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Provide staff roles and procedures for calls home."
+                    "description": "Clarify responsibilities regarding contact and documentation for unexplained absences."
                 },
                 {
                     "id": "screen7question18",
-                    "title": "16. Home visits (school staff who conducts and coordinates):",
-                    "placeholder": "Identify school staff who conduct\nand coordinate home visits.",
+                    "question_number": "16",
+                    "title": "Update Student Attendance and/or Reversals:",
+                    "placeholder": "List names and procedures for staff handling attendance updates and home visits.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include staff names and procedures for home visits."
+                    "description": "Document staff names and processes for updating attendance and home visits."
                 },
                 {
                     "id": "screen7question19",
-                    "title": "17. Point for absent/late notes collection and storage:",
-                    "placeholder": "Describe how absent/late notes are collected\nand stored.",
+                    "question_number": "17",
+                    "title": "Coordinates calls to every absent student every day, including chronically absent students:",
+                    "placeholder": "Describe procedures for collecting and storing absent/late notes, and identify responsible staff.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include staff responsible and storage procedures."
+                    "description": "Provide details about collection organization and note storage."
                 },
                 {
                     "id": "screen7question20",
-                    "title": "18. Programs/uploads auto dial system (Optional):",
-                    "placeholder": "Describe how the auto dial system is programmed\nand used for attendance notifications.",
+                    "question_number": "18",
+                    "title": "Home visits (school staff who conducts and coordinates):",
+                    "placeholder": "Explain how the auto dial system is set up and used for attendance notifications.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Include setup and monitoring procedures for auto dial."
+                    "description": "Provide technical setup and monitoring process of automated calls."
                 },
                 {
                     "id": "screen7question21",
-                    "title": "19. Truancy Center Contact (Optional):",
-                    "placeholder": "Provide the Truancy Center contact information\n(if applicable).",
+                    "question_number": "19",
+                    "title": "Point for absent/late notes collection and storage:",
+                    "placeholder": "List Truancy Center contact information if applicable.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Include name, title, and contact details."
+                    "description": "Include names, positions, and contact info for Truancy Center liaison."
                 },
                 {
                     "id": "screen7question22",
-                    "title": "20. Organize and manage Form 407 Referrals and investigation:",
-                    "placeholder": "Describe how Form 407 referrals\nand investigations are organized and managed.",
+                    "question_number": "20",
+                    "title": "Programs/uploads auto dial system (Optional):",
+                    "placeholder": "Describe organization and management of Form 407 referrals and investigations.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include staff responsibilities and investigation procedures."
+                    "description": "Summarize staff assignment and handling of Form 407 referrals."
                 },
                 {
                     "id": "screen7question23",
-                    "title": "21. Enters 407 comment / resolution codes in ATS:",
-                    "placeholder": "Describe procedures for entering 407 comments\nand resolution codes in ATS.",
+                    "question_number": "21",
+                    "title": "Truancy Center Contact(Optional):",
+                    "placeholder": "Detail procedures for entering resolution codes and 407 comments in ATS.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include staff responsible and data entry process."
+                    "description": "Provide staff names and process for ATS data entry on truancy."
                 },
                 {
                     "id": "screen7question24",
-                    "title": "22. Transition Coach (Optional):",
-                    "placeholder": "Identify the Transition Coach (if applicable)\nand describe their role.",
+                    "question_number": "22",
+                    "title": "Organize and manage Form 407 Referrals and investigation:",
+                    "placeholder": "List Transition Coach details and their responsibilities (if applicable).",
                     "type": "textarea",
                     "required": false,
-                    "description": "Provide name and role of the Transition Coach."
+                    "description": "Provide Transition Coach name and role description if present."
                 },
                 {
                     "id": "screen7question25",
-                    "title": "23. Option/School-Specific Roles Optional: The following people are responsible for other attendance-related roles specific to your school (e.g., Success Mentor Coordinator, Success Mentors, Attendance Teachers). Enter here any other member of your school’s attendance committee not noted above.",
-                    "placeholder": "List other attendance-related roles\nspecific to your school.",
+                    "question_number": "23",
+                    "title": "Enters 407 comment / resolution codes in ATS:",
+                    "placeholder": "Specify any additional attendance committee roles in your school.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include names and responsibilities of additional attendance staff."
+                    "description": "List and describe other attendance staff roles."
+                },
+                {
+                    "id": "screen7question26",
+                    "question_number": "24",
+                    "title": "Transition Coach (Optional):",
+                    "placeholder": "List additional attendance committee members and roles not previously mentioned.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include any success mentor coordinators, attendance teachers, etc."
+                },
+                {
+                    "id": "screen7question27",
+                    "question_number": "25",
+                    "title": "Document student outreach in ILOG:",
+                    "placeholder": "Explain how outreach to students is documented in ILOG and confirm compliance procedures.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Include clear documentation and compliance steps for ILOG entries."
+                },
+                {
+                    "id": "screen7question28",
+                    "question_number": "26",
+                    "title": "Optional: The following people are responsible for other attendance-related roles specific to your school (e.g. - Success Mentor Coordinator, Success Mentors, Attendance Teachers). Enter any other member of your school’s attendance committee not noted above here.",
+                    "placeholder": "List all additional attendance staff, coordinators, and mentors at your school and specify their roles.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Name roles and persons responsible for specific attendance duties."
                 }
             ]
         },
         {
-            "id": 8,
+            "id": 7,
             "key": "temporaryHousing",
             "title": "Students in Temporary Housing Program",
             "questions": [
                 {
                     "id": "screen8question1",
-                    "title": "1. Provide the name of the Students in Temporary Housing School-Based Liaison (STH SBL). The STH SBL must work at the school full time and be a licensed administrator, supervisor, guidance counselor, school psychologist, or social worker. If you have a STH Bridging the Gap social worker, or STH Community Coordinator, they should be listed as the STH SBL.",
-                    "placeholder": "Enter the name and title of your school's\nSTH School-Based Liaison (STH SBL).",
+                    "question_number": "1",
+                    "title": "The Students in Temporary Housing School-Based Liaison (STH SBL) is responsible for providing intervention and support services to students living in temporary housing who attend your school related to proper identification and data entry, transportation, enrollment, spending of Title I STH funds, and community referrals. The STH SBL must work at the school full time and be a licensed administrator, supervisor, community coordinator, guidance counselor, school psychologist, or social worker. If you have a STH Bridging the Gap social worker, or STH Community Coordinator, they should be listed as the STH SBL. Your STH SBL must be provided with a copy of Chancellor's Regulation A-780 by September 30. \nProvide the name of the Students in Temporary Housing School-Based Liaison.",
+                    "placeholder": "Enter the full name and official title of your STH School-Based Liaison (STH SBL).",
                     "type": "textarea",
                     "required": true,
-                    "description": "Provide the full-time staff member serving as the STH SBL."
+                    "description": "Identify the full-time staff member who serves as the STH SBL."
                 },
                 {
                     "id": "screen8question2",
-                    "title": "2. Confirm that the STH SBL (1) has been informed of their duties as a liaison and will complete the mandated annual STH SBL McKinney Vento training and related participation survey and (2) has identified your STH Regional Manager. You can find the STH Regional Manager assigned to your district here: https://www.schools.nyc.gov/school-life/special-situations/students-in-temporary-housing",
-                    "placeholder": "Confirm that the STH SBL:\n1) Has been informed of their liaison duties,\n2) Will complete annual McKinney-Vento training and survey,\n3) Has identified the STH Regional Manager.",
+                    "question_number": "2",
+                    "title": "STH SBLs are required to complete the mandated annual STH SBL McKinney Vento training provided by the Students in Temporary Housing team by December 31. Confirm that your STH SBL has or will complete this training.",
+                    "placeholder": "Check this box to confirm that the STH SBL has completed or will complete the required McKinney-Vento training by December 31.",
                     "type": "checkbox",
                     "required": true,
-                    "description": "Check this box to confirm training and regional manager identification."
+                    "description": "Verify completion or planned completion of mandated STH SBL training."
                 },
                 {
                     "id": "screen8question3",
-                    "title": "3. Indicate where the McKinney-Vento posters are displayed. (Posters are available at https://nysteachs.org/posters-brochures/)",
-                    "placeholder": "Indicate where McKinney-Vento posters\nare displayed in your school.",
+                    "question_number": "3",
+                    "title": "Describe the professional development and trainings planned for your school community (e.g., teachers, students, parents, and extended staff) on topics such as the rights of students in temporary housing; understanding trauma and homelessness, age appropriate activities/conversations for students; or an overview of resources available to address housing needs.",
+                    "placeholder": "Summarize the scheduled professional development and training topics for your school community about student homelessness and temporary housing.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Posters must be placed in visible, accessible areas."
+                    "description": "Detail schoolwide training sessions and development regarding temporary housing support."
                 },
                 {
                     "id": "screen8question4",
-                    "title": "4. Confirm that the current STH SBL is listed on the poster.",
-                    "placeholder": "Confirm that the current STH SBL\nis listed on the posters.",
+                    "question_number": "4",
+                    "title": "Indicate where the McKinney-Vento posters are displayed. (Posters are available at https://nysteachs.org/posters-brochures/)",
+                    "placeholder": "List all locations in the school where McKinney-Vento posters are displayed.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Contact information must be listed on the posters."
+                    "description": "State poster locations and confirm required contact information is displayed."
                 },
                 {
                     "id": "screen8question5",
-                    "title": "5. Confirm that the McKinney-Vento Parent Student Guide is available, at a minimum, in the offices of the STH SBL and Parent Coordinator. (Attached to Chancellor’s Reg A-780)",
-                    "placeholder": "Confirm that the McKinney-Vento Parent Student Guide\nis available in the STH SBL and Parent Coordinator offices.",
+                    "question_number": "5",
+                    "title": "Confirm that the current STH SBL is listed on the poster.",
+                    "placeholder": "Check this box to confirm the current STH SBL is shown on posters.",
                     "type": "checkbox",
                     "required": true,
-                    "description": "Guides must be available to families in required locations."
+                    "description": "Verify the school-based liaison's name and contact appear on posters."
                 },
                 {
                     "id": "screen8question6",
-                    "title": "6. Every year, the Housing Questionnaire should be completed by the entire student body. In addition, it is recommended that housing status is updated three times a year for students whose addresses may have changed (i.e. start of school, around winter recess, before end of school). Describe your school’s plan to (1) ensure the Housing Questionnaire is completed by the entire student body at the start of the school year, and (2) follow up with newly enrolled students, students who changed their address during the year and students previously identified as STH who may now reside in permanent housing.",
-                    "placeholder": "Describe your school's plan to:\n1) Ensure all students complete the Housing Questionnaire,\n2) Follow up with new enrollees, students with address changes,\nand previously identified STH students.",
-                    "type": "textarea",
+                    "question_number": "6",
+                    "title": "Confirm that the McKinney-Vento Parent Student Guide is available, at a minimum, in the offices of the STH SBL and Parent Coordinator. (Attached to Chancellor’s Reg A-780)",
+                    "placeholder": "Check this box to confirm the McKinney-Vento Parent Student Guide is available in both the STH SBL and Parent Coordinator offices.",
+                    "type": "checkbox",
                     "required": true,
-                    "description": "Explain how housing questionnaires are distributed and followed up."
+                    "description": "Confirm guide availability in required administrative offices."
                 },
                 {
                     "id": "screen8question7",
-                    "title": "7. Identify the person responsible for continuously updating residency information based on the housing questionnaire for students in ATS (student’s bio page/BIOU).",
-                    "placeholder": "Identify the person responsible for updating\nresidency information in ATS (BIOU page).",
+                    "question_number": "7",
+                    "title": "Every year, the Housing Questionnaire should be completed by the entire student body by October 1. In addition, the Housing Status Questionnaire should be completed two additional times (by Jan. 16 and April 14) for students whose addresses may have changed including: newly enrolled students; students who changed their address during the year; and students previously identified as STH who may now reside in permanent housing.",
+                    "placeholder": "Explain your school's plan for timely completion of the Housing Questionnaire for all students and follow-up strategy for new or changed addresses throughout the year.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Provide staff name/role and update procedures."
+                    "description": "Describe procedures for tracking, updating, and completing housing status for all students."
                 },
                 {
                     "id": "screen8question8",
-                    "title": "8. Confirm that there are no blanks on the RHST report and all students on your register have an accurate designated housing category code in ATS (student’s bio page/BIOU) by October 31st and STH status will be confirmed again on May 1st at a minimum.",
-                    "placeholder": "Confirm that the RHST report is complete\nand all students have accurate housing codes in ATS\nby October 31st and May 1st.",
+                    "question_number": "8",
+                    "title": "Identify the person responsible for continuously updating residency information based on the housing questionnaire for students in ATS (student’s bio page/BIOU).",
+                    "placeholder": "Enter the name and role of the staff member responsible for updating residency information in ATS (BIOU).",
                     "type": "textarea",
                     "required": true,
-                    "description": "Check this box to confirm RHST accuracy and coding compliance."
+                    "description": "Provide staff name or title and procedures for ATS data entry."
                 },
                 {
                     "id": "screen8question9",
-                    "title": "9. Schools are responsible for distributing Metrocards to eligible parents/guardians (additional information can be found at https://infohub.nyced.org/in-our-schools/operations/transportation-resources-for-schools/requesting-transportation-services). Identify the person responsible for ordering, distributing and recording parent/guardian Metrocards at the school.",
-                    "placeholder": "Identify the person responsible for ordering,\ndistributing, and recording parent/guardian Metrocards.",
-                    "type": "textarea",
+                    "question_number": "9",
+                    "title": "Confirm that there are no blanks on the RHST report and all students on your register have an accurate designated housing category code in ATS (student’s bio page/BIOU) by October 31st and STH status will be confirmed again on Feb 1st and May 1st at a minimum.",
+                    "placeholder": "Check this box to confirm RHST report is complete and all student housing codes are recorded in ATS on time.",
+                    "type": "checkbox",
                     "required": true,
-                    "description": "Include name/role and procedures for distribution and record-keeping."
+                    "description": "Certify housing data accuracy and timely coding compliance in ATS."
                 },
                 {
                     "id": "screen8question10",
-                    "title": "10. Schools are responsible for collaborating with their STH Liaison to spend their designated Title I STH funds exclusively to support students affected by homelessness in the designated school year (refer to Title 1 SAM for guidance on allowable expenses). Identify types of data you will use to assess the current needs of the STH students and how you solicited student and parent/guardian input into those needs to determine the most beneficial use of the Title 1 funds. Additionally, based on the assessment, identify the services (using their approved Galaxy description(s)) that will be provided to STH students with the STH Title 1 funds and how they will impact students ability to take advantage of educational opportunities.",
-                    "placeholder": "Describe how Title I STH funds will be used to support students:\n- Identify data sources used to assess needs\n- Explain how student/parent input was collected\n- List services (Galaxy descriptions) funded\n- Explain how services will help students access opportunities.",
+                    "question_number": "10",
+                    "title": "Schools are responsible for distributing Metrocards to eligible parents/guardians. Identify the person responsible for ordering, distributing and recording parent/guardian Metrocards at the school. Additional information can be found at [https://infohub.nyced.org/in-our-schools/operations/transportation-resources-for-schools/requesting-transportationservices](https://infohub.nyced.org/in-our-schools/operations/transportation-resources-for-schools/requesting-transportationservices).",
+                    "placeholder": "Provide the name, title, and specific responsibilities for the staff member overseeing Metrocard ordering and distribution.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Explain funding needs assessment, family input, and planned services."
+                    "description": "Identify staff in charge of ordering, distributing, and documenting Metrocard usage."
+                },
+                {
+                    "id": "screen8question11",
+                    "question_number": "11",
+                    "title": "Schools are responsible for properly assessing the needs of students and families in temporary housing to ensure correct academic support and community referrals are being provided. Needs assessments should also impact how schools are spending their funds to support STH. Please describe your plan to survey your students and families, collect additional key information, and synthesize information gathered from these efforts.",
+                    "placeholder": "Explain how your school will conduct needs assessments, survey families, and use collected info to inform support and spending decisions for STH funds.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Describe needs assessment, family input collection, and resulting service planning."
+                },
+                {
+                    "id": "screen8question12",
+                    "question_number": "12",
+                    "title": "Identify the in or out of school community resources available to your students and families in temporary housing through on-site support, referrals to outside support, resource fairs, etc.",
+                    "placeholder": "List and describe all available internal and external resources for supporting students and families in temporary housing.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Provide a full directory of support services with contact info."
+                },
+                {
+                    "id": "screen8question13",
+                    "question_number": "13",
+                    "title": "Schools are responsible for collaborating with their STH School Based Liaison to spend their designated STH Title 1 Funds. These funds can only be used to support students affected by homelessness in the designated school year (refer to the Title 1 SAM Guidance on STH Title 1 funds for allowable expenses). Identify types of data you will use to assess the current needs of the STH students. Tell us how you solicited student and parent/guardian input into these needs in order to determine the most beneficial use of STH funds.",
+                    "placeholder": "Explain which data sets (attendance, performance, questionnaires, etc.) you will use to assess STH student needs and how stakeholder input was obtained.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Describe chosen metrics, methods of input, and decision-making for Title I STH fund usage."
+                },
+                {
+                    "id": "screen8question14",
+                    "question_number": "14",
+                    "title": "In accordance with School Allocation Memo No. 11, it is recommended that schools use 4 out of the 16 categories for Tite I STH Funds. Based on the needs of your students in temporary housing, informed by the data collected. Identify which 4 categories your school will be using:",
+                    "placeholder": "List the 4 categories selected for your school’s Title I STH Funds usage, based on identified student needs.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "State and justify the selected categories for STH funding allocation."
                 }
             ]
         },
         {
-            "id": 9,
+            "id": 8,
             "key": "serviceInSchools",
             "title": "Service In Schools Plan",
             "questions": [
                 {
                     "id": "screen9question1",
-                    "title": "1. Identify the name and title of the staff person who will serve as your Service Coordinator to oversee your school’s service initiative(s).",
-                    "placeholder": "Enter the name and title of the staff person\nwho will serve as your school's Service Coordinator.",
+                    "question_number": "1",
+                    "title": "Identify the name and title of the staff person who will serve as your Service Coordinator to oversee you school’s service initiative(s).",
+                    "placeholder": "Provide the full name and official title of the Service Coordinator overseeing school service initiatives.",
                     "type": "text",
                     "required": true,
-                    "description": "Provide the staff member responsible for coordinating\nservice learning and community service programs."
+                    "description": "Identify the staff member coordinating service learning and community service activities."
                 },
                 {
                     "id": "screen9question2",
-                    "title": "2. Identify all of the community needs that your school will focus its service projects on during the current school year.",
-                    "placeholder": "List the community needs that your school\nwill focus its service projects on this year.",
+                    "question_number": "2",
+                    "title": "Identify all of the community needs that your school will focus its service projects on during the current school year.",
+                    "placeholder": "List and describe the community needs addressed by school service projects for this year.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Include the areas of need your service projects will address."
+                    "description": "List priority areas the service projects will support or improve."
                 },
                 {
                     "id": "screen9question3",
-                    "title": "3. List all of the partner organizations your school plans to use to engage students in community service and/or service-learning.",
-                    "placeholder": "List all partner organizations your school will work with\nfor student service learning and community service projects.",
+                    "question_number": "3",
+                    "title": "List all of the partner organizations your school plans to use to engage students in community service and/or servicelearning.",
+                    "placeholder": "Provide names and details of partner organizations involving students in service learning or community service.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Provide the names of organizations and details of collaboration."
+                    "description": "Include contact info, partnership type, and roles of participating organizations."
                 },
                 {
                     "id": "screen9question4",
-                    "title": "4. Total number of students your school aims to have participating in service projects during the school year.",
-                    "placeholder": "Enter the total number of students your school\nexpects to participate in service projects this year.",
+                    "question_number": "4",
+                    "title": "Total number of students your school aims to have participating in service projects during the school year.",
+                    "placeholder": "Enter your school's projected total number of student participants in service projects for the year.",
                     "type": "text",
                     "required": true,
-                    "description": "Provide the participation goal for students\nin service learning and community projects."
+                    "description": "Specify the numerical goal for student engagement in service projects."
                 }
             ]
         },
         {
-            "id": 10,
+            "id": 9,
             "key": "planningInterviews",
             "title": "Planning Interviews",
             "questions": [
                 {
                     "id": "screen10question1",
-                    "title": "1. Does your school have enrolled students 16 years of age or older?",
-                    "placeholder": "Confirm whether your school has enrolled students\n16 years of age or older.",
-                    "type": "checkbox",
+                    "question_number": "1",
+                    "title": "Does your school have enrolled students 16 years of age or older?",
+                    "placeholder": "Confirm whether your school has enrolled students 16 years of age or older.",
+                    "type": "text",
                     "required": true,
-                    "description": "Check this box if your school has students 16 or older."
+                    "description": "Confirm if your school has students 16 or older."
                 },
                 {
                     "id": "screen10question2",
-                    "title": "2. List the names and titles of staff members in your school who conduct Planning Interviews and who identify/refer students for planning interviews:",
-                    "placeholder": "List the names and titles of staff members\nwho conduct or refer students for Planning Interviews.",
+                    "question_number": "2",
+                    "title": "List the names and titles of staff members in your school who conduct Planning Interviews and who identify/refer students for planning interviews:",
+                    "placeholder": "List the names and titles of staff members who conduct or refer students for Planning Interviews.",
                     "type": "textarea",
                     "required": true,
                     "description": "Include all staff responsible for conducting or referring students for Planning Interviews."
                 },
                 {
                     "id": "screen10question3",
+                    "question_number": "3",
                     "title": "3. List the names of the special education staff member who assists in conducting Planning Interviews for students with IEPs:",
-                    "placeholder": "List the names of special education staff\nwho assist with Planning Interviews for IEP students.",
+                    "placeholder": "List the names of special education staff who assist with Planning Interviews for IEP students.",
                     "type": "textarea",
                     "required": true,
                     "description": "Provide the names of special education staff assisting with IEP student Planning Interviews."
                 },
                 {
                     "id": "screen10question4",
+                    "question_number": "4",
                     "title": "4. For eligible students who have missed 20 consecutive days, describe your school's Planning Interview outreach efforts including, if necessary, the process for mailing Letter #1, Letter #2, Planning Interview Packets and transcripts to parents and students.",
                     "placeholder": "Describe outreach efforts for students missing 20+ consecutive days,\nincluding mailing letters, packets, and transcripts.",
                     "type": "textarea",
@@ -878,6 +1089,7 @@
                 },
                 {
                     "id": "screen10question5",
+                    "question_number": "5",
                     "title": "5. Provide the name and title of the staff person who enters the Planning Interview discharge information into ATS on PIES (Planning Interview Entry Screen) and the discharge screen:",
                     "placeholder": "Enter the name and title of the staff person\nwho enters Planning Interview discharge information in ATS (PIES).",
                     "type": "text",
@@ -886,6 +1098,7 @@
                 },
                 {
                     "id": "screen10question6",
+                    "question_number": "6",
                     "title": "6. List the names and title of the person who tracks the status of the Planning Interview Discharge, reviews the Discharge Pending Region Approval (DPRD) screen, ensure all updates are entered into ILOG and the School Planning Interview Report (REIS):",
                     "placeholder": "List the names and titles of staff\nwho track Planning Interview discharge status and updates.",
                     "type": "textarea",
@@ -894,6 +1107,7 @@
                 },
                 {
                     "id": "screen10question7",
+                    "question_number": "7",
                     "title": "7. Describe the manner in which the Planning Interview documents are maintained, filed and stored.",
                     "placeholder": "Describe how Planning Interview documents\nare maintained, filed, and stored.",
                     "type": "textarea",
@@ -903,237 +1117,271 @@
             ]
         },
         {
-            "id": 11,
+            "id": 10,
             "key": "militaryRecruitment",
             "title": "Military Recruitment Opt-Out",
             "questions": [
                 {
                     "id": "screen11question1",
-                    "title": "1. Does your school have enrolled students in grades 9-12?",
-                    "placeholder": "Confirm whether your school has students\nenrolled in grades 9–12.",
-                    "type": "checkbox",
+                    "question_number": "1",
+                    "title": "Does your school have students in grades 9, 10, 11 and/or 12?",
+                    "placeholder": "Indicate if your school serves students in grades 9 through 12.",
+                    "type": "text",
                     "required": true,
-                    "description": "Check this box if your school has students in grades 9–12."
+                    "description": "State whether grades 9 to 12 are present at your school."
                 },
                 {
                     "id": "screen11question2",
-                    "title": "2. Identify the staff member who will oversee your school's plans related to military recruitment opt-out:",
-                    "placeholder": "Enter the name and title of the staff member\nwho oversees your school's military recruitment opt-out plans.",
+                    "question_number": "1a",
+                    "title": "Identify the staff member who will oversee your school's plans related to military recruitment opt-out:",
+                    "placeholder": "Enter the staff member’s name, title, and contact details overseeing military opt-out processes.",
                     "type": "text",
                     "required": true,
-                    "description": "Provide the staff member responsible for managing opt-out procedures."
+                    "description": "Identify the person responsible for opt-out management and coordination."
                 },
                 {
                     "id": "screen11question3",
-                    "title": "3. Summarize your school’s plans and procedures for providing the same access in terms of visits by military recruiters, post-secondary educational institutions, and prospective employers. (NOTE: Schools must not provide student information to military recruiters. Student information will be centrally disseminated to military recruiters upon request during the first week of November.)",
-                    "placeholder": "Summarize your school's plans and procedures\nfor providing equal access to military recruiters,\npost-secondary institutions, and employers.",
+                    "question_number": "1b",
+                    "title": "Summarize your school’s plans and procedures for providing the same access in terms of visits by military recruiters, postsecondary educational institutions, and prospective employers. (NOTE: Schools must not provide student information to military recruiters. Student information will be centrally disseminated to military recruiters upon request during the first week of November.)",
+                    "placeholder": "Summarize procedures for providing equal access to military recruiters, colleges, and employers, without sharing student information.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Describe how your school ensures equal access to recruiters and institutions,\nwhile protecting student information."
+                    "description": "Describe protocols for access, scheduling, and protection of student information in compliance with policy."
                 },
                 {
                     "id": "screen11question4",
-                    "title": "4. Summarize your school's plan for ensuring that the parents of all 9th through 12th grade students understand their opt-out rights, receive opt-out forms and that students in these grades understand their right to opt-out when they turn 18 years of age.",
-                    "placeholder": "Summarize your school's plan for ensuring parents of grades 9–12 students\nunderstand opt-out rights, receive forms,\nand that students know their rights at age 18.",
+                    "question_number": "1c",
+                    "title": "Summarize your school's plan for ensuring that the parents of all 9th through 12th grade students understand their optout rights, receive opt-out forms and that students in these grades understand their right to opt-out when they turn 18 years of age.",
+                    "placeholder": "Outline how your school communicates opt-out rights, distributes opt-out forms to parents, and educates students about these rights at age 18.",
                     "type": "textarea",
                     "required": true,
-                    "description": "Explain how opt-out rights and forms are communicated to parents and students."
+                    "description": "Explain outreach to parents and students about military opt-out options and legal rights."
                 }
             ]
         },
         {
-            "id": 12,
+            "id": 11,
             "key": "schoolCulture",
             "title": "School Culture Plan",
             "questions": [
                 {
                     "id": "screen12question1",
-                    "title": "1. Describe the types of forums beyond the School Leadership Team and student government the school will use to regularly engage key stakeholders (students, parents, teachers, administrators) in identifying and addressing issues of concern to diverse members of the school community.\nInclude how student and family voices are integrated into school decision making.",
-                    "placeholder": "Describe your school's stakeholder engagement forums\nand how student/family voices are included in decision making...",
+                    "question_number": "1",
+                    "title": "Describe the types of forums beyond the School Leadership Team and student government the school will use to regularly engage key stakeholders (students, parents, teachers, administrators) in identifying and addressing issues of concern to diverse members of the school community. Include how student and family voices are integrated into school decision making.",
+                    "placeholder": "Detail the forums used to engage stakeholders and methods for integrating student and family voice into decisions.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Include forums for parent, student, teacher, and community input."
+                    "description": "Outline engagement structures and participation opportunities for students, families, and staff."
                 },
                 {
                     "id": "screen12question2",
-                    "title": "2. Describe how the school will foster students’ social emotional growth and the development of life skills (recognizing and managing emotions, empathy, positive relationships, responsible decision making and positive handling of challenging situations).\nInclude Multi-Tiered SEL Supports at Tiers 1, 2, and 3, and how the school will support adult staff social-emotional development.",
-                    "placeholder": "Describe your school's SEL supports, life skills development,\nand staff social-emotional supports...",
+                    "question_number": "2",
+                    "title": "Describe how the school will foster students’ social emotional growth and the development of life skills (recognizing and managing emotions, empathy, positive relationships, responsible decision making and positive handling of challenging situations)? Please indicate what Multi-Tiered (SEL based) System of Supports (MTSS) will be offered to all students at Tiers 1 (for all), 2 (small group) and 3 (individualized) to ensure efforts are being made to support the needs of all students. Include how the school will support adult staff social emotional development.",
+                    "placeholder": "Summarize SEL programming, life skill initiatives, tiered supports, and staff development in social-emotional wellness.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Include SEL curriculum, tiered supports, and adult SEL development."
+                    "description": "Include SEL curriculum/activities, supports for all tiers, and adult SEL supports."
                 },
                 {
                     "id": "screen12question3",
-                    "title": "3. Describe the school’s plan for implementing a restorative approach to discipline.\na) How are community and relationship-building practices implemented?\nb) How are infractions addressed?\nc) What PD/training has staff had or will have, and how is continuing learning supported?",
-                    "placeholder": "Describe your school's restorative discipline approach,\nrelationship-building practices, and staff training...",
+                    "question_number": "3",
+                    "title": "Describe the school’s plan for implementing a restorative approach to discipline including accountability. \n\ta) How are community and relationship-building practices implemented consistently and widespread for all students and staff? \n\tb) Addressing behavioral change: How are low level and high level infractions addressed? \n\tc) Please provide the professional development/training your staff has had or will have in achieving this goal and how continuing learning and improvement is supported (i.e. professional learning communities and/or coaching in restorative approaches).",
+                    "placeholder": "Explain how restorative practices shape discipline, outline accountability procedures, and describe relevant staff training.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Include restorative practices, discipline procedures, and staff training."
+                    "description": "Include restorative approaches, discipline steps for infractions, and PD plans."
                 },
                 {
                     "id": "screen12question4",
-                    "title": "4. Does your school have a Youth Leadership Council (i.e., Student Council)?",
-                    "placeholder": "Check this box if your school has a Youth Leadership Council...",
-                    "type": "checkbox",
+                    "question_number": "4",
+                    "title": "Does your school have a Youth Leadership Council (i.e. Student Council)?",
+                    "placeholder": "State whether your school has a Youth Leadership Council or Student Council.",
+                    "type": "text",
                     "required": false,
-                    "description": "Indicate if your school has a Youth Leadership Council."
+                    "description": "Confirm if a Youth Leadership or Student Council exists."
                 },
                 {
                     "id": "screen12question5",
-                    "title": "5. If yes, how many students participate?",
-                    "placeholder": "Enter the number of students participating in the Youth Leadership Council...",
+                    "question_number": "4a",
+                    "title": "If yes, how many students participate?",
+                    "placeholder": "Enter the number of participating students in the council.",
                     "type": "text",
                     "required": false,
-                    "description": "Provide the number of students in the Youth Leadership Council."
+                    "description": "Provide total membership count for the council."
                 },
                 {
                     "id": "screen12question6",
-                    "title": "6. If yes, enter the name of the Faculty Advisor:",
-                    "placeholder": "Enter the name of the Youth Leadership Council Faculty Advisor...",
+                    "question_number": "4b",
+                    "title": "If yes, enter the name of the Faculty Advisor:",
+                    "placeholder": "Name the Faculty Advisor for the Youth Leadership/Student Council.",
                     "type": "text",
                     "required": false,
-                    "description": "Provide the name of the Faculty Advisor for the Youth Leadership Council."
+                    "description": "Provide advisor’s name for the respective council."
                 },
                 {
                     "id": "screen12question7",
-                    "title": "7. For HS Only: If yes, are you a part of the NYC Youth Leadership Council network?",
-                    "placeholder": "Check this box if your school is part of the NYC Youth Leadership Council network...",
-                    "type": "checkbox",
+                    "question_number": "5",
+                    "title": "For HS Only: If yes, are you a part of the NYC Youth Leadership Council network?",
+                    "placeholder": "State whether your high school participates in the NYC Youth Leadership Council network.",
+                    "type": "text",
                     "required": false,
-                    "description": "Indicate participation in the NYC Youth Leadership Council network."
+                    "description": "Indicate participation status in the citywide network."
                 },
                 {
                     "id": "screen12question8",
-                    "title": "8. For HS Only: If no, would you like support to start a Youth Leadership Council in your school?",
-                    "placeholder": "Check this box if your school would like support\nto start a Youth Leadership Council...",
-                    "type": "checkbox",
+                    "question_number": "6",
+                    "title": "For HS Only: If no, would you like support to start a Youth Leadership Council in your school?",
+                    "placeholder": "State if your school would like to receive support to establish a Youth Leadership Council.",
+                    "type": "text",
                     "required": false,
-                    "description": "Indicate if your school wants support to start a Youth Leadership Council."
+                    "description": "Express interest in starting or receiving support for a council."
                 },
                 {
                     "id": "screen12question9",
-                    "title": "9. How does the school use discipline data disaggregated by subgroups (e.g., ethnicity, gender) to analyze discipline practices and impacts,\nin order to improve equity in restorative and supportive approaches?",
-                    "placeholder": "Describe how discipline data is disaggregated and used\nto improve equity in discipline practices...",
+                    "question_number": "7",
+                    "title": "How does the school use discipline data disaggregated by subgroups (e.g., ethnicity, gender) to analyze discipline practices and impacts, in order to improve equity in restorative and supportive approaches?",
+                    "placeholder": "Describe analysis and use of subgroup-disaggregated discipline data for equity improvement.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Include analysis of discipline data by subgroup and how it informs practices."
+                    "description": "Show how student data informs equity in restorative and supportive interventions."
                 },
                 {
                     "id": "screen12question10",
-                    "title": "10. Do you have a team that meets regularly to review youth development, student behavior, and school-wide discipline?",
-                    "placeholder": "Check this box if your school has a discipline review team...",
-                    "type": "checkbox",
+                    "question_number": "8",
+                    "title": "Do you have a team that meets regularly to review youth development, student behavior and school-wide discipline?",
+                    "placeholder": "Indicate if a dedicated team regularly reviews youth development and discipline.",
+                    "type": "text",
                     "required": false,
-                    "description": "Indicate if your school has a team reviewing youth development and discipline."
+                    "description": "Confirm existence of youth development/disciple review committee."
                 },
                 {
                     "id": "screen12question11",
-                    "title": "11. If Yes, please list the names and email addresses of its members.",
-                    "placeholder": "List the names and email addresses of discipline review team members...",
+                    "question_number": "8a",
+                    "title": "If Yes, please list the names and email addresses of its members.",
+                    "placeholder": "List all names and email addresses for the discipline review team.",
                     "type": "textarea",
                     "required": false,
-                    "description": "Provide contact details of all discipline review team members."
+                    "description": "Provide full contact details for all review team members."
                 },
                 {
                     "id": "screen12question12",
-                    "title": "12. Does your school have a Gender Sexuality Alliance (GSA) or other club for supporting lesbian, gay, bisexual, or transgender (LGBT) students?",
-                    "placeholder": "Check this box if your school has a GSA or similar club...",
+                    "question_number": "9",
+                    "title": "Does your school have a Gender Sexuality Alliance (GSA) or other club for supporting lesbian, gay, bisexual, or transgender (LGBT) students?",
+                    "placeholder": "Check if your school offers a GSA or similar club and indicate accordingly.",
                     "type": "checkbox",
                     "required": false,
-                    "description": "Indicate if your school has a GSA or similar LGBTQ+ support club."
+                    "description": "Confirm existence of LGBTQ+ supportive club(s)."
                 },
                 {
                     "id": "screen12question13",
-                    "title": "13. If yes, provide the name of the advisor for the club:",
-                    "placeholder": "Enter the name of the advisor for the GSA or similar club...",
+                    "question_number": "9a",
+                    "title": "If yes, provide the name of the advisor for the club:",
+                    "placeholder": "Provide the name for the GSA or similar club’s advisor.",
                     "type": "text",
                     "required": false,
-                    "description": "Provide the advisor's name for the GSA or similar club."
+                    "description": "Enter advisor’s name for the club."
                 },
                 {
                     "id": "screen12question14",
-                    "title": "14. Per Chancellor’s Regulation A-710: List the name of your school-based 504 Coordinator to oversee the implementation of this regulation at the school level.\nThis person must be a pedagogue.",
-                    "placeholder": "Enter the name of your school's 504 Coordinator...",
+                    "question_number": "10",
+                    "title": "Indicate the location(s) of your designated in-school suspension center (i.e., SAVE room), and identify the DOE staff member(s) who will provide instruction to student(s) during specific times as mandated by SAVE Legislation. There should be a location and instructor available for every part of the school day/week when a student is serving an in-school removal or suspension (be as specific as possible in designating times and instructors)This room should be different from your Crisis room and instructors may not be assigned to cover both rooms simultaneously.",
+                    "placeholder": "Provide the location(s) and named DOE staff assigned for in-school suspension coverage throughout the day/week.",
                     "type": "text",
                     "required": false,
-                    "description": "Provide the name of the designated 504 Coordinator."
+                    "description": "Detail suspension center locations and instructional staff assigned per schedule."
                 },
                 {
                     "id": "screen12question15",
-                    "title": "15. Indicate the location(s) of your designated in-school suspension center (i.e., SAVE room), and identify the DOE staff member(s) who will provide instruction.\nThis room should be different from your Crisis room and staffed throughout the day.",
-                    "placeholder": "Describe the location(s) of SAVE room(s) and the staff assigned...",
-                    "type": "textarea",
+                    "question_number": "11",
+                    "title": "Certify that administration has reviewed Chancellor's Regulation A-443. (Chancellor's Regulation A-443)",
+                    "placeholder": "Check to certify administrative review of Chancellor's Regulation A-443.",
+                    "type": "checkbox",
                     "required": false,
-                    "description": "Provide SAVE room location(s), assigned staff, and scheduling details."
+                    "description": "Confirm review and understanding by administration."
                 },
                 {
                     "id": "screen12question16",
-                    "title": "16. Certify that administration has reviewed Chancellor's Regulation A-443.",
-                    "placeholder": "Check this box to certify administration has reviewed Chancellor's Regulation A-443...",
-                    "type": "checkbox",
+                    "question_number": "12",
+                    "title": "Does your school have a dress code policy?",
+                    "placeholder": "Indicate if your school maintains a formal dress code policy.",
+                    "type": "text",
                     "required": false,
-                    "description": "Certification that administration has reviewed Regulation A-443."
+                    "description": "State yes/no or provide brief details if applicable."
                 }
             ]
         },
         {
-            "id": 13,
+            "id": 12,
             "key": "afterSchoolPrograms",
             "title": "After School Programs",
             "questions": [
                 {
                     "id": "screen13question1",
-                    "title": "1. Does your school offer a comprehensive after-school program (more than 2 weeks)?",
-                    "placeholder": "Confirm whether your school offers a comprehensive\nafter-school program (more than 2 weeks).",
-                    "type": "checkbox",
+                    "question_number": "1",
+                    "title": "Does your school offer a comprehensive after-school program (more than 2 weeks)?",
+                    "placeholder": "Indicate if your school provides a comprehensive after-school program lasting more than two weeks.",
+                    "type": "text",
                     "required": true,
-                    "description": "Check this box if your school offers a comprehensive after-school program (more than 2 weeks)."
+                    "description": "State whether a comprehensive after-school program (over two weeks) is offered."
                 }
             ]
         },
         {
-            "id": 14,
+            "id": 13,
             "key": "cellPhonePolicy",
             "title": "Cell Phone Policy",
             "questions": [
                 {
                     "id": "screen14question1",
-                    "title": "1. Has your school adopted a policy regarding the use of cell phones, computing devices, and portable music and entertainment systems on school property?",
-                    "placeholder": "Confirm that your school has adopted a cell phone policy...",
-                    "type": "checkbox",
+                    "question_number": "1",
+                    "title": "Has your school shared your approved policy prohibiting the use of personal internet-enabled electronic devices, including cell phones, during the school day with staff, students and families?",
+                    "placeholder": "Confirm the policy was shared with staff, students, and families at your school.",
+                    "type": "text",
                     "required": true,
-                    "description": "Cell phone policies must be in place for student safety and learning."
+                    "description": "Verify that the cell phone/electronic device policy has been communicated to all stakeholders."
                 },
                 {
                     "id": "screen14question2",
-                    "title": "2. Has your school provided written notification of Chancellor’s Regulation A-413 and the school’s policy to students, parents and staff on or before October 31st?",
-                    "placeholder": "Confirm that students and parents are notified of Chancellor's Regulation A-413...",
-                    "type": "checkbox",
+                    "question_number": "1a",
+                    "title": "Please include your policy here.",
+                    "placeholder": "Paste or type your school’s full policy regarding internet-enabled devices/cell phones.",
+                    "type": "textarea",
                     "required": true,
-                    "description": "Regulation notification must be provided to all stakeholders."
+                    "description": "Provide the complete text of your approved device use policy."
                 },
                 {
                     "id": "screen14question3",
-                    "title": "3. Has your school conducted an orientation on Chancellor’s Regulation A-413 and the school’s policy for staff and students on or before October 31st?",
-                    "placeholder": "Confirm that orientation on cell phone policies is conducted...",
-                    "type": "checkbox",
+                    "question_number": "1b",
+                    "title": "Has your school identified at least one method for parents to contact students and has your school distributed written notification to parents notifying them of this method at the start of the school and/or upon enrollment?",
+                    "placeholder": "Confirm a parent-to-student contact method is established and notification is distributed to parents at the start of school and/or upon enrollment.",
+                    "type": "text",
                     "required": true,
-                    "description": "Orientation ensures understanding of policies and procedures."
+                    "description": "Verify that the school provides clear parent-to-student contact options and communicates them in writing to families."
                 }
             ]
         },
         {
-            "id": 15,
+            "id": 14,
             "key": "counselingPlan",
             "title": "School Counseling Plan",
             "questions": [
                 {
                     "id": "screen15question1",
-                    "title": "1. Does your school offer a comprehensive School Counseling Program?",
-                    "placeholder": "Confirm that your school offers a comprehensive School Counseling Program...",
-                    "type": "checkbox",
+                    "question_number": "1",
+                    "title": "NYSED state law requires certified school counselor(s) design and develop the school's counseling program in collaboration with school teaching staff, student service, and other pupil personnel service providers. Provide the name and title of your school's counseling plan coordinator. The coordinator is responsible for creating this plan in collaboration with key school community members. The school counseling plan coordinator will also be responsible for attending OSYD professional development and revising the counseling plan based on changing student counseling needs and/or Student Service Manager's feedback. \nContact your Director of Student Services if you do not have a certified counselor in the building.",
+                    "placeholder": "Enter the full name, title, and role description of your School Counseling Plan Coordinator (e.g., Jane Doe – Certified School Counselor, responsible for plan development and revision).",
+                    "type": "textarea",
                     "required": true,
-                    "description": "Comprehensive programs provide academic, career, and social-emotional support."
+                    "description": "Include the designated coordinator’s name, professional title, and a brief explanation of their responsibilities in plan development and collaboration with staff."
+                },
+                {
+                    "id": "screen15question2",
+                    "question_number": "2",
+                    "title": "School counseling program Mission and Vision. The school's counseling program mission and vision statement communicates what the school hopes to achieve for students five to fifteen years in the future. It aligns with the school's and DOE's vision statement and is informed by the school counseling program's core beliefs. For additional resources on drafting the school's counseling vision and mission statement, see 'The ASCA National Model: A Framework for School Counseling Programs' at https://www.schoolcounselor.org/",
+                    "placeholder": "Write your school counseling program’s Mission and Vision statements. Describe how they align with the school’s overall goals and DOE’s vision for student success.",
+                    "type": "textarea",
+                    "required": true,
+                    "description": "Provide clear Mission and Vision statements demonstrating how your counseling program supports academic achievement, social-emotional growth, and career readiness over time."
                 }
             ]
         }

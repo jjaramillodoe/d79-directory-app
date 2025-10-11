@@ -95,30 +95,29 @@ async function PUT(request, { params }) {
     const updateData = await request.json();
     const { step, stepData, currentStep, action } = updateData;
 
-    // Shared step mapping for consistent step numbering
+    // Shared step mapping for consistent step numbering - NOTE: principalLetter removed
     const stepNumberMap = {
       'tableOfContents': 1,
-      'principalLetter': 2,
-      'childAbuseIntervention': 3,
-      'sexualHarassment': 4,
-      'respectForAll': 5,
-      'suicidePrevention': 6,
-      'attendancePlan': 7,
-      'temporaryHousing': 8,
-      'serviceInSchools': 9,
-      'planningInterviews': 10,
-      'militaryRecruitment': 11,
-      'schoolCulture': 12,
-      'afterSchoolPrograms': 13,
-      'cellPhonePolicy': 14,
-      'counselingPlan': 15
+      'childAbuseIntervention': 2,
+      'sexualHarassment': 3,
+      'respectForAll': 4,
+      'suicidePrevention': 5,
+      'attendancePlan': 6,
+      'temporaryHousing': 7,
+      'serviceInSchools': 8,
+      'planningInterviews': 9,
+      'militaryRecruitment': 10,
+      'schoolCulture': 11,
+      'afterSchoolPrograms': 12,
+      'cellPhonePolicy': 13,
+      'counselingPlan': 14
     };
 
     // Handle different update actions
     if (action === 'save_step' && step && stepData) {
-      // Save specific step data
+      // Save specific step data - NOTE: principalLetter has been removed
       const stepNames = [
-        'tableOfContents', 'principalLetter', 'childAbuseIntervention', 
+        'tableOfContents', 'childAbuseIntervention', 
         'sexualHarassment', 'respectForAll', 'suicidePrevention',
         'attendancePlan', 'temporaryHousing', 'serviceInSchools',
         'planningInterviews', 'militaryRecruitment', 'schoolCulture',
@@ -175,7 +174,7 @@ async function PUT(request, { params }) {
     }
 
     // Update current step if provided
-    if (currentStep && currentStep >= 1 && currentStep <= 15) {
+    if (currentStep && currentStep >= 1 && currentStep <= 14) {
       form.currentStep = currentStep;
     }
 
@@ -187,7 +186,7 @@ async function PUT(request, { params }) {
       // If complete form data is provided, update all steps
       if (updateData.formData) {
         const stepNames = [
-          'tableOfContents', 'principalLetter', 'childAbuseIntervention', 
+          'tableOfContents', 'childAbuseIntervention', 
           'sexualHarassment', 'respectForAll', 'suicidePrevention',
           'attendancePlan', 'temporaryHousing', 'serviceInSchools',
           'planningInterviews', 'militaryRecruitment', 'schoolCulture',
@@ -275,7 +274,7 @@ async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    await FormSubmission.findByIdAndDelete(params.id);
+    await FormSubmission.findByIdAndDelete(id);
 
     return NextResponse.json({ 
       success: true, 

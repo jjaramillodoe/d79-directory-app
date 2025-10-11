@@ -32,13 +32,13 @@ export interface FormData {
   };
   
   // Screen 2: Principal Letter
-  principalLetter: {
-    completed: boolean;
-    letterContent?: string;
-    attachments?: string[];
-  };
+  //principalLetter: {
+  //  completed: boolean;
+  //  letterContent?: string;
+  //  attachments?: string[];
+  //};
   
-  // Screen 3: Child Abuse and Neglect Intervention
+  // Screen 2: Child Abuse and Neglect Intervention
   childAbuseIntervention: {
     completed: boolean;
     designatedLiaison: string;
@@ -49,7 +49,7 @@ export interface FormData {
     localAgencySupports: string[];
   };
   
-  // Screen 4: Student to Student Sexual Harassment
+  // Screen 3: Student to Student Sexual Harassment
   sexualHarassment: {
     completed: boolean;
     designatedLiaison: string;
@@ -57,7 +57,7 @@ export interface FormData {
     protocols: string;
   };
   
-  // Screen 5: Respect For All Plan
+  // Screen 4: Respect For All Plan
   respectForAll: {
     completed: boolean;
     liaisons: string[];
@@ -66,7 +66,7 @@ export interface FormData {
     posterLocations?: string[];
   };
   
-  // Screen 6: Suicide Prevention and Crisis Intervention
+  // Screen 5: Suicide Prevention and Crisis Intervention
   suicidePrevention: {
     completed: boolean;
     crisisTeamChair: string;
@@ -79,7 +79,7 @@ export interface FormData {
     conflictResolutionTechniques: string;
   };
   
-  // Screen 7: School Attendance Plan
+  // Screen 6: School Attendance Plan
   attendancePlan: {
     completed: boolean;
     attendanceCoordinator: string;
@@ -92,7 +92,7 @@ export interface FormData {
     rolesResponsibilities: string;
   };
   
-  // Screen 8: Students in Temporary Housing
+  // Screen 7: Students in Temporary Housing
   temporaryHousing: {
     completed: boolean;
     atsLiaison: string;
@@ -102,7 +102,7 @@ export interface FormData {
     sthServices: string[];
   };
   
-  // Screen 9: Service In Schools Plan
+  // Screen 8: Service In Schools Plan
   serviceInSchools: {
     completed: boolean;
     serviceCoordinator: string;
@@ -110,7 +110,7 @@ export interface FormData {
     partnerOrganizations: string[];
   };
   
-  // Screen 10: Planning Interviews
+  // Screen 9: Planning Interviews
   planningInterviews: {
     completed: boolean;
     interviewers: string[];
@@ -119,7 +119,7 @@ export interface FormData {
     dischargeProtocols: string;
   };
   
-  // Screen 11: Military Recruitment Opt-Out
+  // Screen 10: Military Recruitment Opt-Out
   militaryRecruitment: {
     completed: boolean;
     liaison: string;
@@ -127,7 +127,7 @@ export interface FormData {
     parentOutreachPlan: string;
   };
   
-  // Screen 12: School Culture Plan
+  // Screen 11: School Culture Plan
   schoolCulture: {
     completed: boolean;
     cultureForum: string[];
@@ -135,7 +135,7 @@ export interface FormData {
     interventionStrategy: string;
   };
   
-  // Screen 13: After School Programs
+  // Screen 12: After School Programs
   afterSchoolPrograms: {
     completed: boolean;
     programs: Array<{
@@ -146,7 +146,7 @@ export interface FormData {
     }>;
   };
   
-  // Screen 14: Cell Phone Policy
+  // Screen 13: Cell Phone Policy
   cellPhonePolicy: {
     completed: boolean;
     policy: string;
@@ -154,7 +154,7 @@ export interface FormData {
     orientation: string;
   };
   
-  // Screen 15: School Counseling Plan
+  // Screen 14: School Counseling Plan
   counselingPlan: {
     completed: boolean;
     coordinator: string;

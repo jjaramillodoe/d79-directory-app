@@ -22,13 +22,17 @@ import {
   User,
   Download,
   RefreshCw,
-  Share2
+  Share2,
+  BookOpen
 } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import CollaborationDashboard from '../../../components/CollaborationDashboard';
+import UserAnalytics from '../../../components/UserAnalytics';
+import SmartFilters from '../../../components/SmartFilters';
+import UserRoleTemplates from '../../../components/UserRoleTemplates';
 import SCHOOL_NAMES from '../../../constants/schools';
 
 // Register AG Grid modules
@@ -73,6 +77,7 @@ function AdminUsersPageContent() {
 
   // Collaboration Dashboard State
   const [activeTab, setActiveTab] = useState('users');
+  const [filteredUsers, setFilteredUsers] = useState([]);
 
   // Check for tab parameter in URL
   useEffect(() => {
@@ -108,6 +113,11 @@ function AdminUsersPageContent() {
       fetchUsers();
     }
   }, [session]);
+
+  // Initialize filtered users when users change
+  useEffect(() => {
+    setFilteredUsers(users);
+  }, [users]);
 
   // Fetch audit logs when audit modal opens
   useEffect(() => {
@@ -375,6 +385,27 @@ function AdminUsersPageContent() {
     setCsvPreview([]);
     setImportResults(null);
     setShowCsvImportModal(false);
+  };
+
+  // Handle filtered users from SmartFilters
+  const handleFilteredUsers = (filtered) => {
+    setFilteredUsers(filtered);
+  };
+
+  // Handle export filtered users
+  const handleExportFiltered = () => {
+    if (gridApi && filteredUsers.length > 0) {
+      gridApi.exportDataAsCsv({
+        fileName: `filtered-users-${new Date().toISOString().split('T')[0]}.csv`
+      });
+    } else {
+      alert('No filtered users to export');
+    }
+  };
+
+  // Handle user creation from templates
+  const handleUsersCreated = () => {
+    fetchUsers(); // Refresh the user list
   };
 
   const toggleUserSelection = (user) => {
@@ -691,6 +722,28 @@ function AdminUsersPageContent() {
               {session?.user?.level === 4 ? 'School Users' : 'All Users'}
             </button>
             <button
+              onClick={() => setActiveTab('analytics')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'analytics'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 inline mr-2" />
+              Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'templates'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 inline mr-2" />
+              Role Templates
+            </button>
+            <button
               onClick={() => setActiveTab('collaboration')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'collaboration'
@@ -704,6 +757,16 @@ function AdminUsersPageContent() {
           </nav>
         </div>
 
+        {/* User Analytics Dashboard */}
+        {activeTab === 'analytics' && (
+          <UserAnalytics users={users} />
+        )}
+
+        {/* User Role Templates */}
+        {activeTab === 'templates' && (
+          <UserRoleTemplates onCreateUsers={handleUsersCreated} />
+        )}
+
         {/* Collaboration Dashboard */}
         {activeTab === 'collaboration' && (
           <CollaborationDashboard user={session.user} />
@@ -712,7 +775,14 @@ function AdminUsersPageContent() {
         {/* User Management Content */}
         {activeTab === 'users' && (
           <>
-                         {/* User Statistics */}
+            {/* Smart Filters */}
+            <SmartFilters 
+              users={users} 
+              onFilteredUsers={handleFilteredUsers}
+              onExportFiltered={handleExportFiltered}
+            />
+
+            {/* User Statistics */}
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
@@ -792,7 +862,7 @@ function AdminUsersPageContent() {
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center">
               <Users className="w-5 h-5 mr-2 text-blue-600" />
-              District 79 Users ({users.length})
+              District 79 Users ({filteredUsers.length} of {users.length})
             </h2>
             <div className="flex gap-2 mt-2 lg:mt-0">
               <button
@@ -817,16 +887,16 @@ function AdminUsersPageContent() {
               <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-gray-600">Loading users...</p>
             </div>
-          ) : users.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <div className="text-center py-12 text-gray-600">
               <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <p>No users found.</p>
+              <p>No users match your filters.</p>
             </div>
           ) : (
                                       <div className="ag-theme-alpine w-full" style={{ height: '600px' }}>
                <AgGridReact
                  columnDefs={columnDefs}
-                 rowData={users}
+                 rowData={filteredUsers}
                  defaultColDef={defaultColDef}
                  onGridReady={onGridReady}
                  onSelectionChanged={onSelectionChanged}

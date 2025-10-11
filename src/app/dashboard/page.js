@@ -5,6 +5,11 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import ScrollToTop from '../../components/ScrollToTop';
+import AnalyticsDashboard from '../../components/AnalyticsDashboard';
+import SmartNotifications from '../../components/SmartNotifications';
+import BulkOperations from '../../components/BulkOperations';
+import SchoolPerformanceScoring from '../../components/SchoolPerformanceScoring';
+import BulkFormCreation from '../../components/BulkFormCreation';
 import { 
   Building2, 
   User, 
@@ -25,7 +30,9 @@ import {
   Shield,
   GraduationCap,
   PieChart,
-  BarChart
+  BarChart,
+  Settings,
+  Award
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -34,6 +41,7 @@ export default function DashboardPage() {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [showBulkCreate, setShowBulkCreate] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     draft: 0,
@@ -55,6 +63,7 @@ export default function DashboardPage() {
     totals: { submitted: 0, approved: 0, underReview: 0, total: 0 }
   });
   const [loadingTimeline, setLoadingTimeline] = useState(false);
+  const [activeTab, setActiveTab] = useState('analytics');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -83,8 +92,8 @@ export default function DashboardPage() {
         const formsData = data.forms || [];
         setForms(formsData);
         
-        // Calculate statistics
-        if (session?.user?.level === 4) {
+        // Calculate statistics for admin users (level >= 4)
+        if (session?.user?.level >= 4) {
           const statsData = calculateStats(formsData);
           setStats(statsData);
         }
@@ -163,7 +172,7 @@ export default function DashboardPage() {
     
     const totalProgress = formsData.reduce((sum, form) => {
       const completedSteps = form.completedSteps?.length || 0;
-      return sum + (completedSteps / 15) * 100;
+      return sum + (completedSteps / 14) * 100;
     }, 0);
     
     const averageProgress = total > 0 ? Math.round(totalProgress / total) : 0;
@@ -241,137 +250,279 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          {/* Start New Form - Level 3+ */}
           {userLevel >= 3 && (
             <Link
               href="/form/new"
-              className="card group overflow-hidden relative"
+              className="card group overflow-hidden relative cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-8 text-center">
-                <div className="text-5xl mb-4 text-primary-500 group-hover:text-white transition-colors duration-300">
-                  <FileText size={48} />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-blue-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <FileText className="text-blue-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Start New Form
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
+                      Begin a new school plan submission
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-secondary-800 group-hover:text-white transition-colors duration-300">
-                  Start New Form
-                </h3>
-                <p className="text-base text-secondary-600 group-hover:text-white/90 transition-colors duration-300">
-                  Begin a new school plan submission
-                </p>
               </div>
             </Link>
           )}
-          
 
-          
-          {userLevel === 4 && (
-            <Link
-              href="/admin/users"
-              className="card group overflow-hidden relative"
+          {/* Bulk Form Creation - Super Admin Only */}
+          {userLevel === 5 && (
+            <button
+              onClick={() => setShowBulkCreate(!showBulkCreate)}
+              className="card group overflow-hidden relative cursor-pointer text-left w-full"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-8 text-center">
-                <div className="text-5xl mb-4 text-purple-500 group-hover:text-white transition-colors duration-300">
-                  <Users size={48} />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-blue-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <FileText className="text-blue-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Bulk Form Creation
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors mb-2">
+                      Create and assign forms to multiple principals at once
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-red-600 group-hover:text-white/90 transition-colors" />
+                      <span className="text-xs text-red-600 group-hover:text-white/90 transition-colors font-semibold">
+                        Super Admin Only
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-secondary-800 group-hover:text-white transition-colors duration-300">
-                  Manage School Users
-                </h3>
-                <p className="text-base text-secondary-600 group-hover:text-white/90 transition-colors duration-300">
-                  Manage users from your school
-                </p>
               </div>
-            </Link>
+            </button>
           )}
-          
-          {userLevel === 4 && (
-            <Link
-              href="/admin/users?tab=collaboration"
-              className="card group overflow-hidden relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-8 text-center">
-                <div className="text-5xl mb-4 text-emerald-500 group-hover:text-white transition-colors duration-300">
-                  <Users size={48} />
-                </div>
-                <h3 className="text-2xl font-bold mb-3 text-secondary-800 group-hover:text-white transition-colors duration-300">
-                  Collaboration Dashboard
-                </h3>
-                <p className="text-base text-secondary-600 group-hover:text-white/90 transition-colors duration-300">
-                  Manage staff and share forms for collaboration
-                </p>
-              </div>
-            </Link>
-          )}
-          
+
+          {/* Review All Submissions - Super Admin Only */}
           {userLevel === 5 && (
             <Link
               href="/admin/submissions"
-              className="card group overflow-hidden relative"
+              className="card group overflow-hidden relative cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-success-500 to-success-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-8 text-center">
-                <div className="text-5xl mb-4 text-success-500 group-hover:text-white transition-colors duration-300">
-                  <Search size={48} />
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <Search className="text-green-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Review All Submissions
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
+                      Review and approve all forms across all schools
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-secondary-800 group-hover:text-white transition-colors duration-300">
-                  Review All Submissions
-                </h3>
-                <p className="text-base text-secondary-600 group-hover:text-white/90 transition-colors duration-300">
-                  Review and approve all forms across all schools
-                </p>
               </div>
             </Link>
           )}
-          
+
+          {/* Manage All Users - Super Admin Only */}
           {userLevel === 5 && (
             <Link
               href="/admin/users"
-              className="card group overflow-hidden relative"
+              className="card group overflow-hidden relative cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-8 text-center">
-                <div className="text-5xl mb-4 text-success-500 group-hover:text-white transition-colors duration-300">
-                  <Users size={48} />
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Manage All Users
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
+                      Manage all users across all schools
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-secondary-800 group-hover:text-white transition-colors duration-300">
-                  Manage All Users
-                </h3>
-                <p className="text-base text-secondary-600 group-hover:text-white/90 transition-colors duration-300">
-                  Manage all users across all schools
-                </p>
               </div>
             </Link>
           )}
-          
+
+          {/* Manage School Users - Admin Principal Only */}
+          {userLevel === 4 && (
+            <Link
+              href="/admin/users"
+              className="card group overflow-hidden relative cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Manage School Users
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
+                      Manage users from your school
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Collaboration Dashboard - Admin Principal Only */}
+          {userLevel === 4 && (
+            <Link
+              href="/admin/users?tab=collaboration"
+              className="card group overflow-hidden relative cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Collaboration Dashboard
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
+                      Manage staff and share forms for collaboration
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Collaboration Dashboard - Super Admin Only */}
           {userLevel === 5 && (
             <Link
               href="/admin/users?tab=collaboration"
-              className="card group overflow-hidden relative"
+              className="card group overflow-hidden relative cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-8 text-center">
-                <div className="text-5xl mb-4 text-emerald-500 group-hover:text-white transition-colors duration-300">
-                  <Users size={48} />
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Collaboration Dashboard
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
+                      Manage staff and share forms for collaboration
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-secondary-800 group-hover:text-white transition-colors duration-300">
-                  Collaboration Dashboard
-                </h3>
-                <p className="text-base text-secondary-600 group-hover:text-white/90 transition-colors duration-300">
-                  Manage staff and share forms for collaboration
-                </p>
               </div>
             </Link>
           )}
         </div>
 
-        {/* Admin Statistics */}
+        {/* Bulk Form Creation Section - Super Admin Only */}
+        {userLevel === 5 && showBulkCreate && (
+          <div className="mb-12">
+            <BulkFormCreation 
+              onFormsCreated={() => {
+                fetchForms();
+                setShowBulkCreate(false);
+              }} 
+            />
+          </div>
+        )}
+
+        {/* Enhanced Admin Dashboard */}
         {(userLevel === 4 || userLevel === 5) && (
+          <div className="mb-12">
+            {/* Tab Navigation */}
+            <div className="card mb-6 overflow-hidden">
+              <div className="card-header">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                    <BarChart3 size={28} />
+                    Super Admin Dashboard
+                  </h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setActiveTab('analytics')}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                        activeTab === 'analytics' 
+                          ? 'bg-primary-500 text-white' 
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      <BarChart3 size={16} className="inline mr-2" />
+                      Analytics
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('notifications')}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                        activeTab === 'notifications' 
+                          ? 'bg-primary-500 text-white' 
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      <Bell size={16} className="inline mr-2" />
+                      Notifications
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('bulk')}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                        activeTab === 'bulk' 
+                          ? 'bg-primary-500 text-white' 
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      <Settings size={16} className="inline mr-2" />
+                      Bulk Operations
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('performance')}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                        activeTab === 'performance' 
+                          ? 'bg-primary-500 text-white' 
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      <Award size={16} className="inline mr-2" />
+                      Performance
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              {activeTab === 'analytics' && <AnalyticsDashboard forms={forms} stats={stats} />}
+              {activeTab === 'notifications' && <SmartNotifications forms={forms} stats={stats} />}
+              {activeTab === 'bulk' && <BulkOperations forms={forms} onUpdateForms={setForms} />}
+              {activeTab === 'performance' && <SchoolPerformanceScoring forms={forms} />}
+            </div>
+          </div>
+        )}
+
+        {/* Legacy Statistics (for non-super-admin users) */}
+        {(userLevel >= 4 && userLevel < 5) && (
           <div className="card mb-12 overflow-hidden">
             <div className="card-header flex justify-between items-center">
               <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                 <BarChart3 size={28} />
-                {userLevel === 4 ? 'School Submission Statistics' : 'All Schools Submission Statistics'}
+                School Submission Statistics
               </h2>
               <div className="flex gap-2">
                 <button
@@ -791,10 +942,10 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-3">
                             <div className="flex-1 bg-gray-200 rounded-full h-2.5 border border-gray-300 overflow-hidden">
                               <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-1000 shadow-sm"
-                                   style={{ width: `${(form.completedSteps?.length || 0) / 15 * 100}%` }}></div>
+                                   style={{ width: `${(form.completedSteps?.length || 0) / 14 * 100}%` }}></div>
                             </div>
                             <span className="text-sm text-gray-600 min-w-14 font-semibold">
-                              {form.completedSteps?.length || 0}/15
+                              {form.completedSteps?.length || 0}/14
                             </span>
                           </div>
                         </td>

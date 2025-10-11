@@ -53,24 +53,23 @@ export default function AboutPage() {
 
   const planComponents = [
     { id: 1, title: 'Table of Contents', icon: FileText },
-    { id: 2, title: 'Principal Letter', icon: GraduationCap },
-    { id: 3, title: 'Child Abuse Prevention Plan', icon: Shield },
-    { id: 4, title: 'Student to Student Sexual Harassment', icon: Users },
-    { id: 5, title: 'Respect For All Plan', icon: Heart },
-    { id: 6, title: 'Suicide Prevention Plan', icon: Heart },
-    { id: 7, title: 'School Attendance Plan', icon: Calendar },
-    { id: 8, title: 'Students in Temporary Housing Plan', icon: Building2 },
-    { id: 9, title: 'Service In Schools Plan', icon: Settings },
-    { id: 10, title: 'Planning Interviews', icon: UserCheck },
-    { id: 11, title: 'Military Recruitment OPT-OUT', icon: Star },
-    { id: 12, title: 'School Culture Plan', icon: BookOpen },
-    { id: 13, title: 'After School Programs', icon: Calendar },
-    { id: 14, title: 'Cell Phone Policy', icon: Phone },
-    { id: 15, title: 'School Counseling Plan', icon: Heart }
+    { id: 2, title: 'Child Abuse Prevention Plan', icon: Shield },
+    { id: 3, title: 'Student to Student Sexual Harassment', icon: Users },
+    { id: 4, title: 'Respect For All Plan', icon: Heart },
+    { id: 5, title: 'Suicide Prevention Plan', icon: Heart },
+    { id: 6, title: 'School Attendance Plan', icon: Calendar },
+    { id: 7, title: 'Students in Temporary Housing Plan', icon: Building2 },
+    { id: 8, title: 'Service In Schools Plan', icon: Settings },
+    { id: 9, title: 'Planning Interviews', icon: UserCheck },
+    { id: 10, title: 'Military Recruitment OPT-OUT', icon: Star },
+    { id: 11, title: 'School Culture Plan', icon: BookOpen },
+    { id: 12, title: 'After School Programs', icon: Calendar },
+    { id: 13, title: 'Cell Phone Policy', icon: Phone },
+    { id: 14, title: 'School Counseling Plan', icon: Heart }
   ];
 
   const features = [
-    { icon: FileText, title: '15-screen comprehensive form system', description: 'Complete all required plan components' },
+    { icon: FileText, title: '14-screen comprehensive form system', description: 'Complete all required plan components' },
     { icon: Lock, title: 'Secure access for @schools.nyc.gov users only', description: 'Restricted to authorized personnel' },
     { icon: Users, title: 'Multi-level user permissions (Levels 1-4)', description: 'Role-based access control' },
     { icon: CheckCircle, title: 'Admin review and approval workflow', description: 'Streamlined approval process' },
@@ -108,7 +107,7 @@ export default function AboutPage() {
           <p className="text-gray-600 leading-relaxed text-lg text-center max-w-4xl mx-auto">
             The District 79 Directory is a comprehensive school plans management system designed specifically 
             for NYC District 79 principals and administrators. This platform streamlines the process of 
-            creating, submitting, and managing the 15 required school plan components with enhanced security 
+            creating, submitting, and managing the 14 required school plan components with enhanced security 
             and user-friendly interfaces.
           </p>
         </div>

@@ -245,7 +245,7 @@ export default function AdminSubmissionsPage() {
         sub.principalName || '',
         sub.principalEmail || '',
         getStatusBadge(sub.status || 'draft'),
-        `${sub.completedSteps?.length || 0}/15`,
+        `${sub.completedSteps?.length || 0}/14`,
         sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '-',
         sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : '-'
       ]);
@@ -320,7 +320,7 @@ export default function AdminSubmissionsPage() {
                   <td>${sub.principalName || ''}</td>
                   <td>${sub.principalEmail || ''}</td>
                   <td class="status-${sub.status || 'draft'}">${getStatusBadge(sub.status || 'draft')}</td>
-                  <td>${sub.completedSteps?.length || 0}/15</td>
+                  <td>${sub.completedSteps?.length || 0}/14</td>
                   <td>${sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '-'}</td>
                   <td>${sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : '-'}</td>
                 </tr>
@@ -662,11 +662,11 @@ export default function AdminSubmissionsPage() {
                             <div className="flex-1 bg-gray-200 rounded-full h-2">
                               <div 
                                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${((submission.completedSteps?.length || 0) / 15) * 100}%` }}
+                                style={{ width: `${((submission.completedSteps?.length || 0) / 14) * 100}%` }}
                               ></div>
                             </div>
                             <span className="text-xs text-gray-600 min-w-12">
-                              {submission.completedSteps?.length || 0}/15
+                              {submission.completedSteps?.length || 0}/14
                             </span>
                           </div>
                         </td>

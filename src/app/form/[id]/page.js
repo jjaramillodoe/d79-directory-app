@@ -28,7 +28,7 @@ import {
 
 // Import form step components
 import Step1TableOfContents from '../../../components/form-steps/Step1TableOfContents';
-import Step2PrincipalLetter from '../../../components/form-steps/Step2PrincipalLetter';
+//import Step2PrincipalLetter from '../../../components/form-steps/Step2PrincipalLetter';
 import Step3ChildAbusePreventionPlan from '../../../components/form-steps/Step3ChildAbusePreventionPlan';
 import Step4StudenttoStudentSexualHarassment from '../../../components/form-steps/Step4StudenttoStudentSexualHarassment';
 import Step5RespectForAllPlan from '../../../components/form-steps/Step5RespectForAllPlan';
@@ -127,20 +127,20 @@ export default function FormPage() {
 
   const FORM_STEPS = [
     { id: 1, title: 'Table of Contents' },
-    { id: 2, title: 'Principal Letter' },
-    { id: 3, title: 'Child Abuse and Neglect Intervention' },
-    { id: 4, title: 'Student to Student Sexual Harassment' },
-    { id: 5, title: 'Respect For All Plan' },
-    { id: 6, title: 'Suicide Prevention and Crisis Intervention' },
-    { id: 7, title: 'School Attendance Plan' },
-    { id: 8, title: 'Students in Temporary Housing Program' },
-    { id: 9, title: 'Service In Schools Plan' },
-    { id: 10, title: 'Planning Interviews' },
-    { id: 11, title: 'Military Recruitment Opt-Out' },
-    { id: 12, title: 'School Culture Plan' },
-    { id: 13, title: 'After School Programs' },
-    { id: 14, title: 'Cell Phone Policy' },
-    { id: 15, title: 'School Counseling Plan' },
+    //{ id: 2, title: 'Principal Letter' },
+    { id: 2, title: 'Child Abuse and Neglect Intervention' },
+    { id: 3, title: 'Student to Student Sexual Harassment' },
+    { id: 4, title: 'Respect For All Plan' },
+    { id: 5, title: 'Suicide Prevention and Crisis Intervention' },
+    { id: 6, title: 'School Attendance Plan' },
+    { id: 7, title: 'Students in Temporary Housing Program' },
+    { id: 8, title: 'Service In Schools Plan' },
+    { id: 9, title: 'Planning Interviews' },
+    { id: 10, title: 'Military Recruitment Opt-Out' },
+    { id: 11, title: 'School Culture Plan' },
+    { id: 12, title: 'After School Programs' },
+    { id: 13, title: 'Cell Phone Policy' },
+    { id: 14, title: 'School Counseling Plan' },
   ];
 
   // Enhanced save function with better error handling and data validation
@@ -202,7 +202,7 @@ export default function FormPage() {
 
   // Enhanced navigation with unsaved changes warning
   const handleNext = async () => {
-    if (currentStep < 15) {
+    if (currentStep < FORM_STEPS.length) {
       if (hasUnsavedChanges()) {
         // Auto-save current step before moving to next
         try {
@@ -253,20 +253,19 @@ export default function FormPage() {
   const getStepKey = (step) => {
     const stepMap = {
       1: 'tableOfContents',
-      2: 'principalLetter', 
-      3: 'childAbuseIntervention',
-      4: 'sexualHarassment',
-      5: 'respectForAll',
-      6: 'suicidePrevention',
-      7: 'attendancePlan',
-      8: 'temporaryHousing',
-      9: 'serviceInSchools',
-      10: 'planningInterviews',
-      11: 'militaryRecruitment',
-      12: 'schoolCulture',
-      13: 'afterSchoolPrograms',
-      14: 'cellPhonePolicy',
-      15: 'counselingPlan'
+      2: 'childAbuseIntervention',
+      3: 'sexualHarassment',
+      4: 'respectForAll',
+      5: 'suicidePrevention',
+      6: 'attendancePlan',
+      7: 'temporaryHousing',
+      8: 'serviceInSchools',
+      9: 'planningInterviews',
+      10: 'militaryRecruitment',
+      11: 'schoolCulture',
+      12: 'afterSchoolPrograms',
+      13: 'cellPhonePolicy',
+      14: 'counselingPlan'
     };
     return stepMap[step] || `step${step}`;
   };
@@ -317,7 +316,7 @@ export default function FormPage() {
       if (Object.keys(currentStepData).length > 0) {
         autoSave();
       }
-    }, 6000000); // Increased to a least 10 minutes to prevent excessive API calls
+    }, 5000); // Save after 5 seconds of inactivity
   };
 
   const getCurrentStepData = () => {
@@ -410,7 +409,7 @@ export default function FormPage() {
         // Ensure stepData is properly initialized with all steps
         const loadedStepData = data.form.formData || {};
         const stepKeys = [
-          'tableOfContents', 'principalLetter', 'childAbuseIntervention',
+          'tableOfContents', 'childAbuseIntervention',
           'sexualHarassment', 'respectForAll', 'suicidePrevention',
           'attendancePlan', 'temporaryHousing', 'serviceInSchools',
           'planningInterviews', 'militaryRecruitment', 'schoolCulture',
@@ -434,6 +433,9 @@ export default function FormPage() {
               // Data is already flat
               stepData = stepInfo.data;
             }
+          } else if (stepInfo && !stepInfo.data) {
+            // Handle case where step exists but has no data property (like counselingPlan)
+            stepData = {};
           }
           
           initializedStepData[key] = {
@@ -445,6 +447,7 @@ export default function FormPage() {
             revisionCount: stepInfo?.revisionCount || 0
           };
         });
+        
         
         setStepData(initializedStepData);
       }
@@ -468,98 +471,98 @@ export default function FormPage() {
             updateStepData={updateStepData} 
           />
         );
-      case 2:
-        return (
+      //case 2:
+        /*return (
           <Step2PrincipalLetter 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
-        );
-      case 3:
+        );*/
+      case 2:
         return (
           <Step3ChildAbusePreventionPlan 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 4:
+      case 3:
         return (
           <Step4StudenttoStudentSexualHarassment 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 5:
+      case 4:
         return (
           <Step5RespectForAllPlan 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 6:
+      case 5:
         return (
           <Step6SchoolCrisisInterventionPlan 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 7:
+      case 6:
         return (
           <Step7SchoolAttendancePlan 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 8:
+      case 7:
         return (
           <Step8StudentsinTemporaryHousingProgramPlan 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 9:
+      case 8:
         return (
           <Step9ServiceInSchoolsPlan 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 10:
+      case 9:
         return (
           <Step10PlanningInterviews 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 11:
+      case 10:
         return (
           <Step11MilitaryRecruitmentOptOut 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 12:
+      case 11:
         return (
           <Step12SchoolCulturePlan 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 13:
+      case 12:
         return (
           <Step13AfterSchoolPrograms 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 14:
+      case 13:
         return (
           <Step14CellPhonePolicy 
             stepData={currentStepData} 
             updateStepData={updateStepData} 
           />
         );
-      case 15:
+      case 14:
         return (
           <Step15SchoolCounselingPlan 
             stepData={currentStepData} 
@@ -771,7 +774,7 @@ export default function FormPage() {
   // Get completion status for display
   const getCompletionStatus = () => {
     const stepKeys = [
-      'tableOfContents', 'principalLetter', 'childAbuseIntervention',
+      'tableOfContents', 'childAbuseIntervention',
       'sexualHarassment', 'respectForAll', 'suicidePrevention',
       'attendancePlan', 'temporaryHousing', 'serviceInSchools',
       'planningInterviews', 'militaryRecruitment', 'schoolCulture',
@@ -792,20 +795,19 @@ export default function FormPage() {
   const getStepNumberFromKey = (stepKey) => {
     const stepMap = {
       'tableOfContents': 1,
-      'principalLetter': 2,
-      'childAbuseIntervention': 3,
-      'sexualHarassment': 4,
-      'respectForAll': 5,
-      'suicidePrevention': 6,
-      'attendancePlan': 7,
-      'temporaryHousing': 8,
-      'serviceInSchools': 9,
-      'planningInterviews': 10,
-      'militaryRecruitment': 11,
-      'schoolCulture': 12,
-      'afterSchoolPrograms': 13,
-      'cellPhonePolicy': 14,
-      'counselingPlan': 15
+      'childAbuseIntervention': 2,
+      'sexualHarassment': 3,
+      'respectForAll': 4,
+      'suicidePrevention': 5,
+      'attendancePlan': 6,
+      'temporaryHousing': 7,
+      'serviceInSchools': 8,
+      'planningInterviews': 9,
+      'militaryRecruitment': 10,
+      'schoolCulture': 11,
+      'afterSchoolPrograms': 12,
+      'cellPhonePolicy': 13,
+      'counselingPlan': 14
     };
     return stepMap[stepKey] || 0;
   };
@@ -840,7 +842,7 @@ export default function FormPage() {
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-2 text-gray-600 text-sm">
                   <ClipboardList className="w-4 h-4" />
-                  <span>Form ID: {formId} | Step {currentStep} of 15</span>
+                  <span>Form ID: {formId} | Step {currentStep} of {FORM_STEPS.length}</span>
                 </div>
                 
                 {/* Collaboration Banner */}
@@ -905,14 +907,14 @@ export default function FormPage() {
           <div className="bg-gradient-to-r from-gray-100 to-gray-200 h-3 rounded-full overflow-hidden shadow-inner border border-gray-200">
             <div 
               className="bg-gradient-to-r from-blue-500 to-sky-600 h-full transition-all duration-500 ease-out rounded-full shadow-sm"
-              style={{ width: `${(currentStep / 15) * 100}%` }}
+              style={{ width: `${(currentStep / FORM_STEPS.length) * 100}%` }}
             ></div>
           </div>
           
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-3">
             <div className="flex items-center gap-2 text-sm text-gray-600 mb-2 sm:mb-0">
               <Target className="w-4 h-4 text-blue-600" />
-              <span>Progress: {currentStep} of 15 steps completed</span>
+              <span>Progress: {currentStep} of {FORM_STEPS.length} steps completed</span>
             </div>
             
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -990,7 +992,7 @@ export default function FormPage() {
                 {FORM_STEPS[currentStep - 1]?.title}
               </h2>
               <p className="text-gray-600 text-sm">
-                Step {currentStep} of 15 • {getCompletionStatus().completed}/{getCompletionStatus().total} completed
+                Step {currentStep} of {FORM_STEPS.length} • {getCompletionStatus().completed}/{getCompletionStatus().total} completed
               </p>
             </div>
           </div>
@@ -999,7 +1001,7 @@ export default function FormPage() {
           {renderFormStep()}
 
            {/* Enhanced Form Completion Summary */}
-           {currentStep === 15 && (
+           {currentStep === FORM_STEPS.length && (
              <div className="bg-white border-2 border-blue-300 rounded-xl p-6 mb-8 shadow-lg">
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1275,7 +1277,7 @@ export default function FormPage() {
                 {redirecting ? 'Redirecting...' : saving ? 'Saving...' : 'Save Draft'}
               </button>
 
-              {currentStep === 15 ? (
+              {currentStep === FORM_STEPS.length ? (
                 <button
                   onClick={handleSubmit}
                   disabled={saving || redirecting}
