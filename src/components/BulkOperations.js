@@ -137,6 +137,49 @@ const BulkOperations = ({ forms, onUpdateForms }) => {
     alert(`Exported ${selectedForms.length} forms to CSV!`);
   };
 
+  // Bulk delete forms
+  const handleBulkDelete = async () => {
+    if (selectedForms.length === 0) return;
+
+    const confirmMessage = `Are you sure you want to permanently delete ${selectedCount} form${selectedCount > 1 ? 's' : ''}?\n\nThis action cannot be undone.`;
+    
+    if (!confirm(confirmMessage)) return;
+
+    try {
+      // Show loading state
+      const deletePromises = selectedForms.map(formId => 
+        fetch(`/api/forms/${formId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+      );
+
+      const responses = await Promise.all(deletePromises);
+      
+      // Check if all deletions were successful
+      const failedDeletions = responses.filter(response => !response.ok);
+      
+      if (failedDeletions.length > 0) {
+        throw new Error(`${failedDeletions.length} deletion${failedDeletions.length > 1 ? 's' : ''} failed`);
+      }
+
+      // Update local state by removing deleted forms
+      const updatedForms = forms.filter(form => !selectedForms.includes(form._id));
+      onUpdateForms?.(updatedForms);
+      
+      // Clear selection and close bulk actions
+      setSelectedForms([]);
+      setShowBulkActions(false);
+      
+      alert(`Successfully deleted ${selectedCount} form${selectedCount > 1 ? 's' : ''}!`);
+    } catch (error) {
+      console.error('Error deleting forms:', error);
+      alert(`Error deleting forms: ${error.message}. Please try again.`);
+    }
+  };
+
   // Get status color and icon
   const getStatusStyle = (status) => {
     const styles = {
@@ -227,6 +270,12 @@ const BulkOperations = ({ forms, onUpdateForms }) => {
               <h4 className="text-sm font-medium text-blue-800">Update Status</h4>
               <div className="flex flex-wrap gap-2">
                 <button
+                  onClick={() => handleBulkStatusUpdate('draft')}
+                  className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
+                >
+                  Mark Draft
+                </button>
+                <button
                   onClick={() => handleBulkStatusUpdate('submitted')}
                   className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
                 >
@@ -293,11 +342,7 @@ const BulkOperations = ({ forms, onUpdateForms }) => {
               <h4 className="text-sm font-medium text-blue-800">Advanced</h4>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => {
-                    if (confirm(`Are you sure you want to delete ${selectedCount} forms?`)) {
-                      alert('Delete feature coming soon!');
-                    }
-                  }}
+                  onClick={handleBulkDelete}
                   className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 flex items-center gap-1"
                 >
                   <Trash2 className="w-3 h-3" />
