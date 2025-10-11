@@ -198,6 +198,55 @@ const AnalyticsDashboard = ({ forms, stats }) => {
   const completionRate = stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0;
   const pendingReviews = stats.underReview + stats.submitted;
 
+  // Generate status distribution data
+  const generateStatusDistributionData = () => {
+    const statusCounts = forms.reduce((acc, form) => {
+      const status = form.status || 'draft';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const colors = {
+      'draft': '#6b7280',
+      'submitted': '#3b82f6',
+      'under_review': '#f59e0b',
+      'approved': '#10b981',
+      'rejected': '#ef4444'
+    };
+
+    return Object.entries(statusCounts).map(([status, count]) => ({
+      name: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '),
+      value: count,
+      color: colors[status] || '#6b7280'
+    }));
+  };
+
+  // Generate progress trend data
+  const generateProgressTrendData = () => {
+    const last30Days = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      return date.toISOString().split('T')[0];
+    });
+
+    return last30Days.map(date => {
+      const dayForms = forms.filter(form => {
+        const formDate = new Date(form.createdAt).toISOString().split('T')[0];
+        return formDate === date;
+      });
+
+      const avgProgress = dayForms.length > 0 
+        ? dayForms.reduce((sum, form) => sum + (form.completedSteps?.length || 0), 0) / dayForms.length
+        : 0;
+
+      return {
+        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        avgProgress: Math.round(avgProgress),
+        submissions: dayForms.length
+      };
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Key Metrics Cards */}
@@ -267,7 +316,7 @@ const AnalyticsDashboard = ({ forms, stats }) => {
         </div>
       </div>
 
-      {/* Charts Row */}
+      {/* Charts Row 1: Submission Trends + Status Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Submission Trends */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -323,20 +372,23 @@ const AnalyticsDashboard = ({ forms, stats }) => {
 
         {/* Status Distribution */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Status Distribution</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <PieChart className="w-5 h-5 text-green-600" />
+            Status Distribution
+          </h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={statusData}
+                data={generateStatusDistributionData()}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ status, count }) => `${status}: ${count}`}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 outerRadius={80}
                 fill="#8884d8"
-                dataKey="count"
+                dataKey="value"
               >
-                {statusData.map((entry, index) => (
+                {generateStatusDistributionData().map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -346,7 +398,7 @@ const AnalyticsDashboard = ({ forms, stats }) => {
         </div>
       </div>
 
-      {/* Step Completion and School Performance */}
+      {/* Charts Row 2: Step Completion Rates + Progress Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Step Completion Rates */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -362,30 +414,56 @@ const AnalyticsDashboard = ({ forms, stats }) => {
           </ResponsiveContainer>
         </div>
 
-        {/* Top Performing Schools */}
+        {/* Progress Trend Chart */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Performing Schools</h3>
-          <div className="space-y-4">
-            {schoolPerformance.slice(0, 8).map((school, index) => (
-              <div key={`school-${school._id || index}-${school.school}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 ${
-                    index < 3 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{school.school}</p>
-                    <p className="text-sm text-gray-600">{school.completedSteps}/14 steps</p>
-                  </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-purple-600" />
+            Progress Trend (Last 30 Days)
+          </h3>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={generateProgressTrendData()}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis domain={[0, 14]} />
+              <Tooltip 
+                formatter={(value, name) => [value, name === 'avgProgress' ? 'Avg Progress' : 'Submissions']}
+                labelFormatter={(label) => `Date: ${label}`}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="avgProgress" 
+                stroke="#8b5cf6" 
+                strokeWidth={3}
+                dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Top Performing Schools - Full Width */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Performing Schools</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {schoolPerformance.slice(0, 12).map((school, index) => (
+            <div key={`school-${school._id || index}-${school.school}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-3 ${
+                  index < 3 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {index + 1}
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">{school.overallScore}</p>
-                  <p className="text-xs text-gray-500">Score</p>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">{school.school}</p>
+                  <p className="text-xs text-gray-600">{school.completedSteps}/14 steps</p>
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-gray-900">{school.overallScore}</p>
+                <p className="text-xs text-gray-500">Score</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

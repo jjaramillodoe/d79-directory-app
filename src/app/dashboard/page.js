@@ -206,6 +206,7 @@ export default function DashboardPage() {
   const userLevel = session.user.level;
   const isAdmin = userLevel >= 4; // Level 4+ (Admin Principal and Super Admin)
 
+
   const handleSignOut = () => {
     signOut({ callbackUrl: '/login' });
   };
@@ -214,7 +215,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-secondary-50">
       {/* Header */}
       <header className="bg-white shadow-lg border-b-2 border-primary-200">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-[140rem] mx-auto px-6">
           <div className="flex justify-between items-center py-8">
             <div>
               <h1 className="text-5xl font-extrabold text-secondary-800 mb-3 flex items-center gap-3">
@@ -248,7 +249,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-[140rem] mx-auto px-6 py-8">
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {/* Start New Form - Level 3+ */}
@@ -882,14 +883,15 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse min-w-8xl">
                   <thead>
                     <tr className="border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200">School</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200">Principal</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200">Status</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200">Progress</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200">Actions</th>
+                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-64">School</th>
+                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-48">Principal</th>
+                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-64">Email</th>
+                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-40">Status</th>
+                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-48">Progress</th>
+                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-48">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -897,13 +899,13 @@ export default function DashboardPage() {
                       <tr key={form._id} className="border-b border-gray-100 transition-all duration-300 hover:bg-gray-50 hover:scale-[1.01] animate-fade-in"
                           style={{ animationDelay: `${index * 0.1}s` }}>
                         <td className="p-5 text-base">
-                          <div>
-                            <div className="font-semibold text-secondary-800 text-lg mb-1">{form.schoolName}</div>
-                            <div className="text-sm text-secondary-600 font-medium">{form.principalEmail}</div>
-                          </div>
+                          <div className="font-semibold text-secondary-800 text-lg">{form.schoolName}</div>
                         </td>
                         <td className="p-5 text-base text-secondary-700 font-medium">
                           {form.principalName}
+                        </td>
+                        <td className="p-5 text-base text-secondary-600 font-medium">
+                          {form.principalEmail}
                         </td>
                         <td className="p-5">
                           {form.status === 'draft' ? (
@@ -979,6 +981,7 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
       </main>
       
       {/* Scroll to Top Button */}

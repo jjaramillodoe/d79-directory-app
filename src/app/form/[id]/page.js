@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -48,6 +48,7 @@ import ScrollToTop from '../../../components/ScrollToTop';
 export default function FormPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const formId = params.id;
   const { data: session, status } = useSession();
 
@@ -67,6 +68,32 @@ export default function FormPage() {
   const [lastSaved, setLastSaved] = useState(null);
   const [showSaveReminder, setShowSaveReminder] = useState(false);
   const [saveReminderTimeout, setSaveReminderTimeout] = useState(null);
+
+  // Check if this is a print view
+  const isPrintView = searchParams.get('print') === 'true';
+
+  // Handle print functionality
+  useEffect(() => {
+    if (isPrintView) {
+      // Hide navigation elements for print
+      const style = document.createElement('style');
+      style.textContent = `
+        @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+        }
+        @media screen {
+          .print-only { display: none !important; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Auto-print when page loads
+      setTimeout(() => {
+        window.print();
+      }, 1000);
+    }
+  }, [isPrintView]);
 
   // Load form data when session and formId are available
   useEffect(() => {
@@ -824,10 +851,11 @@ export default function FormPage() {
     );
   }
 
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${isPrintView ? 'bg-white' : 'bg-gray-50'}`}>
       {/* Header */}
-      <header className="bg-white shadow-lg border-b-2 border-sky-200">
+      <header className={`bg-white shadow-lg border-b-2 border-sky-200 ${isPrintView ? 'no-print' : ''}`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-6">
             <div className="mb-4 lg:mb-0">
@@ -1224,7 +1252,7 @@ export default function FormPage() {
             )}
 
            {/* Navigation Buttons */}
-          <div className="flex justify-between items-center border-t border-gray-200 pt-6">
+          <div className={`flex justify-between items-center border-t border-gray-200 pt-6 ${isPrintView ? 'no-print' : ''}`}>
             <button
               onClick={handlePrevious}
               disabled={currentStep === 1}
@@ -1305,7 +1333,7 @@ export default function FormPage() {
       </main>
       
       {/* Scroll to Top Button */}
-      <ScrollToTop />
+      {!isPrintView && <ScrollToTop />}
     </div>
   );
 }

@@ -22,9 +22,13 @@ import {
   Users,
   Calendar,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
-import FormViewer from '../../../components/FormViewer'; // Added import for FormViewer
 import PrincipalEmailAutocomplete from '../../../components/PrincipalEmailAutocomplete';
 
 export default function AdminSubmissionsPage() {
@@ -34,6 +38,13 @@ export default function AdminSubmissionsPage() {
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [progressFilter, setProgressFilter] = useState('all');
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewData, setReviewData] = useState({
@@ -49,8 +60,6 @@ export default function AdminSubmissionsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState(null);
   const [exporting, setExporting] = useState(false);
-  const [showFormViewer, setShowFormViewer] = useState(false);
-  const [selectedForm, setSelectedForm] = useState(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [submissionToTransfer, setSubmissionToTransfer] = useState(null);
   const [transferData, setTransferData] = useState({
@@ -384,14 +393,90 @@ export default function AdminSubmissionsPage() {
     }
   };
 
-  const filteredSubmissions = submissions.filter(submission => {
-    const matchesStatus = filterStatus === 'all' || submission.status === filterStatus;
-    const matchesSearch = searchTerm === '' || 
-      submission.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.principalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.principalEmail.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="w-4 h-4 text-blue-600" /> : 
+      <ArrowDown className="w-4 h-4 text-blue-600" />;
+  };
+
+  const filteredSubmissions = submissions
+    .filter(submission => {
+      const matchesStatus = filterStatus === 'all' || submission.status === filterStatus;
+      const matchesSearch = searchTerm === '' || 
+        submission.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.principalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        submission.principalEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Date range filter
+      const matchesDateRange = (!dateRange.startDate || !dateRange.endDate) || 
+        (submission.createdAt && 
+         new Date(submission.createdAt) >= new Date(dateRange.startDate) &&
+         new Date(submission.createdAt) <= new Date(dateRange.endDate));
+      
+      // Progress filter
+      const completedSteps = submission.completedSteps?.length || 0;
+      const matchesProgress = progressFilter === 'all' || 
+        (progressFilter === 'complete' && completedSteps === 14) ||
+        (progressFilter === 'incomplete' && completedSteps < 14) ||
+        (progressFilter === 'not_started' && completedSteps === 0) ||
+        (progressFilter === 'partial' && completedSteps > 0 && completedSteps < 14);
+      
+      return matchesStatus && matchesSearch && matchesDateRange && matchesProgress;
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'schoolName':
+          aValue = a.schoolName?.toLowerCase() || '';
+          bValue = b.schoolName?.toLowerCase() || '';
+          break;
+        case 'principalName':
+          aValue = a.principalName?.toLowerCase() || '';
+          bValue = b.principalName?.toLowerCase() || '';
+          break;
+        case 'principalEmail':
+          aValue = a.principalEmail?.toLowerCase() || '';
+          bValue = b.principalEmail?.toLowerCase() || '';
+          break;
+        case 'status':
+          const statusOrder = { 'draft': 1, 'submitted': 2, 'under_review': 3, 'approved': 4, 'rejected': 5 };
+          aValue = statusOrder[a.status] || 0;
+          bValue = statusOrder[b.status] || 0;
+          break;
+        case 'progress':
+          aValue = a.completedSteps?.length || 0;
+          bValue = b.completedSteps?.length || 0;
+          break;
+        case 'createdAt':
+          aValue = new Date(a.createdAt || 0);
+          bValue = new Date(b.createdAt || 0);
+          break;
+        case 'submittedAt':
+          aValue = new Date(a.submittedAt || 0);
+          bValue = new Date(b.submittedAt || 0);
+          break;
+        default:
+          aValue = a[sortField] || '';
+          bValue = b[sortField] || '';
+      }
+      
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   // Don't render until session is loaded
   if (status === 'loading' || !session) {
@@ -449,7 +534,7 @@ export default function AdminSubmissionsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-[140rem] mx-auto px-6">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-6">
             <div className="mb-4 lg:mb-0">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -531,10 +616,11 @@ export default function AdminSubmissionsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Filters and Search */}
+      <main className="max-w-[140rem] mx-auto px-6 py-8">
+        {/* Enhanced Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8 p-6">
-          <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+            {/* Status Filter */}
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
                 Status Filter:
@@ -544,7 +630,7 @@ export default function AdminSubmissionsPage() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Statuses</option>
                   <option value="draft">Draft</option>
@@ -555,19 +641,149 @@ export default function AdminSubmissionsPage() {
                 </select>
               </div>
             </div>
-            <div className="flex-1 lg:min-w-80">
+
+            {/* Progress Filter */}
+            <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">
-                Search:
+                Progress Filter:
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by school name, principal name, or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                <TrendingUp className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <select
+                  value={progressFilter}
+                  onChange={(e) => setProgressFilter(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Progress</option>
+                  <option value="not_started">Not Started (0/14)</option>
+                  <option value="partial">Partial (1-13/14)</option>
+                  <option value="complete">Complete (14/14)</option>
+                  <option value="incomplete">Incomplete (&lt;14/14)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Date Range Filter */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Created Date Range:
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={dateRange.startDate}
+                  onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Start Date"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                To Date:
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="End Date"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Search:
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by school name, principal name, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">Sort by:</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleSort('schoolName')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      sortField === 'schoolName' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    School {getSortIcon('schoolName')}
+                  </button>
+                  <button
+                    onClick={() => handleSort('principalName')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      sortField === 'principalName' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Principal {getSortIcon('principalName')}
+                  </button>
+                  <button
+                    onClick={() => handleSort('principalEmail')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      sortField === 'principalEmail' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Email {getSortIcon('principalEmail')}
+                  </button>
+                  <button
+                    onClick={() => handleSort('status')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      sortField === 'status' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Status {getSortIcon('status')}
+                  </button>
+                  <button
+                    onClick={() => handleSort('progress')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      sortField === 'progress' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Progress {getSortIcon('progress')}
+                  </button>
+                  <button
+                    onClick={() => handleSort('createdAt')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      sortField === 'createdAt' 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Created {getSortIcon('createdAt')}
+                  </button>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600">
+                Showing {filteredSubmissions.length} of {submissions.length} submissions
               </div>
             </div>
           </div>
@@ -622,16 +838,73 @@ export default function AdminSubmissionsPage() {
               </div>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="w-full min-w-4xl">
+                <table className="w-full min-w-8xl">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700 min-w-48">School</th>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700 min-w-36">Principal</th>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700 min-w-32">Status</th>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700 min-w-32">Progress</th>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700 min-w-28">Created</th>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700 min-w-28">Submitted</th>
-                      <th className="text-left p-3 text-sm font-semibold text-gray-700 min-w-48">Actions</th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-56 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('schoolName')}
+                      >
+                        <div className="flex items-center gap-2">
+                          School
+                          {getSortIcon('schoolName')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-44 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('principalName')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Principal
+                          {getSortIcon('principalName')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-64 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('principalEmail')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Email
+                          {getSortIcon('principalEmail')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-40 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Status
+                          {getSortIcon('status')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-40 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('progress')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Progress
+                          {getSortIcon('progress')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-36 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('createdAt')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Created
+                          {getSortIcon('createdAt')}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-36 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => handleSort('submittedAt')}
+                      >
+                        <div className="flex items-center gap-2">
+                          Submitted
+                          {getSortIcon('submittedAt')}
+                        </div>
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-48">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -642,22 +915,22 @@ export default function AdminSubmissionsPage() {
                           key={submission._id} 
                           className="hover:bg-gray-50 transition-colors duration-200"
                         >
-                        <td className="p-3">
-                          <div>
-                            <div className="font-medium text-gray-900">{submission.schoolName}</div>
-                            <div className="text-xs text-gray-500">{submission.principalEmail}</div>
-                          </div>
+                        <td className="p-4">
+                          <div className="font-medium text-gray-900">{submission.schoolName}</div>
                         </td>
-                        <td className="p-3 text-sm text-gray-700">
+                        <td className="p-4 text-sm text-gray-700">
                           {submission.principalName}
                         </td>
-                        <td className="p-3">
+                        <td className="p-4 text-sm text-gray-600">
+                          {submission.principalEmail}
+                        </td>
+                        <td className="p-4">
                           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(submission.status || 'draft')}`}>
                             {getStatusIcon(submission.status || 'draft')}
                             {getStatusBadge(submission.status || 'draft')}
                           </span>
                         </td>
-                        <td className="p-3">
+                        <td className="p-4">
                           <div className="flex items-center gap-2">
                             <div className="flex-1 bg-gray-200 rounded-full h-2">
                               <div 
@@ -670,14 +943,34 @@ export default function AdminSubmissionsPage() {
                             </span>
                           </div>
                         </td>
-                        <td className="p-3 text-sm text-gray-600">
+                        <td className="p-4 text-sm text-gray-600">
                           {submission.createdAt ? new Date(submission.createdAt).toLocaleDateString() : '-'}
                         </td>
-                        <td className="p-3 text-sm text-gray-600">
+                        <td className="p-4 text-sm text-gray-600">
                           {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : '-'}
                         </td>
-                        <td className="p-3">
+                        <td className="p-4">
                           <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                window.open(`/form/${submission._id}`, '_blank');
+                              }}
+                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors flex items-center gap-1"
+                              title="View Form in New Tab"
+                            >
+                              <Eye className="w-3 h-3" />
+                              View
+                            </button>
+                            <button
+                              onClick={() => {
+                                window.open(`/form/${submission._id}?print=true`, '_blank');
+                              }}
+                              className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 transition-colors flex items-center gap-1"
+                              title="Print View"
+                            >
+                              <FileText className="w-3 h-3" />
+                              Print
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedSubmission(submission);
@@ -687,17 +980,6 @@ export default function AdminSubmissionsPage() {
                             >
                               Review
                             </button>
-                            {submission.status === 'approved' && (
-                              <button
-                                onClick={() => {
-                                  setSelectedForm(submission);
-                                  setShowFormViewer(true);
-                                }}
-                                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
-                              >
-                                View Form
-                              </button>
-                            )}
                             {session?.user?.level === 5 && (
                               <button
                                 onClick={() => openTransferModal(submission)}
@@ -977,40 +1259,6 @@ export default function AdminSubmissionsPage() {
         </div>
       )}
 
-      {/* Form Viewer Modal */}
-      {showFormViewer && selectedForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Approved Form Viewer</h2>
-                  <p className="text-green-100 mt-1">
-                    {selectedForm.schoolName} • {selectedForm.principalName}
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowFormViewer(false);
-                      setSelectedForm(null);
-                    }}
-                    className="px-4 py-2 bg-white text-green-600 rounded-lg font-medium hover:bg-green-50 transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <FormViewer form={selectedForm} />
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Scroll to Top */}
       <ScrollToTop />
