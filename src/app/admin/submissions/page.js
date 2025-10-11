@@ -27,9 +27,12 @@ import {
   ArrowUp,
   ArrowDown,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Printer,
+  X
 } from 'lucide-react';
 import PrincipalEmailAutocomplete from '../../../components/PrincipalEmailAutocomplete';
+import FormViewer from '../../../components/FormViewer';
 
 export default function AdminSubmissionsPage() {
   const router = useRouter();
@@ -66,6 +69,8 @@ export default function AdminSubmissionsPage() {
     newOwnerEmail: ''
   });
   const [transferring, setTransferring] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printSubmission, setPrintSubmission] = useState(null);
 
   // Handle authentication
   useEffect(() => {
@@ -963,7 +968,8 @@ export default function AdminSubmissionsPage() {
                             </button>
                             <button
                               onClick={() => {
-                                window.open(`/form/${submission._id}?print=true`, '_blank');
+                                setPrintSubmission(submission);
+                                setShowPrintModal(true);
                               }}
                               className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 transition-colors flex items-center gap-1"
                               title="Print View"
@@ -1259,9 +1265,62 @@ export default function AdminSubmissionsPage() {
         </div>
       )}
 
+      {/* Print Modal */}
+      {showPrintModal && printSubmission && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 print-hidden">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Printer className="w-5 h-5" />
+                Form Viewer - {printSubmission.schoolName}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPrintModal(false);
+                  setPrintSubmission(null);
+                }}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body - Form Viewer Component */}
+            <div className="flex-1 overflow-auto p-8">
+              <FormViewer form={printSubmission} />
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Scroll to Top */}
       <ScrollToTop />
+
+      {/* Print Styles */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-content,
+          .print-content * {
+            visibility: visible;
+          }
+          .print-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+          @page {
+            margin: 1cm;
+          }
+        }
+      `}</style>
     </div>
   );
 }
