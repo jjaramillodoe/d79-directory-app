@@ -35,11 +35,16 @@ export async function POST(request) {
     // Verify the form exists and belongs to the principal's school
     const form = await FormSubmission.findById(formId);
     if (!form) {
+      console.error('Form not found:', formId);
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    if (form.schoolName !== session.user.schoolName) {
-      return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+    console.log('Form school:', form.schoolName, 'User school:', session.user.schoolName);
+    
+    // For level 4 (principals), verify the form is from their school
+    if (session.user.level === 4 && form.schoolName !== session.user.schoolName) {
+      console.error('Form not in user school:', { formSchool: form.schoolName, userSchool: session.user.schoolName });
+      return NextResponse.json({ error: 'Form not found in your school' }, { status: 404 });
     }
 
     // Get all users to be assigned
@@ -193,6 +198,94 @@ export async function GET(request) {
     console.error('Error fetching form collaborations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch collaborations' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE: Unshare a form (remove all user assignments)
+export async function DELETE(request) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Only principals (level 4) and super admins (level 5) can unshare forms
+    if (session.user.level < 4) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { formId } = body;
+
+    // Validate required fields
+    if (!formId) {
+      return NextResponse.json(
+        { error: 'Form ID is required' },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    // Verify the form exists
+    const form = await FormSubmission.findById(formId);
+    if (!form) {
+      return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+    }
+
+    // For level 4 (principals), verify they own this form
+    if (session.user.level === 4 && form.schoolName !== session.user.schoolName) {
+      return NextResponse.json({ error: 'Unauthorized - form not in your school' }, { status: 403 });
+    }
+
+    // Find all users who have this form assigned
+    const usersWithForm = await User.find({ 'assignedForms.formId': formId });
+
+    let removedCount = 0;
+    for (const user of usersWithForm) {
+      try {
+        // Remove the form from user's assignedForms
+        user.assignedForms = user.assignedForms.filter(
+          assignment => assignment.formId.toString() !== formId
+        );
+        await user.save();
+
+        // Log the activity
+        await user.logActivity(
+          'form_unshared',
+          formId,
+          `Form unshared by ${session.user.name}`
+        );
+
+        removedCount++;
+      } catch (error) {
+        console.error(`Error removing form from user ${user.email}:`, error);
+      }
+    }
+
+    // Log the principal's activity
+    const principal = await User.findById(session.user.id);
+    if (principal) {
+      await principal.logActivity(
+        'form_unshared',
+        formId,
+        `Unshared form from ${removedCount} users`
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Form unshared successfully. Removed from ${removedCount} users.`,
+      removedCount
+    });
+
+  } catch (error) {
+    console.error('Error unsharing form:', error);
+    return NextResponse.json(
+      { error: 'Failed to unshare form' },
       { status: 500 }
     );
   }
