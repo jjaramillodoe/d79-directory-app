@@ -36,9 +36,9 @@ const BulkFormCreation = ({ onFormsCreated }) => {
       const response = await fetch('/api/users');
       if (response.ok) {
         const data = await response.json();
-        // Filter for principals and assistant principals (level 3 and 4)
+        // Filter for principals only (level 4)
         const principalUsers = data.users.filter(user => 
-          user.level >= 3 && user.isActive
+          user.level === 4 && user.isActive
         );
         setPrincipals(principalUsers);
       }
@@ -190,13 +190,13 @@ const BulkFormCreation = ({ onFormsCreated }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search Principals
+              Search Level 4 Principals
             </label>
             <div className="relative">
               <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search by name, email, or school..."
+                placeholder="Search Level 4 principals by name, email, or school..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -213,10 +213,8 @@ const BulkFormCreation = ({ onFormsCreated }) => {
               onChange={(e) => setFilterLevel(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">All Levels</option>
-              <option value="3">Level 3 - Assistant Principal</option>
+              <option value="">All Level 4 Principals</option>
               <option value="4">Level 4 - Admin Principal</option>
-              <option value="5">Level 5 - Super Admin</option>
             </select>
           </div>
         </div>
@@ -246,7 +244,7 @@ const BulkFormCreation = ({ onFormsCreated }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <UserCheck className="w-5 h-5 text-blue-600" />
-          Select Principals
+          Select Level 4 Principals
         </h3>
 
         {loading ? (
