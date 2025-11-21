@@ -30,14 +30,18 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    // Check permissions: owner can access their form, super admins can access any form, or user has been assigned the form
+    // Check permissions: owner can access their form, super admins can access any form, 
+    // principals (level 4) can access forms from their school, or user has been assigned the form
     const isOwner = form.userId._id.toString() === user._id.toString();
     const isSuperAdmin = user.level === 5;
+    const isPrincipal = user.level === 4;
+    const isSameSchool = isPrincipal && user.schoolName && form.schoolName && 
+                         user.schoolName === form.schoolName;
     const isAssigned = user.assignedForms.some(assignment => 
       assignment.formId.toString() === form._id.toString()
     );
     
-    if (!isOwner && !isSuperAdmin && !isAssigned) {
+    if (!isOwner && !isSuperAdmin && !isSameSchool && !isAssigned) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -82,13 +86,17 @@ async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    // Check permissions: owner can edit their draft/submitted forms, super admins can edit any form, or user has edit permissions
+    // Check permissions: owner can edit their draft/submitted forms, super admins can edit any form,
+    // principals (level 4) can edit forms from their school, or user has edit permissions
     const isOwner = form.userId.toString() === user._id.toString();
     const isSuperAdmin = user.level === 5;
+    const isPrincipal = user.level === 4;
+    const isSameSchool = isPrincipal && user.schoolName && form.schoolName && 
+                         user.schoolName === form.schoolName;
     const assignment = user.assignedForms.find(a => a.formId.toString() === form._id.toString());
     const hasEditAccess = assignment && assignment.permissions === 'edit';
     
-    if (!isOwner && !isSuperAdmin && !hasEditAccess) {
+    if (!isOwner && !isSuperAdmin && !isSameSchool && !hasEditAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
