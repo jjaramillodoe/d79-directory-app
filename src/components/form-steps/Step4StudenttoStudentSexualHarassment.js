@@ -1,23 +1,51 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Shield, CheckCircle, AlertCircle } from 'lucide-react';
 import formQuestionsData from '../../data/formQuestions.json';
 
-const Step4StudenttoStudentSexualHarassment = ({ stepData, updateStepData, isActive }) => {
+const Step4StudenttoStudentSexualHarassment = ({ stepData, updateStepData, isActive, currentStep }) => {
   const [questions] = useState(() => {
     const step = formQuestionsData.steps.find(s => s.key === 'sexualHarassment');
     return step ? step.questions : [];
   });
 
   const [formData, setFormData] = useState({});
+  const isInitialMount = useRef(true);
+  const lastStepRef = useRef(currentStep);
+  const lastStepDataRef = useRef(null);
 
   useEffect(() => {
-    if (stepData) {
-      // stepData is already the actual data object, not wrapped in .data
+    // Sync with stepData when:
+    // 1. Initial mount (component just loaded)
+    // 2. Step changes (navigating to different step)
+    // 3. stepData changes from empty to having data (form data loaded after component mount)
+    const stepDataChanged = lastStepDataRef.current !== stepData;
+    const stepDataHasContent = stepData && Object.keys(stepData).length > 0;
+    const localDataIsEmpty = !formData || Object.keys(formData).length === 0;
+    
+    if (isInitialMount.current) {
+      // Initial load - sync with stepData if available
+      if (stepDataHasContent) {
+        setFormData(stepData);
+        lastStepDataRef.current = stepData;
+      }
+      isInitialMount.current = false;
+      lastStepRef.current = currentStep;
+    } else if (currentStep !== lastStepRef.current) {
+      // Step changed - sync with new stepData
+      if (stepDataHasContent) {
+        setFormData(stepData);
+        lastStepDataRef.current = stepData;
+      }
+      lastStepRef.current = currentStep;
+    } else if (stepDataChanged && stepDataHasContent && localDataIsEmpty) {
+      // stepData was loaded after component mount (race condition fix)
+      // Only sync if local data is empty to avoid overwriting user input
       setFormData(stepData);
+      lastStepDataRef.current = stepData;
     }
-  }, [stepData]);
+  }, [currentStep, stepData, formData]);
 
   const handleInputChange = (questionId, value) => {
     const newFormData = { ...formData, [questionId]: value };

@@ -59,10 +59,21 @@ async function POST(request) {
         break;
 
       case 'level_up':
-        result = await User.updateMany(
-          { _id: { $in: userIds }, level: { $lt: 4 } },
-          { $inc: { level: 1 } }
-        );
+        // Level 4 (Principal) users can only promote users up to Level 3
+        // Only Level 5 (Super Admin) can promote users to Level 4 or 5
+        if (session.user.level === 4) {
+          // For Level 4 users, only allow promotion if the new level would be <= 3
+          result = await User.updateMany(
+            { _id: { $in: userIds }, level: { $lt: 3 } },
+            { $inc: { level: 1 } }
+          );
+        } else {
+          // For Level 5 (Super Admin), allow promotion up to Level 4
+          result = await User.updateMany(
+            { _id: { $in: userIds }, level: { $lt: 4 } },
+            { $inc: { level: 1 } }
+          );
+        }
         message = `Promoted ${result.modifiedCount} users`;
         break;
 

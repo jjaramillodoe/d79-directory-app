@@ -23,6 +23,7 @@ import {
   XCircle, 
   Clock, 
   Eye, 
+  Edit,
   Plus,
   FileSpreadsheet,
   AlertCircle,
@@ -32,7 +33,8 @@ import {
   PieChart,
   BarChart,
   Settings,
-  Award
+  Award,
+  Calendar
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -63,7 +65,7 @@ export default function DashboardPage() {
     totals: { submitted: 0, approved: 0, underReview: 0, total: 0 }
   });
   const [loadingTimeline, setLoadingTimeline] = useState(false);
-  const [activeTab, setActiveTab] = useState('analytics');
+  const [activeTab, setActiveTab] = useState('comments');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -252,8 +254,8 @@ export default function DashboardPage() {
       <main className="max-w-[140rem] mx-auto px-6 py-8">
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {/* Start New Form - Level 3+ */}
-          {userLevel >= 3 && (
+          {/* Start New Form - Level 4+ (Principals and Super Admins) */}
+          {userLevel >= 4 && (
             <Link
               href="/form/new"
               className="card group overflow-hidden relative cursor-pointer"
@@ -351,6 +353,30 @@ export default function DashboardPage() {
                     </h3>
                     <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
                       Manage all users across all schools
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
+          {/* Manage Goals - Super Admin Only */}
+          {userLevel === 5 && (
+            <Link
+              href="/admin/goals"
+              className="card group overflow-hidden relative cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
+                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
+                      Manage Goals
+                    </h3>
+                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
+                      Manage goals across all schools
                     </p>
                   </div>
                 </div>
@@ -459,6 +485,17 @@ export default function DashboardPage() {
                   </h2>
                   <div className="flex gap-2">
                     <button
+                      onClick={() => setActiveTab('comments')}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                        activeTab === 'comments' 
+                          ? 'bg-primary-500 text-white' 
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      <FileText size={16} className="inline mr-2" />
+                      Comments
+                    </button>
+                    <button
                       onClick={() => setActiveTab('analytics')}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                         activeTab === 'analytics' 
@@ -509,6 +546,203 @@ export default function DashboardPage() {
 
             {/* Tab Content */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              {activeTab === 'comments' && (
+                <div>
+                  <div className="mb-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Review Comments & Feedback</h3>
+                    <p className="text-gray-600">View all review comments from super admins on your Consolidated Plan submissions.</p>
+                  </div>
+                  
+                  {forms.filter(form => {
+                    // Check if form has comments (either in new comments array or legacy reviewComments field)
+                    const hasComments = form.comments && form.comments.length > 0;
+                    const hasLegacyComment = form.reviewComments && form.reviewComments.trim().length > 0;
+                    return hasComments || hasLegacyComment;
+                  }).length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileText size={64} className="mx-auto text-gray-400 mb-4" />
+                      <p className="text-lg text-gray-600 font-medium">No review comments yet</p>
+                      <p className="text-sm text-gray-500 mt-2">Review comments will appear here once a super admin provides feedback on your form submissions.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {forms
+                        .filter(form => {
+                          // Check if form has comments (either in new comments array or legacy reviewComments field)
+                          const hasComments = form.comments && form.comments.length > 0;
+                          const hasLegacyComment = form.reviewComments && form.reviewComments.trim().length > 0;
+                          return hasComments || hasLegacyComment;
+                        })
+                        .sort((a, b) => {
+                          // Sort by reviewedAt date (most recent first)
+                          // Use latest comment date if available, otherwise use form reviewedAt
+                          const getLatestDate = (form) => {
+                            if (form.comments && form.comments.length > 0) {
+                              return new Date(form.comments[0].reviewedAt);
+                            }
+                            return form.reviewedAt ? new Date(form.reviewedAt) : new Date(0);
+                          };
+                          const dateA = getLatestDate(a);
+                          const dateB = getLatestDate(b);
+                          return dateB - dateA;
+                        })
+                        .map((form) => {
+                          // Get the latest comment (from new collection or legacy field)
+                          const latestComment = form.comments && form.comments.length > 0 
+                            ? form.comments[0] 
+                            : (form.reviewComments ? { comment: form.reviewComments, reviewedBy: form.reviewedBy, reviewedAt: form.reviewedAt } : null);
+                          
+                          return (
+                          <div key={form._id} className="border-2 border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-white to-gray-50">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="text-lg font-bold text-gray-800">{form.schoolName}</h4>
+                                  {form.status === 'approved' ? (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      <CheckCircle size={12} className="text-emerald-500" />
+                                      Approved
+                                    </span>
+                                  ) : form.status === 'rejected' ? (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                                      <XCircle size={12} className="text-red-500" />
+                                      Rejected
+                                    </span>
+                                  ) : form.status === 'under_review' ? (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                      <Clock size={12} className="text-amber-500" />
+                                      Under Review
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                  <span className="flex items-center gap-1">
+                                    <User size={14} />
+                                    {form.principalName}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Calendar size={14} />
+                                    {latestComment?.reviewedAt ? `Reviewed: ${new Date(latestComment.reviewedAt).toLocaleDateString()}` : form.reviewedAt ? `Reviewed: ${new Date(form.reviewedAt).toLocaleDateString()}` : 'Not reviewed'}
+                                  </span>
+                                  {(latestComment?.reviewedBy?.name || latestComment?.reviewedByName || form.reviewedBy?.name) && (
+                                    <span className="flex items-center gap-1">
+                                      <Shield size={14} />
+                                      Reviewed by: {latestComment?.reviewedBy?.name || latestComment?.reviewedByName || form.reviewedBy?.name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/form/${form._id}`}
+                                  className="btn-primary inline-flex items-center gap-2 whitespace-nowrap"
+                                >
+                                  <Edit size={16} />
+                                  Edit Form
+                                </Link>
+                                <Link
+                                  href={`/view/${form._id}`}
+                                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                                  title="View all steps in one page (print-friendly)"
+                                >
+                                  <Eye size={16} />
+                                  View All
+                                </Link>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4 mt-4">
+                              <div className="flex items-start gap-3">
+                                <FileText size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <h5 className="text-sm font-semibold text-blue-900 mb-2">
+                                    {form.comments && form.comments.length > 1 
+                                      ? `Review Comments (${form.comments.length} total):` 
+                                      : 'Review Comments:'}
+                                  </h5>
+                                  {latestComment && (
+                                    <div className="mb-3">
+                                      <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                        {latestComment.comment || latestComment}
+                                      </p>
+                                      
+                                      {/* Show step-specific comments if any */}
+                                      {form.comments && form.comments.some(c => c.stepNumber) && (
+                                        <div className="mt-4 pt-4 border-t border-blue-200">
+                                          <h6 className="text-xs font-semibold text-blue-900 mb-2">Step-Specific Comments:</h6>
+                                          <div className="space-y-2">
+                                            {form.comments
+                                              .filter(c => c.stepNumber)
+                                              .sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
+                                              .map((comment) => (
+                                                <div key={comment._id} className={`bg-white rounded p-3 border-2 ${
+                                                  comment.isFixed ? 'border-green-300 bg-green-50' : 'border-blue-200'
+                                                }`}>
+                                                  <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-xs font-semibold text-blue-900">
+                                                      Step {comment.stepNumber}
+                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                      {comment.isFixed && (
+                                                        <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center gap-1">
+                                                          <CheckCircle size={12} />
+                                                          Fixed
+                                                        </span>
+                                                      )}
+                                                      {comment.readBy && !comment.isFixed && (
+                                                        <span className="text-xs text-gray-500">Read</span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                                    {comment.comment}
+                                                  </p>
+                                                </div>
+                                              ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {form.comments && form.comments.length > 1 && !form.comments.some(c => c.stepNumber) && (
+                                        <details className="mt-3">
+                                          <summary className="text-sm text-blue-700 cursor-pointer hover:text-blue-900 font-medium">
+                                            View all {form.comments.length} comments
+                                          </summary>
+                                          <div className="mt-3 space-y-3 pl-4 border-l-2 border-blue-300">
+                                            {form.comments.slice(1).map((comment, idx) => (
+                                              <div key={comment._id || idx} className="bg-white rounded p-3 border border-blue-200">
+                                                <div className="text-xs text-gray-600 mb-1">
+                                                  {comment.reviewedBy?.name || comment.reviewedByName} - {new Date(comment.reviewedAt).toLocaleDateString()}
+                                                </div>
+                                                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                                  {comment.comment}
+                                                </p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </details>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {form.status === 'rejected' || form.status === 'under_review' ? (
+                              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                <p className="text-sm text-amber-800 flex items-center gap-2">
+                                  <AlertCircle size={16} className="text-amber-600" />
+                                  <span className="font-medium">Action Required:</span> Please review the comments above and make the necessary changes to your Consolidated Plan.
+                                </p>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                        })}
+                    </div>
+                  )}
+                </div>
+              )}
               {activeTab === 'analytics' && <AnalyticsDashboard forms={forms} stats={stats} />}
               {activeTab === 'notifications' && <SmartNotifications forms={forms} stats={stats} />}
               {activeTab === 'bulk' && <BulkOperations forms={forms} onUpdateForms={setForms} />}
@@ -874,11 +1108,16 @@ export default function DashboardPage() {
                     : 'This is where your school plan submissions will appear once you create them.'
                   }
                 </p>
-                {userLevel >= 3 && !isAdmin && (
+                {userLevel >= 4 && !isAdmin && (
                   <Link href="/form/new" className="btn-primary inline-flex items-center gap-2">
                     <Plus size={20} />
                     Create your first form
                   </Link>
+                )}
+                {userLevel === 3 && (
+                  <p className="text-base text-secondary-500 mt-4">
+                    Forms will appear here once your principal assigns them to you for collaboration.
+                  </p>
                 )}
               </div>
             ) : (

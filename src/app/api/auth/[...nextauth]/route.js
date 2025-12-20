@@ -1,6 +1,7 @@
-const NextAuth = require('next-auth').default;
-const { authOptions } = require('../../../../lib/auth');
+import NextAuth from 'next-auth';
+import { authOptions } from '../../../../lib/auth';
 
 const handler = NextAuth(authOptions);
 
-module.exports = { GET: handler, POST: handler };
+// Export named exports for Next.js 16
+export { handler as GET, handler as POST };

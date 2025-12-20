@@ -229,6 +229,28 @@ const FormSubmissionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
+  // Share form with specific email addresses (for Level 5 users)
+  sharedWithEmails: [{
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+    },
+    sharedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    sharedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    permissions: {
+      type: String,
+      enum: ['view', 'edit'],
+      default: 'view',
+    },
+  }],
 });
 
 FormSubmissionSchema.pre('save', function (next) {

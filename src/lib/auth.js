@@ -35,6 +35,10 @@ const authOptions = {
         dbUser.lastLogin = new Date();
         await dbUser.save();
 
+        // Log the login (async, don't wait for it)
+        const { logLogin } = require('./auditLogger');
+        logLogin(dbUser).catch(err => console.error('Error logging login:', err));
+
         console.log('Sign in successful for:', user.email, 'Level:', dbUser.level);
         return true;
       } catch (error) {

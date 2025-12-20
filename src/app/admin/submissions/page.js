@@ -253,16 +253,27 @@ export default function AdminSubmissionsPage() {
   const exportToCSV = () => {
     setExporting(true);
     try {
-      const headers = ['School', 'Principal', 'Email', 'Status', 'Progress', 'Submitted', 'Created'];
-      const csvData = filteredSubmissions.map(sub => [
-        sub.schoolName || '',
-        sub.principalName || '',
-        sub.principalEmail || '',
-        getStatusBadge(sub.status || 'draft'),
-        `${sub.completedSteps?.length || 0}/14`,
-        sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '-',
-        sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : '-'
-      ]);
+      const headers = ['School', 'Principal', 'Email', 'Status', 'Progress', 'Submitted', 'Created', 'Edit Rights', 'Shared with Level 3', 'Shared with Emails'];
+      const csvData = filteredSubmissions.map(sub => {
+        const level3Info = sub.hasLevel3Collaborators && sub.level3Collaborators?.length > 0
+          ? sub.level3Collaborators.map(c => `${c.name} (${c.permissions})`).join('; ')
+          : 'No';
+        const sharedEmailsInfo = sub.sharedWithEmails && sub.sharedWithEmails.length > 0
+          ? sub.sharedWithEmails.map(s => `${s.email} (${s.permissions})`).join('; ')
+          : 'No';
+        return [
+          sub.schoolName || '',
+          sub.principalName || '',
+          sub.principalEmail || '',
+          getStatusBadge(sub.status || 'draft'),
+          `${sub.completedSteps?.length || 0}/14`,
+          sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '-',
+          sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : '-',
+          sub.userPermission || 'N/A',
+          level3Info,
+          sharedEmailsInfo
+        ];
+      });
       
       const csvContent = [headers, ...csvData]
         .map(row => row.map(cell => `"${cell}"`).join(','))
@@ -325,6 +336,8 @@ export default function AdminSubmissionsPage() {
                 <th>Progress</th>
                 <th>Submitted</th>
                 <th>Created</th>
+                <th>Edit Rights</th>
+                <th>Shared with Level 3</th>
               </tr>
             </thead>
             <tbody>
@@ -337,6 +350,12 @@ export default function AdminSubmissionsPage() {
                   <td>${sub.completedSteps?.length || 0}/14</td>
                   <td>${sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : '-'}</td>
                   <td>${sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : '-'}</td>
+                  <td>${sub.userPermission || 'N/A'}</td>
+                  <td>${
+                    sub.hasLevel3Collaborators && sub.level3Collaborators?.length > 0
+                      ? sub.level3Collaborators.map(c => `${c.name} (${c.permissions})`).join('<br>')
+                      : 'No'
+                  }</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -909,6 +928,24 @@ export default function AdminSubmissionsPage() {
                           {getSortIcon('submittedAt')}
                         </div>
                       </th>
+                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-32">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Edit Rights
+                        </div>
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-40">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Shared with Level 3
+                        </div>
+                      </th>
+                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-48">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Shared with Emails
+                        </div>
+                      </th>
                       <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-48">Actions</th>
                     </tr>
                   </thead>
@@ -953,6 +990,72 @@ export default function AdminSubmissionsPage() {
                         </td>
                         <td className="p-4 text-sm text-gray-600">
                           {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                            submission.userPermission === 'owner'
+                              ? 'bg-green-100 text-green-800'
+                              : submission.userPermission === 'edit'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {submission.userPermission === 'owner' && <CheckCircle className="w-3 h-3" />}
+                            {submission.userPermission === 'edit' && <FileText className="w-3 h-3" />}
+                            {submission.userPermission === 'view' && <Eye className="w-3 h-3" />}
+                            {submission.userPermission || 'N/A'}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          {submission.hasLevel3Collaborators && submission.level3Collaborators?.length > 0 ? (
+                            <div className="space-y-1">
+                              {submission.level3Collaborators.map((collab, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                                    collab.permissions === 'edit'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : collab.permissions === 'view'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {collab.permissions === 'edit' && <CheckCircle className="w-3 h-3" />}
+                                    {collab.permissions === 'view' && <Eye className="w-3 h-3" />}
+                                    <span className="font-semibold">{collab.name}</span>
+                                    <span className="text-xs">({collab.permissions})</span>
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                              <XCircle className="w-3 h-3" />
+                              No
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {submission.sharedWithEmails && submission.sharedWithEmails.length > 0 ? (
+                            <div className="space-y-1">
+                              {submission.sharedWithEmails.map((share, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                                    share.permissions === 'edit'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {share.permissions === 'edit' && <CheckCircle className="w-3 h-3" />}
+                                    {share.permissions === 'view' && <Eye className="w-3 h-3" />}
+                                    <span className="font-semibold text-xs">{share.email}</span>
+                                    <span className="text-xs">({share.permissions})</span>
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                              <XCircle className="w-3 h-3" />
+                              No
+                            </span>
+                          )}
                         </td>
                         <td className="p-4">
                           <div className="flex gap-2">

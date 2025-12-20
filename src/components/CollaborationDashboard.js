@@ -68,9 +68,11 @@ const CollaborationDashboard = ({ user }) => {
         let forms = data.forms || [];
         
         // For Level 4, only show forms from their school
+        // For Level 5, show all forms from all schools
         if (user?.level === 4) {
           forms = forms.filter(form => form.schoolName === user.schoolName);
         }
+        // Level 5 users see all forms, no filtering needed
         
         console.log('📄 Forms for collaboration:', forms);
         setUserForms(forms);
@@ -207,8 +209,17 @@ const CollaborationDashboard = ({ user }) => {
         </p>
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            <strong>Your School:</strong> {user?.schoolName} | 
-            <strong className="ml-4">Level 3 Users:</strong> {level3Users.length}
+            {user?.level === 5 ? (
+              <>
+                <strong>Super Admin Access:</strong> All Schools | 
+                <strong className="ml-4">Level 3 Users:</strong> {level3Users.length} (across all schools)
+              </>
+            ) : (
+              <>
+                <strong>Your School:</strong> {user?.schoolName} | 
+                <strong className="ml-4">Level 3 Users:</strong> {level3Users.length}
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -251,18 +262,31 @@ const CollaborationDashboard = ({ user }) => {
                 My Forms - Available to Share
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Forms from {user?.schoolName} that can be shared with Level 3 users
+                {user?.level === 5 
+                  ? 'Forms from all schools that can be shared with Level 3 users'
+                  : `Forms from ${user?.schoolName} that can be shared with Level 3 users`
+                }
               </p>
             </div>
             <div className="divide-y divide-gray-200">
-              {userForms.filter(form => !form.isShared && form.schoolName === user?.schoolName).length === 0 ? (
+              {userForms.filter(form => {
+                const notShared = !form.isShared;
+                // For Level 5, show all forms; for Level 4, only from their school
+                const schoolMatch = user?.level === 5 || form.schoolName === user?.schoolName;
+                return notShared && schoolMatch;
+              }).length === 0 ? (
                 <div className="px-6 py-8 text-center text-gray-500">
                   <p>No forms available to share from your school.</p>
                   <p className="text-sm mt-2">Create a new form to get started.</p>
                 </div>
               ) : (
                 userForms
-                  .filter(form => !form.isShared && form.schoolName === user?.schoolName)
+                  .filter(form => {
+                    const notShared = !form.isShared;
+                    // For Level 5, show all forms; for Level 4, only from their school
+                    const schoolMatch = user?.level === 5 || form.schoolName === user?.schoolName;
+                    return notShared && schoolMatch;
+                  })
                   .map((form) => (
                     <div key={form._id || form.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                       <div className="flex-1">
@@ -361,7 +385,7 @@ const CollaborationDashboard = ({ user }) => {
         <div>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
-              Level 3 Users - {user?.schoolName}
+              Level 3 Users {user?.level === 5 ? '(All Schools)' : `- ${user?.schoolName}`}
             </h2>
             <button
               onClick={() => setShowCreateUser(true)}
@@ -377,28 +401,35 @@ const CollaborationDashboard = ({ user }) => {
             {level3Users.length === 0 ? (
               <div className="col-span-full text-center py-12 bg-white rounded-lg shadow-md">
                 <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">No Level 3 users found in your school.</p>
-                <button
-                  onClick={() => setShowCreateUser(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Create First Level 3 User
-                </button>
+                <p className="text-gray-600 mb-4">
+                  {user?.level === 5 
+                    ? 'No Level 3 users found across all schools.' 
+                    : 'No Level 3 users found in your school.'
+                  }
+                </p>
+                {user?.level === 4 && (
+                  <button
+                    onClick={() => setShowCreateUser(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Create First Level 3 User
+                  </button>
+                )}
               </div>
             ) : (
-              level3Users.map((user) => (
-                <div key={user.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+              level3Users.map((level3User) => (
+                <div key={level3User.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-                    <p className="text-sm text-gray-600">{user.title}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
+                    <h3 className="text-lg font-semibold text-gray-900">{level3User.name}</h3>
+                    <p className="text-sm text-gray-600">{level3User.title}</p>
+                    <p className="text-sm text-gray-500">{level3User.email}</p>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center text-sm">
                       <School className="w-4 h-4 text-gray-400 mr-2" />
-                      <span className="text-gray-600">{user.schoolName}</span>
+                      <span className="text-gray-600">{level3User.schoolName}</span>
                     </div>
                     <div className="flex items-center text-sm">
                       <UserCheck className="w-4 h-4 text-gray-400 mr-2" />
@@ -406,7 +437,7 @@ const CollaborationDashboard = ({ user }) => {
                     </div>
                     <div className="flex items-center text-sm">
                       <Share2 className="w-4 h-4 text-gray-400 mr-2" />
-                      <span className="text-gray-600">{user.assignedFormsCount || 0} forms shared</span>
+                      <span className="text-gray-600">{level3User.assignedFormsCount || 0} forms shared</span>
                     </div>
                   </div>
                 </div>
@@ -491,7 +522,7 @@ const CollaborationDashboard = ({ user }) => {
             <form onSubmit={submitShareForm} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Level 3 Users from {user?.schoolName}
+                  Select Level 3 Users {user?.level === 5 ? 'from any school' : `from ${user?.schoolName}`}
                 </label>
                 {level3Users.length === 0 ? (
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -501,31 +532,34 @@ const CollaborationDashboard = ({ user }) => {
                   </div>
                 ) : (
                   <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md p-3 space-y-2">
-                    {level3Users.map((user) => (
-                      <label key={user.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                    {level3Users.map((level3User) => (
+                      <label key={level3User.id} className="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
                         <input
                           type="checkbox"
-                          value={user.id}
-                          checked={shareFormData.userIds.includes(user.id)}
+                          value={level3User.id}
+                          checked={shareFormData.userIds.includes(level3User.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
                               setShareFormData(prev => ({
                                 ...prev,
-                                userIds: [...prev.userIds, user.id]
+                                userIds: [...prev.userIds, level3User.id]
                               }));
                             } else {
                               setShareFormData(prev => ({
                                 ...prev,
-                                userIds: prev.userIds.filter(id => id !== user.id)
+                                userIds: prev.userIds.filter(id => id !== level3User.id)
                               }));
                             }
                           }}
                           className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                          <p className="text-xs text-gray-600">{user.title}</p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
+                          <p className="text-sm font-medium text-gray-900">{level3User.name}</p>
+                          <p className="text-xs text-gray-600">{level3User.title}</p>
+                          <p className="text-xs text-gray-500">{level3User.email}</p>
+                          {user?.level === 5 && level3User.schoolName && (
+                            <p className="text-xs text-blue-600 mt-1">School: {level3User.schoolName}</p>
+                          )}
                         </div>
                       </label>
                     ))}

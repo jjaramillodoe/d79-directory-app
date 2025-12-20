@@ -26,7 +26,7 @@
                     "question_number": "1",
                     "title": "Child Abuse & Maltreatment Prevention and Intervention Designated Liaison",
                     "placeholder": "Enter the full name and official title of the Designated Liaison responsible for child abuse and maltreatment prevention and intervention at your school.",
-                    "type": "text",
+                    "type": "textarea",
                     "required": true,
                     "description": "Provide the individual’s full name and professional title designated as the school liaison for child abuse and maltreatment prevention and intervention."
                 },
@@ -1092,7 +1092,7 @@
                     "question_number": "5",
                     "title": "5. Provide the name and title of the staff person who enters the Planning Interview discharge information into ATS on PIES (Planning Interview Entry Screen) and the discharge screen:",
                     "placeholder": "Enter the name and title of the staff person\nwho enters Planning Interview discharge information in ATS (PIES).",
-                    "type": "text",
+                    "type": "textarea",
                     "required": true,
                     "description": "Identify the staff member responsible for data entry in ATS (PIES)."
                 },

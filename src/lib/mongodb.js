@@ -29,14 +29,37 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-async function connectDB() {
+async function connectDB(retries = 3) {
+  // Check if connection is already established and healthy
   if (cached.conn) {
-    return cached.conn;
+    // Verify connection is still alive
+    try {
+      if (mongoose.connection.readyState === 1) {
+        return cached.conn;
+      } else {
+        // Connection is not ready, reset it
+        cached.conn = null;
+        cached.promise = null;
+      }
+    } catch (e) {
+      // Connection check failed, reset it
+      cached.conn = null;
+      cached.promise = null;
+    }
   }
 
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 10000, // 10 second timeout (increased)
+      socketTimeoutMS: 45000, // 45 second socket timeout
+      maxPoolSize: 50, // Increased from 10 to 50 to handle more concurrent connections
+      minPoolSize: 5, // Maintain minimum pool size
+      maxIdleTimeMS: 30000, // Close idle connections after 30 seconds
+      retryWrites: true,
+      retryReads: true,
+      // Connection pool monitoring
+      waitQueueTimeoutMS: 10000, // Wait up to 10 seconds for a connection from the pool
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
@@ -46,12 +69,24 @@ async function connectDB() {
 
   try {
     cached.conn = await cached.promise;
+    return cached.conn;
   } catch (e) {
     cached.promise = null;
+    
+    // Retry logic for connection errors
+    if (retries > 0 && (
+      e.name === 'MongoNetworkError' || 
+      e.name === 'MongoServerSelectionError' ||
+      e.message?.includes('connection') ||
+      e.message?.includes('timeout')
+    )) {
+      console.log(`Database connection failed, retrying... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+      return connectDB(retries - 1);
+    }
+    
     throw e;
   }
-
-  return cached.conn;
 }
 
 module.exports = connectDB;

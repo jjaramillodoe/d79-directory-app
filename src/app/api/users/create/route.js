@@ -25,6 +25,17 @@ async function POST(request) {
 
     const { name, email, level, schoolName, title, isActive } = await request.json();
 
+    // Level 4 (Principal) users can only create Level 1-3 users
+    // Only Level 5 (Super Admin) can create Level 4-5 users
+    if (session.user.level === 4 && level !== undefined && (level === 4 || level === 5)) {
+      return new Response(JSON.stringify({ 
+        error: 'Forbidden: You can only create users with Level 1, 2, or 3. Only Super Admins can create Level 4 or 5 users.' 
+      }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!name || !email) {
       return new Response(JSON.stringify({ error: 'Name and email are required' }), {
         status: 400,
@@ -70,6 +81,18 @@ async function POST(request) {
       title: title || '',
       isActive: isActive !== undefined ? isActive : true,
     });
+
+    // Log the user creation
+    const { logUserCreated } = require('../../../../lib/auditLogger');
+    // Create a request-like object for logging
+    const requestObj = {
+      headers: Object.fromEntries(request.headers || []),
+      ip: null,
+      connection: { remoteAddress: null },
+    };
+    logUserCreated(session.user, newUser, requestObj).catch(err => 
+      console.error('Error logging user creation:', err)
+    );
 
     return new Response(JSON.stringify({ 
       message: 'User created successfully',

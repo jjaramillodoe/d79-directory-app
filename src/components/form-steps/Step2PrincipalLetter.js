@@ -1,23 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import formQuestionsData from '../../data/formQuestions.json';
 
-const Step2PrincipalLetter = ({ stepData, updateStepData, isActive }) => {
+const Step2PrincipalLetter = ({ stepData, updateStepData, isActive, currentStep }) => {
   const [questions] = useState(() => {
     const step = formQuestionsData.steps.find(s => s.key === 'principalLetter');
     return step ? step.questions : [];
   });
 
   const [formData, setFormData] = useState({});
+  const isInitialMount = useRef(true);
+  const lastStepRef = useRef(currentStep);
 
   useEffect(() => {
-    if (stepData) {
-      // stepData is already the actual data object, not wrapped in .data
-      setFormData(stepData);
+    // Only update formData on initial mount or when step actually changes
+    // This prevents overwriting user input during auto-save
+    if (isInitialMount.current) {
+      // Initial load - sync with stepData
+      if (stepData) {
+        setFormData(stepData);
+      }
+      isInitialMount.current = false;
+      lastStepRef.current = currentStep;
+    } else if (currentStep !== lastStepRef.current) {
+      // Step changed - sync with new stepData
+      if (stepData) {
+        setFormData(stepData);
+      }
+      lastStepRef.current = currentStep;
     }
-  }, [stepData]);
+    // Don't update on every stepData change - this prevents race conditions with auto-save
+  }, [currentStep]); // Only depend on currentStep, not stepData
 
   const handleInputChange = (questionId, value) => {
     const newFormData = { ...formData, [questionId]: value };

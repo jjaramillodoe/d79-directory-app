@@ -23,7 +23,8 @@ import {
   Download,
   RefreshCw,
   Share2,
-  BookOpen
+  BookOpen,
+  Clock
 } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -520,6 +521,72 @@ function AdminUsersPageContent() {
       )
     },
     {
+      headerName: 'Last Login',
+      field: 'lastLogin',
+      sortable: true,
+      filter: true,
+      resizable: true,
+      width: 180,
+      cellRenderer: (params) => {
+        if (!params.value) {
+          return (
+            <div className="flex items-center text-sm text-gray-400 italic">
+              <Clock className="w-4 h-4 mr-2" />
+              Never
+            </div>
+          );
+        }
+        const lastLogin = new Date(params.value);
+        const now = new Date();
+        const diffMs = now - lastLogin;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        
+        let timeAgo = '';
+        let colorClass = 'text-gray-700';
+        
+        if (diffDays > 30) {
+          timeAgo = `${diffDays} days ago`;
+          colorClass = 'text-red-600';
+        } else if (diffDays > 7) {
+          timeAgo = `${diffDays} days ago`;
+          colorClass = 'text-orange-600';
+        } else if (diffDays > 0) {
+          timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+          colorClass = 'text-yellow-600';
+        } else if (diffHours > 0) {
+          timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+          colorClass = 'text-green-600';
+        } else if (diffMinutes > 0) {
+          timeAgo = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+          colorClass = 'text-green-600';
+        } else {
+          timeAgo = 'Just now';
+          colorClass = 'text-green-600';
+        }
+        
+        return (
+          <div className="flex items-center text-sm">
+            <Clock className={`w-4 h-4 mr-2 ${colorClass}`} />
+            <div>
+              <div className={colorClass}>{timeAgo}</div>
+              <div className="text-xs text-gray-500">
+                {lastLogin.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })} {lastLogin.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      }
+    },
+    {
       headerName: 'Actions',
       field: 'actions',
       sortable: false,
@@ -670,14 +737,25 @@ function AdminUsersPageContent() {
                 Bulk Actions
               </button>
               
-                             <button
-                 onClick={() => setShowAuditModal(true)}
-                 className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                 title="User Activity Audit"
-               >
-                 <BarChart3 className="w-4 h-4 mr-2" />
-                 Audit Log
-               </button>
+              {session?.user?.level === 5 && (
+                <Link href="/admin/logs">
+                  <button
+                    className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                    title="System Audit Logs (Super Admin Only)"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    System Logs
+                  </button>
+                </Link>
+              )}
+              <button
+                onClick={() => setShowAuditModal(true)}
+                className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                title="User Activity Audit"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Audit Log
+              </button>
                
                <button
                  onClick={() => setShowCsvImportModal(true)}
@@ -1073,10 +1151,14 @@ function AdminUsersPageContent() {
                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                    >
                      <option value={1}>Level 1 - Viewer (Can only view forms they're assigned to)</option>
-                     <option value={2}>Level 2 - Other Titles (Can view forms they're assigned to)</option>
+                     <option value={2}>Level 2 - Other Titles (Can view and edit forms from their school)</option>
                      <option value={3}>Level 3 - Assistant Principal (Can view and edit forms they're assigned to)</option>
-                     <option value={4}>Level 4 - Admin Principal (Can create forms, manage school users, assign forms)</option>
-                     <option value={5}>Level 5 - Super Admin (Full access to everything, manage all users and forms)</option>
+                     {session?.user?.level === 5 && (
+                       <>
+                         <option value={4}>Level 4 - Admin Principal (Can create forms, manage school users, assign forms)</option>
+                         <option value={5}>Level 5 - Super Admin (Full access to everything, manage all users and forms)</option>
+                       </>
+                     )}
                    </select>
                 </div>
 
@@ -1146,14 +1228,17 @@ function AdminUsersPageContent() {
 
         {/* Advanced User Management Modal */}
         {showAdvancedModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-8 w-full max-w-4xl max-h-90vh overflow-y-auto">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
-                <Shield className="w-6 h-6 mr-2 text-indigo-600" />
-                Advanced User Management
-              </h3>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl my-8 max-h-[95vh] flex flex-col">
+              <div className="p-6 border-b border-gray-200 flex-shrink-0">
+                <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
+                  <Shield className="w-6 h-6 mr-2 text-indigo-600" />
+                  Advanced User Management
+                </h3>
+              </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* User Permissions Management */}
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold text-gray-800">User Permissions</h4>
@@ -1222,10 +1307,14 @@ function AdminUsersPageContent() {
                              onChange={(e) => handlePermissionUpdate(user._id, { level: parseInt(e.target.value) })}
                            >
                              <option value={1}>Level 1 - Viewer (Can only view forms they're assigned to)</option>
-                             <option value={2}>Level 2 - Other Titles (Can view forms they're assigned to)</option>
+                             <option value={2}>Level 2 - Other Titles (Can view and edit forms from their school)</option>
                              <option value={3}>Level 3 - Assistant Principal (Can view and edit forms they're assigned to)</option>
-                             <option value={4}>Level 4 - Admin Principal (Can create forms, manage school users, assign forms)</option>
-                             <option value={5}>Level 5 - Super Admin (Full access to everything, manage all users and forms)</option>
+                             {session?.user?.level === 5 && (
+                               <>
+                                 <option value={4}>Level 4 - Admin Principal (Can create forms, manage school users, assign forms)</option>
+                                 <option value={5}>Level 5 - Super Admin (Full access to everything, manage all users and forms)</option>
+                               </>
+                             )}
                            </select>
                         </div>
                         
@@ -1253,9 +1342,10 @@ function AdminUsersPageContent() {
                     </div>
                   ))}
                 </div>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedModal(false)}
@@ -1359,22 +1449,25 @@ function AdminUsersPageContent() {
 
         {/* Audit Log Modal */}
         {showAuditModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-8 w-full max-w-6xl max-h-90vh overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
-                  <BarChart3 className="w-6 h-6 mr-2 text-amber-600" />
-                  User Activity Audit Log
-                </h3>
-                <button
-                  onClick={fetchAuditLogs}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                >
-                  Refresh Logs
-                </button>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl my-8 max-h-[95vh] flex flex-col">
+              <div className="p-6 border-b border-gray-200 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
+                    <BarChart3 className="w-6 h-6 mr-2 text-amber-600" />
+                    User Activity Audit Log
+                  </h3>
+                  <button
+                    onClick={fetchAuditLogs}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Refresh Logs
+                  </button>
+                </div>
               </div>
               
-              <div className="space-y-4">
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
                 {auditLogs.length === 0 ? (
                   <div className="text-center py-12 text-gray-600">
                     <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -1382,35 +1475,36 @@ function AdminUsersPageContent() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 border-b border-gray-200">
+                    <table className="w-full min-w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
                         <tr>
-                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Timestamp</th>
-                          <th className="text-left p-3 text-sm font-semibold text-gray-700">User</th>
-                          <th className="text-left p-3 text-sm font-semibold text-gray-700">Action</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700 whitespace-nowrap">Timestamp</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700 whitespace-nowrap">User</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700 whitespace-nowrap">Action</th>
                           <th className="text-left p-3 text-sm font-semibold text-gray-700">Details</th>
-                          <th className="text-left p-3 text-sm font-semibold text-gray-700">IP Address</th>
+                          <th className="text-left p-3 text-sm font-semibold text-gray-700 whitespace-nowrap">IP Address</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {auditLogs.map((log, index) => (
                           <tr key={index} className="hover:bg-gray-50">
-                            <td className="p-3 text-sm text-gray-600">
+                            <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
                               {new Date(log.timestamp).toLocaleString()}
                             </td>
-                            <td className="p-3 text-sm font-medium text-gray-900">{log.userName}</td>
-                            <td className="p-3 text-sm text-gray-700">{log.action}</td>
-                            <td className="p-3 text-sm text-gray-700">{log.details}</td>
-                            <td className="p-3 text-sm text-gray-600">{log.ipAddress || 'N/A'}</td>
+                            <td className="p-3 text-sm font-medium text-gray-900 whitespace-nowrap">{log.userName}</td>
+                            <td className="p-3 text-sm text-gray-700 whitespace-nowrap">{log.action}</td>
+                            <td className="p-3 text-sm text-gray-700 max-w-md">{log.details}</td>
+                            <td className="p-3 text-sm text-gray-600 whitespace-nowrap">{log.ipAddress || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 )}
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAuditModal(false)}

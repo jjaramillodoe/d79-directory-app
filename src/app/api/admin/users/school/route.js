@@ -20,10 +20,21 @@ export async function GET(request) {
 
     await connectDB();
 
-    // Get users from the same school as the principal
-    const users = await User.findBySchool(session.user.schoolName, {
-      includeInactive: true // Include inactive users for management
-    });
+    // For Level 5 (Super Admin), get all Level 3 users from all schools
+    // For Level 4 (Principal), get users from their school only
+    let users;
+    if (session.user.level === 5) {
+      // Super Admin can see all Level 3 users from all schools
+      users = await User.find({ 
+        level: 3,
+        isActive: true 
+      }).sort({ schoolName: 1, name: 1 });
+    } else {
+      // Level 4 users see only their school
+      users = await User.findBySchool(session.user.schoolName, {
+        includeInactive: true // Include inactive users for management
+      });
+    }
 
     // Format user data for the frontend
     const formattedUsers = users.map(user => ({
@@ -73,6 +84,15 @@ export async function POST(request) {
 
     const body = await request.json();
     const { name, email, title, level = 3, canCollaborate = true, collaborationLevel = 'edit' } = body;
+
+    // Level 4 (Principal) users can only create Level 1-3 users
+    // Only Level 5 (Super Admin) can create Level 4-5 users
+    if (session.user.level === 4 && (level === 4 || level === 5)) {
+      return NextResponse.json(
+        { error: 'You can only create users with Level 1, 2, or 3. Only Super Admins can create Level 4 or 5 users.' },
+        { status: 403 }
+      );
+    }
 
     // Validate required fields
     if (!name || !email || !title) {

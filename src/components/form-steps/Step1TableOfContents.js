@@ -1,28 +1,84 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { FileText, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import formQuestionsData from '../../data/formQuestions.json';
 
-const Step1TableOfContents = ({ stepData, updateStepData, isActive }) => {
+const Step1TableOfContents = ({ stepData, updateStepData, isActive, navigateToStep, allStepData, currentStep }) => {
   const [questions] = useState(() => {
     const step = formQuestionsData.steps.find(s => s.key === 'tableOfContents');
     return step ? step.questions : [];
   });
 
   const [formData, setFormData] = useState({});
+  const isInitialMount = useRef(true);
+  const lastStepRef = useRef(currentStep);
+  const lastStepDataRef = useRef(null);
 
   useEffect(() => {
-    if (stepData) {
-      // stepData is already the actual data object, not wrapped in .data
+    // Sync with stepData when:
+    // 1. Initial mount (component just loaded)
+    // 2. Step changes (navigating to different step)
+    // 3. stepData changes from empty to having data (form data loaded after component mount)
+    const stepDataChanged = lastStepDataRef.current !== stepData;
+    const stepDataHasContent = stepData && Object.keys(stepData).length > 0;
+    const localDataIsEmpty = !formData || Object.keys(formData).length === 0;
+    
+    if (isInitialMount.current) {
+      // Initial load - sync with stepData if available
+      if (stepDataHasContent) {
+        setFormData(stepData);
+        lastStepDataRef.current = stepData;
+      }
+      isInitialMount.current = false;
+      lastStepRef.current = currentStep;
+    } else if (currentStep !== lastStepRef.current) {
+      // Step changed - sync with new stepData
+      if (stepDataHasContent) {
+        setFormData(stepData);
+        lastStepDataRef.current = stepData;
+      }
+      lastStepRef.current = currentStep;
+    } else if (stepDataChanged && stepDataHasContent && localDataIsEmpty) {
+      // stepData was loaded after component mount (race condition fix)
+      // Only sync if local data is empty to avoid overwriting user input
       setFormData(stepData);
+      lastStepDataRef.current = stepData;
     }
-  }, [stepData]);
+  }, [currentStep, stepData, formData]);
 
   const handleInputChange = (questionId, value) => {
     const newFormData = { ...formData, [questionId]: value };
     setFormData(newFormData);
     updateStepData('tableOfContents', newFormData);
+  };
+
+  // Map step numbers to step keys for checking completion status
+  const getStepKey = (stepNum) => {
+    const stepMap = {
+      1: 'tableOfContents',
+      2: 'childAbuseIntervention',
+      3: 'sexualHarassment',
+      4: 'respectForAll',
+      5: 'suicidePrevention',
+      6: 'attendancePlan',
+      7: 'temporaryHousing',
+      8: 'serviceInSchools',
+      9: 'planningInterviews',
+      10: 'militaryRecruitment',
+      11: 'schoolCulture',
+      12: 'afterSchoolPrograms',
+      13: 'cellPhonePolicy',
+      14: 'counselingPlan'
+    };
+    return stepMap[stepNum];
+  };
+
+  // Check if a step is completed
+  const isStepCompleted = (stepNum) => {
+    if (!allStepData) return false;
+    const stepKey = getStepKey(stepNum);
+    return allStepData[stepKey]?.completed === true;
   };
 
   const renderQuestion = (question) => {
@@ -99,14 +155,41 @@ const Step1TableOfContents = ({ stepData, updateStepData, isActive }) => {
               { num: 12, title: 'After School Programs' },
               { num: 13, title: 'Cell Phone Policy' },
               { num: 14, title: 'School Counseling Plan' }
-            ].map((section) => (
-              <div key={section.num} className="flex items-start gap-3 text-white">
-                <span className="flex-shrink-0 w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center text-sm font-bold">
-                  {section.num}
-                </span>
-                <span className="text-sm leading-relaxed">{section.title}</span>
-              </div>
-            ))}
+            ].map((section) => {
+              const isCompleted = isStepCompleted(section.num);
+              const isCurrentStep = currentStep === section.num;
+              
+              return (
+                <button
+                  key={section.num}
+                  onClick={() => navigateToStep && navigateToStep(section.num)}
+                  className={`flex items-start gap-3 text-left p-3 rounded-lg transition-all duration-200 ${
+                    isCurrentStep
+                      ? 'bg-white/30 hover:bg-white/40 shadow-md'
+                      : 'hover:bg-white/20 hover:shadow-sm'
+                  } ${navigateToStep ? 'cursor-pointer' : 'cursor-default'}`}
+                  disabled={!navigateToStep}
+                >
+                  <span className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${
+                    isCompleted
+                      ? 'bg-green-500/90 text-white'
+                      : isCurrentStep
+                      ? 'bg-white/30 text-white'
+                      : 'bg-white/20 text-white'
+                  }`}>
+                    {isCompleted ? '✓' : section.num}
+                  </span>
+                  <div className="flex-1 flex items-center justify-between gap-2">
+                    <span className="text-sm leading-relaxed text-white font-medium">
+                      {section.title}
+                    </span>
+                    {navigateToStep && section.num !== currentStep && (
+                      <ArrowRight className="w-4 h-4 text-white/70 flex-shrink-0" />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

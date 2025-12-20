@@ -14,7 +14,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only principals (level 4) can share forms
+    // Only principals (level 4) and super admins (level 5) can share forms
     if (session.user.level < 4) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
@@ -42,21 +42,38 @@ export async function POST(request) {
     console.log('Form school:', form.schoolName, 'User school:', session.user.schoolName);
     
     // For level 4 (principals), verify the form is from their school
+    // Level 5 (super admins) can share any form
     if (session.user.level === 4 && form.schoolName !== session.user.schoolName) {
       console.error('Form not in user school:', { formSchool: form.schoolName, userSchool: session.user.schoolName });
       return NextResponse.json({ error: 'Form not found in your school' }, { status: 404 });
     }
 
     // Get all users to be assigned
-    const users = await User.find({
+    // For Level 5 (super admins), allow sharing with users from any school
+    // For Level 4 (principals), only allow sharing with users from their school
+    const userQuery = {
       _id: { $in: userIds },
-      schoolName: session.user.schoolName,
       isActive: true
-    });
+    };
+    
+    if (session.user.level === 4) {
+      userQuery.schoolName = session.user.schoolName;
+    }
+    
+    const users = await User.find(userQuery);
 
     if (users.length !== userIds.length) {
+      const foundUserIds = users.map(u => u._id.toString());
+      const missingUserIds = userIds.filter(id => !foundUserIds.includes(id));
+      console.error('Some users not found:', { requested: userIds, found: foundUserIds, missing: missingUserIds });
+      
       return NextResponse.json(
-        { error: 'Some users not found or not in your school' },
+        { 
+          error: session.user.level === 5 
+            ? 'Some users not found or inactive' 
+            : 'Some users not found or not in your school',
+          missingUserIds
+        },
         { status: 400 }
       );
     }
@@ -66,7 +83,10 @@ export async function POST(request) {
     
     for (const user of users) {
       try {
-        await user.assignForm(formId, session.user.id, permissions, sections);
+        // Level 3 users (Assistant Principals) should always have 'edit' permissions when assigned
+        const userPermissions = user.level === 3 ? 'edit' : permissions;
+        
+        await user.assignForm(formId, session.user.id, userPermissions, sections);
         
         // Log the activity
         await user.logActivity(

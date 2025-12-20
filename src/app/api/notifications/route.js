@@ -3,6 +3,7 @@ const { getServerSession } = require('next-auth/next');
 const { authOptions } = require('../../../lib/auth');
 const connectDB = require('../../../lib/mongodb');
 const FormSubmission = require('../../../models/FormSubmission');
+const FormComment = require('../../../models/FormComment');
 const User = require('../../../models/User');
 
 // GET /api/notifications - Get user's notifications
@@ -22,7 +23,7 @@ async function GET(request) {
     }
 
     // Get notifications for the user
-    const notifications = await FormSubmission.find({
+    const submissions = await FormSubmission.find({
       userId: user._id,
       notificationSent: true,
       reviewedAt: { $exists: true }
@@ -30,6 +31,29 @@ async function GET(request) {
     .populate('reviewedBy', 'name email')
     .sort({ reviewedAt: -1 })
     .limit(50);
+
+    // Fetch latest comments for each submission
+    const notifications = await Promise.all(submissions.map(async (submission) => {
+      const submissionObj = submission.toObject();
+      
+      // Get the latest comment from FormComment collection
+      const latestComment = await FormComment.findOne({
+        formId: submission._id,
+        isActive: true
+      })
+        .populate('reviewedBy', 'name email')
+        .sort({ reviewedAt: -1 })
+        .lean();
+      
+      // Include comment in notification for backward compatibility
+      if (latestComment) {
+        submissionObj.reviewComments = latestComment.comment;
+        submissionObj.reviewedBy = latestComment.reviewedBy || submissionObj.reviewedBy;
+        submissionObj.reviewedAt = latestComment.reviewedAt || submissionObj.reviewedAt;
+      }
+      
+      return submissionObj;
+    }));
 
     return NextResponse.json({ notifications });
   } catch (error) {
@@ -73,4 +97,5 @@ async function POST(request) {
   }
 }
 
-module.exports = { GET, POST };
+// Export named exports for Next.js 16 (ES module syntax)
+export { GET, POST };
