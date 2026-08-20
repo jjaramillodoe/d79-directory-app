@@ -158,7 +158,7 @@ export default function Home() {
                         icon={Columns}
                         step="2"
                         title="Compare and update"
-                        body="Review attendance, temporary housing, and counseling side by side."
+                        body="Review every section side by side with last year’s answers."
                       />
                       <WorkflowStep
                         icon={Archive}

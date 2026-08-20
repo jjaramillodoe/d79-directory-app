@@ -117,7 +117,7 @@ export default function LoginPage() {
     {
       icon: Columns,
       title: 'Compare and update',
-      body: 'Review attendance, temporary housing, and counseling side by side.',
+      body: 'Review every section side by side with last year’s answers.',
     },
     {
       icon: Archive,

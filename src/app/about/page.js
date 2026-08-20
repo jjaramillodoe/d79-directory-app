@@ -55,7 +55,7 @@ const FEATURES = [
   {
     icon: BarChart3,
     title: 'Year-over-year compare',
-    description: 'Side-by-side attendance, housing, and counseling answers.',
+    description: 'Side-by-side answers for every section in the plan.',
   },
 ];
 

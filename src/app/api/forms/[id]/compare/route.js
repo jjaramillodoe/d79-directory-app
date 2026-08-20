@@ -7,7 +7,7 @@ const FormSubmission = require('../../../../../models/FormSubmission');
 const User = require('../../../../../models/User');
 const { inferSchoolYear, previousSchoolYear } = require('../../../../../lib/schoolYear');
 const { getPublishedOrJson } = require('../../../../../lib/questionBank');
-const { COMPARE_STEPS, compareStepAnswers, getYearSettings } = require('../../../../../lib/schoolYearSettings');
+const { compareStepAnswers, getYearSettings } = require('../../../../../lib/schoolYearSettings');
 
 export async function GET(request, { params }) {
   try {
@@ -48,11 +48,9 @@ export async function GET(request, { params }) {
     const bank = await getPublishedOrJson({
       schoolYear: currentYear,
       version: current.questionBankVersion,
+      preferPublished: current.status === 'draft',
     });
-    const compareSteps = (bank.steps || []).filter((step) =>
-      COMPARE_STEPS.some((item) => item.key === step.key)
-    );
-    const rows = compareStepAnswers(previous, current, compareSteps);
+    const rows = compareStepAnswers(previous, current, bank.steps || []);
     const yearSettings = await getYearSettings(currentYear);
 
     return NextResponse.json({

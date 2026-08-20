@@ -16,7 +16,7 @@ export default function YearComparePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [onlyChanged, setOnlyChanged] = useState(true);
+  const [onlyChanged, setOnlyChanged] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -63,7 +63,11 @@ export default function YearComparePage() {
       header={
         <DashboardHeader
           title={data?.schoolName || 'Year-over-year'}
-          description={data ? `${data.compareYear} vs ${data.currentYear} · attendance, housing, counseling` : 'Year-over-year'}
+          description={
+            data
+              ? `${data.compareYear} vs ${data.currentYear} · all sections`
+              : 'Year-over-year'
+          }
           session={session}
           userLevel={session.user.level}
           actions={
@@ -89,8 +93,13 @@ export default function YearComparePage() {
             </Column>
           </Card>
         )}
-        <Row gap="8" wrap>
+        <Row gap="8" wrap vertical="center">
           <Tag size="s" variant="brand" label={`${data?.changedCount || 0} answers differ`} />
+          <Tag
+            size="s"
+            variant="neutral"
+            label={`${rows.length} of ${data?.rows?.length || 0} questions`}
+          />
           <Button size="s" variant={onlyChanged ? 'primary' : 'secondary'} onClick={() => setOnlyChanged(true)}>
             Changed only
           </Button>
@@ -98,12 +107,17 @@ export default function YearComparePage() {
             All questions
           </Button>
         </Row>
+        {grouped.length === 0 && data?.previousFormId && (
+          <Text onBackground="neutral-weak">
+            {onlyChanged ? 'No answers differ between these years.' : 'No questions to compare.'}
+          </Text>
+        )}
         {grouped.map((group) => (
           <Card key={group.title} padding="20" radius="l">
             <Column gap="16">
               <Heading variant="heading-strong-s">{group.title}</Heading>
               {group.rows.map((row) => (
-                <Column key={row.questionId} gap="8" padding="12" border="neutral-medium" radius="m">
+                <Column key={`${row.stepKey}-${row.questionId}`} gap="8" padding="12" border="neutral-medium" radius="m">
                   <Text weight="strong">{row.questionNumber ? `${row.questionNumber}. ` : ''}{row.title}</Text>
                   <Row gap="16" wrap>
                     <Column gap="4" style={{ flex: 1, minWidth: 220 }}>

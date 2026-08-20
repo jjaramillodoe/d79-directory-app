@@ -246,7 +246,7 @@ export default function NewFormPage() {
               <Column gap="4">
                 <Text variant="label-strong-s">2. Copy {lastYear} if you need it</Text>
                 <Text variant="body-default-s" onBackground="neutral-weak">
-                  Start here only when the school does not yet have a {thisYear} plan. If a {lastYear} plan exists, open it and use Duplicate to bring answers forward. Compare then shows attendance, housing, and counseling side by side.
+                  Start here only when the school does not yet have a {thisYear} plan. If a {lastYear} plan exists, open it and use Duplicate to bring answers forward. Compare then shows every section side by side.
                 </Text>
               </Column>
               <Column gap="4">
