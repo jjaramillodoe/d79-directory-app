@@ -5,7 +5,7 @@
     "dark": "https://placehold.co/600x400",
     "light": "https://placehold.co/600x400"
   },
-  "favicon": "https://placehold.co/600x400",
+  "favicon": "favicon.svg",
   "colors": {
     "primary": "#1D4ED8",
     "light": "#3B82F6",
