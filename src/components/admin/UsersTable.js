@@ -16,8 +16,9 @@ const PAGE_SIZE = 20;
 const SORT_COLUMNS = [
   { field: 'name', label: 'Name', style: { flex: 2 } },
   { field: 'level', label: 'Level', style: { flex: 1 } },
-  { field: 'school', label: 'School', style: { flex: 1.4 } },
-  { field: 'status', label: 'Status', style: { flex: 1 } },
+  { field: 'school', label: 'School', style: { flex: 1.2 } },
+  { field: 'login', label: 'Last sign-in', style: { flex: 1 } },
+  { field: 'status', label: 'Status', style: { flex: 0.9 } },
 ];
 
 function formatDate(value) {
@@ -30,13 +31,13 @@ function formatDate(value) {
 }
 
 function lastLoginLabel(value) {
-  if (!value) return { label: 'Never', tone: 'neutral' };
+  if (!value) return { label: 'Never signed in', tone: 'warning', never: true };
   const lastLogin = new Date(value);
   const diffDays = Math.floor((Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays > 30) return { label: `${diffDays} days ago`, tone: 'danger' };
-  if (diffDays > 7) return { label: `${diffDays} days ago`, tone: 'warning' };
-  if (diffDays > 0) return { label: `${diffDays}d ago`, tone: 'neutral' };
-  return { label: 'Today', tone: 'success' };
+  if (diffDays > 30) return { label: `${diffDays} days ago`, tone: 'danger', never: false };
+  if (diffDays > 7) return { label: `${diffDays} days ago`, tone: 'warning', never: false };
+  if (diffDays > 0) return { label: `${diffDays}d ago`, tone: 'neutral', never: false };
+  return { label: 'Today', tone: 'success', never: false };
 }
 
 function canManageUser(actor, target) {
@@ -233,19 +234,23 @@ export default function UsersTable({
             <Row style={{ flex: 1, minWidth: 140 }}>
               <Tag size="s" variant={level.variant} label={level.label} />
             </Row>
-            <Column gap="4" style={{ flex: 1.4, minWidth: 160 }}>
+            <Column gap="4" style={{ flex: 1.2, minWidth: 140 }}>
               <Text variant="body-default-s">{user.schoolName || '—'}</Text>
               <Text variant="label-default-s" onBackground="neutral-weak">
-                Created {formatDate(user.createdAt)} · {login.label}
+                Created {formatDate(user.createdAt)}
               </Text>
             </Column>
-            <Row gap="8" wrap style={{ flex: 1, minWidth: 120 }}>
+            <Column gap="4" style={{ flex: 1, minWidth: 120 }}>
+              <Text variant="body-default-s">{login.label}</Text>
+            </Column>
+            <Row gap="8" wrap style={{ flex: 0.9, minWidth: 120 }}>
               <Tag
                 size="s"
                 variant={user.isActive ? 'success' : 'danger'}
                 label={user.isActive ? 'Active' : 'Inactive'}
               />
-              {login.tone === 'danger' && (
+              {login.never && <Tag size="s" variant="warning" label="Never signed in" />}
+              {!login.never && login.tone === 'danger' && (
                 <Tag size="s" variant="warning" label="Stale login" />
               )}
             </Row>

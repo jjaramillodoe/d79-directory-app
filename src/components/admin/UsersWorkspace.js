@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import {
   Column,
   Row,
@@ -12,6 +13,16 @@ import {
 import StatCard from '../dashboard/StatCard';
 import DashboardSection from '../dashboard/DashboardSection';
 import UsersTable, { downloadUsersCsv } from './UsersTable';
+
+function neverSignedIn(user) {
+  return !user.lastLogin;
+}
+
+function staleLogin(user) {
+  if (!user.lastLogin) return false;
+  const diffDays = Math.floor((Date.now() - new Date(user.lastLogin).getTime()) / (1000 * 60 * 60 * 24));
+  return diffDays > 30;
+}
 
 export default function UsersWorkspace({
   userLevel,
@@ -30,13 +41,25 @@ export default function UsersWorkspace({
   templates,
   collaboration,
 }) {
+  const [loginFilter, setLoginFilter] = useState('all');
+
   const stats = {
     total: users.length,
     active: users.filter((u) => u.isActive).length,
     principals: users.filter((u) => u.level === 3).length,
-    staff: users.filter((u) => u.title && u.title.trim() !== '').length,
+    neverSignedIn: users.filter(neverSignedIn).length,
     admin: users.filter((u) => u.level === 4).length,
     superAdmin: users.filter((u) => u.level === 5).length,
+  };
+
+  const visibleUsers = useMemo(() => {
+    if (loginFilter === 'never') return filteredUsers.filter(neverSignedIn);
+    if (loginFilter === 'stale') return filteredUsers.filter(staleLogin);
+    return filteredUsers;
+  }, [filteredUsers, loginFilter]);
+
+  const toggleLoginFilter = (next) => {
+    setLoginFilter((current) => (current === next ? 'all' : next));
   };
 
   return (
@@ -59,10 +82,17 @@ export default function UsersWorkspace({
             <StatCard accentKey="total" label="Total" value={stats.total} />
             <StatCard accentKey="approved" label="Active" value={stats.active} />
             <StatCard accentKey="submitted" label="Assistant principals" value={stats.principals} />
-            <StatCard accentKey="averageProgress" label="With titles" value={stats.staff} />
+            <StatCard
+              accentKey="underReview"
+              label="Never signed in"
+              value={stats.neverSignedIn}
+              hint="Click to filter"
+              selected={loginFilter === 'never'}
+              onClick={() => toggleLoginFilter('never')}
+            />
             {userLevel === 5 && (
               <>
-                <StatCard accentKey="underReview" label="Admin principals" value={stats.admin} />
+                <StatCard accentKey="averageProgress" label="Admin principals" value={stats.admin} />
                 <StatCard accentKey="rejected" label="Super admins" value={stats.superAdmin} />
               </>
             )}
@@ -71,10 +101,31 @@ export default function UsersWorkspace({
           <div className="legacy-ui">{filters}</div>
 
           <DashboardSection
-            title={`Users (${filteredUsers.length} of ${users.length})`}
+            title={`Users (${visibleUsers.length} of ${users.length})`}
             actions={
               <Row gap="8" wrap>
-                <Button size="s" variant="secondary" onClick={() => downloadUsersCsv(filteredUsers)}>
+                <Button
+                  size="s"
+                  variant={loginFilter === 'all' ? 'secondary' : 'tertiary'}
+                  onClick={() => setLoginFilter('all')}
+                >
+                  All
+                </Button>
+                <Button
+                  size="s"
+                  variant={loginFilter === 'never' ? 'secondary' : 'tertiary'}
+                  onClick={() => toggleLoginFilter('never')}
+                >
+                  Never signed in
+                </Button>
+                <Button
+                  size="s"
+                  variant={loginFilter === 'stale' ? 'secondary' : 'tertiary'}
+                  onClick={() => toggleLoginFilter('stale')}
+                >
+                  Stale (30+ days)
+                </Button>
+                <Button size="s" variant="secondary" onClick={() => downloadUsersCsv(visibleUsers)}>
                   Export CSV
                 </Button>
               </Row>
@@ -85,18 +136,18 @@ export default function UsersWorkspace({
                 <Spinner size="l" />
                 <Text onBackground="neutral-weak">Loading users...</Text>
               </Column>
-            ) : filteredUsers.length === 0 ? (
+            ) : visibleUsers.length === 0 ? (
               <Column horizontal="center" paddingY="48" gap="8">
                 <Text variant="heading-strong-l" align="center">
                   No users match your filters
                 </Text>
                 <Text onBackground="neutral-weak" align="center">
-                  Try clearing search or filters to see everyone.
+                  Try clearing search or the sign-in filter to see everyone.
                 </Text>
               </Column>
             ) : (
               <UsersTable
-                users={filteredUsers}
+                users={visibleUsers}
                 actor={actor}
                 selectedUsers={selectedUsers}
                 onToggleSelect={onToggleSelect}
