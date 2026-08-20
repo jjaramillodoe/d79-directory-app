@@ -1,20 +1,23 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
+import { authOptions } from '../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import User from '../../../../models/User';
+import userAccess from '../../../../lib/userAccess';
+
+const { enforceRateLimit, requireAdminActor } = userAccess;
 
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const limited = await enforceRateLimit(`rl:users-import:${session?.user?.id || 'anon'}`, 5, 60);
+    if (limited) return limited;
 
-    // Only Super Admins (Level 5) can bulk import users
-    if (session.user.level !== 5) {
-      return NextResponse.json({ 
-        error: 'Only Super Admins can bulk import users' 
+    const auth = await requireAdminActor(session);
+    if (auth.error) return auth.error;
+    if (auth.actor.level < 5) {
+      return NextResponse.json({
+        error: 'Only Super Admins can bulk import users',
       }, { status: 403 });
     }
 
@@ -23,6 +26,12 @@ export async function POST(request) {
     if (!users || !Array.isArray(users) || users.length === 0) {
       return NextResponse.json({ 
         error: 'Invalid users data. Expected a non-empty array.' 
+      }, { status: 400 });
+    }
+
+    if (users.length > 500) {
+      return NextResponse.json({
+        error: 'Bulk import is limited to 500 users at a time',
       }, { status: 400 });
     }
 
@@ -43,7 +52,6 @@ export async function POST(request) {
         }
       });
 
-      // Validate email format
       if (user.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
         validationErrors.push({
           row,
@@ -51,11 +59,17 @@ export async function POST(request) {
         });
       }
 
-      // Validate level (should be 1-5)
-      if (user.level && (!Number.isInteger(Number(user.level)) || user.level < 1 || user.level > 5)) {
+      if (user.email && !String(user.email).toLowerCase().endsWith('@schools.nyc.gov')) {
         validationErrors.push({
           row,
-          message: `Invalid level: ${user.level}. Must be 1-5.`
+          message: 'Email must be from @schools.nyc.gov domain',
+        });
+      }
+
+      if (user.level && (!Number.isInteger(Number(user.level)) || user.level < 1 || user.level > 4)) {
+        validationErrors.push({
+          row,
+          message: `Invalid level: ${user.level}. Must be 1-4 (Super Admins cannot be imported).`
         });
       }
     });

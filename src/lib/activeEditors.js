@@ -4,46 +4,13 @@
  * Uses Redis if available, falls back to in-memory Map
  */
 
-let redisClient = null;
+const { getRedis, scanKeys } = require('./redis');
+
 let inMemoryEditors = new Map(); // Fallback: { editorKey: { userId, userName, email, stepKey, stepNumber, lastSeen } }
 
-// Initialize Redis connection (reuse from locking service)
 async function initRedis() {
-  if (redisClient) return redisClient;
-  
-  const REDIS_URL = process.env.REDIS_URL;
-  if (!REDIS_URL) {
-    return null;
-  }
-
-  try {
-    const Redis = require('ioredis');
-    redisClient = new Redis(REDIS_URL, {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
-
-    redisClient.on('error', (err) => {
-      console.error('Redis connection error (activeEditors):', err);
-      redisClient = null;
-    });
-
-    await redisClient.ping();
-    return redisClient;
-  } catch (error) {
-    console.error('Failed to connect to Redis (activeEditors):', error.message);
-    redisClient = null;
-    return null;
-  }
+  return getRedis();
 }
-
-// Initialize on module load
-initRedis().catch(err => {
-  console.error('Redis initialization error (activeEditors):', err);
-});
 
 /**
  * Generate editor key for a user on a form step
@@ -65,6 +32,7 @@ function getEditorKey(formId, userId, stepKey) {
 async function registerActiveEditor(formId, stepKey, userId, userName, userEmail, ttlSeconds = 60) {
   const editorKey = getEditorKey(formId, userId, stepKey);
   const lastSeen = new Date();
+  const redisClient = await getRedis();
 
   try {
     if (redisClient) {
@@ -114,6 +82,7 @@ async function registerActiveEditor(formId, stepKey, userId, userName, userEmail
  */
 async function unregisterActiveEditor(formId, stepKey, userId) {
   const editorKey = getEditorKey(formId, userId, stepKey);
+  const redisClient = await getRedis();
 
   try {
     if (redisClient) {
@@ -142,10 +111,11 @@ async function unregisterActiveEditor(formId, stepKey, userId) {
 async function getActiveEditors(formId) {
   const prefix = `form:${formId}:editor:`;
   const editors = [];
+  const redisClient = await getRedis();
 
   try {
     if (redisClient) {
-      const keys = await redisClient.keys(`${prefix}*`);
+      const keys = await scanKeys(`${prefix}*`);
       for (const key of keys) {
         const editorData = await redisClient.get(key);
         if (editorData) {
@@ -212,12 +182,6 @@ async function hasOtherEditors(formId, stepKey, excludeUserId) {
  */
 async function cleanupExpiredEditors() {
   try {
-    if (redisClient) {
-      // Redis handles expiration automatically
-      return;
-    }
-
-    // In-memory cleanup
     const now = new Date();
     for (const [key, editorInfo] of inMemoryEditors.entries()) {
       if (editorInfo.expiresAt < now) {

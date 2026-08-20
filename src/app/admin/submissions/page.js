@@ -2,41 +2,23 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import ScrollToTop from '../../../components/ScrollToTop';
-import { 
-  FileText, 
-  BarChart3, 
-  Download, 
-  FileSpreadsheet, 
-  ArrowLeft, 
-  Eye, 
-  Trash2, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  AlertTriangle,
-  Search,
-  Filter,
-  Users,
-  Calendar,
-  TrendingUp,
-  AlertCircle,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  ChevronUp,
-  ChevronDown,
-  Printer,
-  X
-} from 'lucide-react';
 import PrincipalEmailAutocomplete from '../../../components/PrincipalEmailAutocomplete';
 import FormViewer from '../../../components/FormViewer';
+import DashboardShell from '../../../components/dashboard/DashboardShell';
+import DashboardSidebar from '../../../components/dashboard/DashboardSidebar';
+import DashboardHeader from '../../../components/dashboard/DashboardHeader';
+import SubmissionsWorkspace from '../../../components/admin/SubmissionsWorkspace';
+import DuplicateFormModal from '../../../components/admin/DuplicateFormModal';
+import { Spinner, Column, Row, Text, Heading, Button, Card } from '@once-ui-system/core';
+import { currentSchoolYear } from '../../../lib/schoolYear';
+import useAppToast from '../../../hooks/useAppToast';
 
 export default function AdminSubmissionsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const toast = useAppToast();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -71,6 +53,16 @@ export default function AdminSubmissionsPage() {
   const [transferring, setTransferring] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printSubmission, setPrintSubmission] = useState(null);
+  const [schoolYearFilter, setSchoolYearFilter] = useState('all');
+  const [schoolFilter, setSchoolFilter] = useState('all');
+  const [principalFilter, setPrincipalFilter] = useState('all');
+  const [formToDuplicate, setFormToDuplicate] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const year = new URLSearchParams(window.location.search).get('year');
+    if (year) setSchoolYearFilter(year);
+  }, []);
 
   // Handle authentication
   useEffect(() => {
@@ -114,6 +106,26 @@ export default function AdminSubmissionsPage() {
       console.error('Error fetching submissions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleLive = async (submission, live) => {
+    try {
+      const response = await fetch('/api/admin/forms/live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ formId: submission._id, live }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not update plan lock');
+      await fetchSubmissions();
+      toast.success(
+        live
+          ? `${submission.schoolName} is live so the principal can finish ${submission.schoolYear || 'this year'}.`
+          : `${submission.schoolName} is archived again.`
+      );
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 
@@ -211,14 +223,14 @@ export default function AdminSubmissionsPage() {
         setShowTransferModal(false);
         setSubmissionToTransfer(null);
         setTransferData({ newOwnerEmail: '' });
-        alert(`Ownership transferred successfully! ${result.message}`);
+        toast.success(result.message || 'Ownership transferred');
       } else {
         const errorData = await response.json();
-        alert(`Error transferring ownership: ${errorData.error}`);
+        toast.error(errorData.error || 'Could not transfer ownership');
       }
     } catch (error) {
       console.error('Error transferring ownership:', error);
-      alert('Error transferring ownership. Please try again.');
+      toast.error('Error transferring ownership. Please try again.');
     } finally {
       setTransferring(false);
     }
@@ -238,7 +250,7 @@ export default function AdminSubmissionsPage() {
       const url = window.URL.createObjectURL(dataBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `submissions-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `submissions-${schoolYearFilter === 'all' ? 'all-years' : schoolYearFilter}-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -283,7 +295,7 @@ export default function AdminSubmissionsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `submissions-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `submissions-${schoolYearFilter === 'all' ? 'all-years' : schoolYearFilter}-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -306,7 +318,7 @@ export default function AdminSubmissionsPage() {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Submissions Report - ${currentDate}</title>
+          <title>Submissions Report - ${schoolYearFilter === 'all' ? 'All years' : schoolYearFilter} - ${currentDate}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { color: #1f2937; text-align: center; margin-bottom: 30px; }
@@ -395,28 +407,6 @@ export default function AdminSubmissionsPage() {
     return statusLabels[status] || status;
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'approved': return <CheckCircle className="w-4 h-4" />;
-      case 'rejected': return <XCircle className="w-4 h-4" />;
-      case 'under_review': return <Clock className="w-4 h-4" />;
-      case 'submitted': return <TrendingUp className="w-4 h-4" />;
-      case 'draft': return <FileText className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
-      case 'under_review': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'submitted': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -426,22 +416,45 @@ export default function AdminSubmissionsPage() {
     }
   };
 
-  const getSortIcon = (field) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
-    }
-    return sortDirection === 'asc' ? 
-      <ArrowUp className="w-4 h-4 text-blue-600" /> : 
-      <ArrowDown className="w-4 h-4 text-blue-600" />;
-  };
+  const schoolYears = Array.from(
+    new Set(submissions.map((submission) => submission.schoolYear).filter(Boolean))
+  ).sort().reverse();
+
+  const schools = Array.from(
+    new Set(submissions.map((submission) => submission.schoolName).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const principals = Array.from(
+    new Map(
+      submissions
+        .filter((submission) => submission.principalEmail || submission.principalName)
+        .map((submission) => {
+          const key = submission.principalEmail || submission.principalName;
+          return [
+            key,
+            {
+              value: key,
+              name: submission.principalName || submission.principalEmail,
+              email: submission.principalEmail || '',
+            },
+          ];
+        })
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filteredSubmissions = submissions
     .filter(submission => {
       const matchesStatus = filterStatus === 'all' || submission.status === filterStatus;
       const matchesSearch = searchTerm === '' || 
-        submission.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        submission.principalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        submission.principalEmail.toLowerCase().includes(searchTerm.toLowerCase());
+        (submission.schoolName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (submission.principalName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (submission.principalEmail || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesYear = schoolYearFilter === 'all' || (submission.schoolYear || '') === schoolYearFilter;
+      const matchesSchool = schoolFilter === 'all' || submission.schoolName === schoolFilter;
+      const matchesPrincipal =
+        principalFilter === 'all' ||
+        submission.principalEmail === principalFilter ||
+        submission.principalName === principalFilter;
       
       // Date range filter
       const matchesDateRange = (!dateRange.startDate || !dateRange.endDate) || 
@@ -457,7 +470,15 @@ export default function AdminSubmissionsPage() {
         (progressFilter === 'not_started' && completedSteps === 0) ||
         (progressFilter === 'partial' && completedSteps > 0 && completedSteps < 14);
       
-      return matchesStatus && matchesSearch && matchesDateRange && matchesProgress;
+      return (
+        matchesStatus &&
+        matchesSearch &&
+        matchesYear &&
+        matchesSchool &&
+        matchesPrincipal &&
+        matchesDateRange &&
+        matchesProgress
+      );
     })
     .sort((a, b) => {
       let aValue, bValue;
@@ -502,928 +523,377 @@ export default function AdminSubmissionsPage() {
       return 0;
     });
 
-  // Don't render until session is loaded
+  const stats = {
+    total: submissions.length,
+    draft: submissions.filter((s) => s.status === 'draft').length,
+    submitted: submissions.filter((s) => s.status === 'submitted').length,
+    underReview: submissions.filter((s) => s.status === 'under_review').length,
+    approved: submissions.filter((s) => s.status === 'approved').length,
+    rejected: submissions.filter((s) => s.status === 'rejected').length,
+  };
+
   if (status === 'loading' || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading...</Text>
+      </Column>
     );
   }
 
-  // Check if user is Super Admin (Level 5)
   if (session.user.level < 5) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-          <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4 mx-auto">
-            <AlertCircle className="w-8 h-8 text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-red-600 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-gray-600 mb-6">
-            {session.user.level === 4 
-              ? 'This page is for Super Admins only. As a Principal, please use your school-specific views from the dashboard.'
-              : 'You need Level 5 (Super Admin) access to view this page.'
-            }
-          </p>
-          <div className="flex gap-3 justify-center">
-            {session.user.level === 4 && (
-              <Link
-                href="/admin/users?tab=collaboration"
-                className="inline-flex items-center px-6 py-3 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors duration-200"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Go to School Management
-              </Link>
-            )}
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center px-6 py-3 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition-colors duration-200"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page" padding="24">
+        <Heading variant="heading-strong-l">Access denied</Heading>
+        <Text onBackground="neutral-weak" align="center">
+          {session.user.level === 4
+            ? 'This page is for Super Admins. Use your school views from the dashboard.'
+            : 'You need Super Admin access to view this page.'}
+        </Text>
+        <Row gap="8">
+          {session.user.level === 4 && (
+            <Button href="/admin/users?tab=collaboration">Go to school management</Button>
+          )}
+          <Button href="/dashboard" variant="secondary">Back to dashboard</Button>
+        </Row>
+      </Column>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-[140rem] mx-auto px-6">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-6">
-            <div className="mb-4 lg:mb-0">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                All Form Submissions
-              </h1>
-              <p className="text-gray-600">
-                Review and approve all school plan submissions across all schools
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
+    <DashboardShell
+      sidebar={<DashboardSidebar session={session} userLevel={session.user.level} />}
+      header={
+        <DashboardHeader
+          title="Submissions"
+          description="Review and approve school plans across all schools"
+          session={session}
+          userLevel={session.user.level}
+          actions={
+            <Row gap="8" wrap>
+              <Button
+                size="s"
+                variant="secondary"
                 onClick={exportToJSON}
                 disabled={exporting || filteredSubmissions.length === 0}
-                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
               >
-                {exporting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin mr-2"></div>
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Export JSON
-                  </>
-                )}
-              </button>
-              <button
+                JSON
+              </Button>
+              <Button
+                size="s"
+                variant="secondary"
                 onClick={exportToCSV}
                 disabled={exporting || filteredSubmissions.length === 0}
-                className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
               >
-                {exporting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin mr-2"></div>
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <FileSpreadsheet className="w-4 h-4 mr-2" />
-                    Export CSV
-                  </>
-                )}
-              </button>
-              <button
+                CSV
+              </Button>
+              <Button
+                size="s"
+                variant="secondary"
                 onClick={exportToPDF}
                 disabled={exporting || filteredSubmissions.length === 0}
-                className="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:cursor-not-allowed"
               >
-                {exporting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin mr-2"></div>
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Export PDF
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowReportModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                PDF list
+              </Button>
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={() => {
+                  const year = schoolYearFilter === 'all' ? currentSchoolYear() : schoolYearFilter;
+                  window.open(`/api/admin/forms/export?schoolYear=${encodeURIComponent(year)}&format=csv`, '_blank');
+                }}
               >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Generate Report
-              </button>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center px-4 py-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors duration-200"
+                Year answers CSV
+              </Button>
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={() => {
+                  const year = schoolYearFilter === 'all' ? currentSchoolYear() : schoolYearFilter;
+                  window.open(`/api/admin/forms/export?schoolYear=${encodeURIComponent(year)}&format=html`, '_blank');
+                }}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+                Year print/PDF
+              </Button>
+              <Button size="s" variant="primary" onClick={() => setShowReportModal(true)}>
+                Report
+              </Button>
+            </Row>
+          }
+        />
+      }
+    >
+      <SubmissionsWorkspace
+        submissions={submissions}
+        filteredSubmissions={filteredSubmissions}
+        loading={loading}
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        progressFilter={progressFilter}
+        setProgressFilter={setProgressFilter}
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        schoolYearFilter={schoolYearFilter}
+        setSchoolYearFilter={setSchoolYearFilter}
+        schoolYears={schoolYears}
+        schoolFilter={schoolFilter}
+        setSchoolFilter={setSchoolFilter}
+        schools={schools}
+        principalFilter={principalFilter}
+        setPrincipalFilter={setPrincipalFilter}
+        principals={principals}
+        sortField={sortField}
+        handleSort={handleSort}
+        stats={stats}
+        onView={(submission) => window.open(`/form/${submission._id}`, '_blank')}
+        onPrint={(submission) => {
+          setPrintSubmission(submission);
+          setShowPrintModal(true);
+        }}
+        onReview={(submission) => {
+          setSelectedSubmission(submission);
+          setShowReviewModal(true);
+        }}
+        onTransfer={openTransferModal}
+        onDuplicate={(submission) => setFormToDuplicate(submission)}
+        onToggleLive={handleToggleLive}
+        onDelete={(submission) => {
+          setSubmissionToDelete(submission);
+          setShowDeleteModal(true);
+        }}
+      />
 
-      {/* Main Content */}
-      <main className="max-w-[140rem] mx-auto px-6 py-8">
-        {/* Enhanced Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-            {/* Status Filter */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Status Filter:
-              </label>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {formToDuplicate && (
+        <DuplicateFormModal
+          form={formToDuplicate}
+          onClose={() => setFormToDuplicate(null)}
+          onDuplicated={() => fetchSubmissions()}
+        />
+      )}
+
+      {showReviewModal && selectedSubmission && (
+        <div className="app-modal-backdrop">
+          <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
+            <Column gap="16">
+              <Heading variant="heading-strong-m">Review submission</Heading>
+              <Column gap="4">
+                <Text variant="body-default-s">School: {selectedSubmission.schoolName}</Text>
+                <Text variant="body-default-s">Principal: {selectedSubmission.principalName}</Text>
+                <Text variant="body-default-s">
+                  Current status: {getStatusBadge(selectedSubmission.status || 'draft')}
+                </Text>
+              </Column>
+              <Column gap="8">
+                <Text variant="label-default-s">New status</Text>
                 <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="app-field"
+                  value={reviewData.status}
+                  onChange={(e) => setReviewData({ ...reviewData, status: e.target.value })}
                 >
-                  <option value="all">All Statuses</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="under_review">Under Review</option>
+                </select>
+              </Column>
+              <Column gap="8">
+                <Text variant="label-default-s">Comments</Text>
+                <textarea
+                  className="app-field"
+                  rows={4}
+                  value={reviewData.comments}
+                  onChange={(e) => setReviewData({ ...reviewData, comments: e.target.value })}
+                  placeholder="Feedback for the principal..."
+                />
+              </Column>
+              <Row gap="8" horizontal="end">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setSelectedSubmission(null);
+                    setReviewData({ status: 'approved', comments: '' });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleReview}>Submit review</Button>
+              </Row>
+            </Column>
+          </Card>
+        </div>
+      )}
+
+      {showReportModal && (
+        <div className="app-modal-backdrop">
+          <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
+            <Column gap="16">
+              <Heading variant="heading-strong-m">Generate report</Heading>
+              <Column gap="8">
+                <Text variant="label-default-s">Start date</Text>
+                <input
+                  className="app-field"
+                  type="date"
+                  value={reportData.startDate}
+                  onChange={(e) => setReportData({ ...reportData, startDate: e.target.value })}
+                />
+              </Column>
+              <Column gap="8">
+                <Text variant="label-default-s">End date</Text>
+                <input
+                  className="app-field"
+                  type="date"
+                  value={reportData.endDate}
+                  onChange={(e) => setReportData({ ...reportData, endDate: e.target.value })}
+                />
+              </Column>
+              <Column gap="8">
+                <Text variant="label-default-s">Status</Text>
+                <select
+                  className="app-field"
+                  value={reportData.status}
+                  onChange={(e) => setReportData({ ...reportData, status: e.target.value })}
+                >
+                  <option value="all">All statuses</option>
                   <option value="draft">Draft</option>
                   <option value="submitted">Submitted</option>
                   <option value="under_review">Under Review</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
                 </select>
-              </div>
-            </div>
-
-            {/* Progress Filter */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Progress Filter:
-              </label>
-              <div className="relative">
-                <TrendingUp className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={progressFilter}
-                  onChange={(e) => setProgressFilter(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="all">All Progress</option>
-                  <option value="not_started">Not Started (0/14)</option>
-                  <option value="partial">Partial (1-13/14)</option>
-                  <option value="complete">Complete (14/14)</option>
-                  <option value="incomplete">Incomplete (&lt;14/14)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Date Range Filter */}
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Created Date Range:
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="date"
-                  value={dateRange.startDate}
-                  onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Start Date"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                To Date:
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="date"
-                  value={dateRange.endDate}
-                  onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="End Date"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">
-              Search:
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by school name, principal name, or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Sort Controls */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-gray-700">Sort by:</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSort('schoolName')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      sortField === 'schoolName' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    School {getSortIcon('schoolName')}
-                  </button>
-                  <button
-                    onClick={() => handleSort('principalName')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      sortField === 'principalName' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    Principal {getSortIcon('principalName')}
-                  </button>
-                  <button
-                    onClick={() => handleSort('principalEmail')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      sortField === 'principalEmail' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    Email {getSortIcon('principalEmail')}
-                  </button>
-                  <button
-                    onClick={() => handleSort('status')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      sortField === 'status' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    Status {getSortIcon('status')}
-                  </button>
-                  <button
-                    onClick={() => handleSort('progress')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      sortField === 'progress' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    Progress {getSortIcon('progress')}
-                  </button>
-                  <button
-                    onClick={() => handleSort('createdAt')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                      sortField === 'createdAt' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    Created {getSortIcon('createdAt')}
-                  </button>
-                </div>
-              </div>
-              <div className="text-sm text-gray-600">
-                Showing {filteredSubmissions.length} of {submissions.length} submissions
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Submissions List */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2 lg:mb-0">
-                Submissions ({filteredSubmissions.length})
-              </h2>
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                <span className="flex items-center">
-                  <Users className="w-4 h-4 mr-1" />
-                  Total: {submissions.length}
-                </span>
-                <span className="flex items-center">
-                  <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
-                  Approved: {submissions.filter(s => s.status === 'approved').length}
-                </span>
-                <span className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1 text-yellow-600" />
-                  Pending: {submissions.filter(s => ['draft', 'submitted', 'under_review'].includes(s.status)).length}
-                </span>
-                <span className="flex items-center">
-                  <XCircle className="w-4 h-4 mr-1 text-red-600" />
-                  Rejected: {submissions.filter(s => s.status === 'rejected').length}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading submissions...</p>
-              </div>
-            ) : filteredSubmissions.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">📋</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No submissions found
-                </h3>
-                <p className="text-gray-600 mb-6 text-sm">
-                  {searchTerm || filterStatus !== 'all' 
-                    ? 'Try adjusting your search criteria or filters.'
-                    : 'When principals submit their school plans, they will appear here for your review and approval.'
-                  }
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="w-full min-w-8xl">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th 
-                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-56 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('schoolName')}
-                      >
-                        <div className="flex items-center gap-2">
-                          School
-                          {getSortIcon('schoolName')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-44 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('principalName')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Principal
-                          {getSortIcon('principalName')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-64 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('principalEmail')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Email
-                          {getSortIcon('principalEmail')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-40 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('status')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Status
-                          {getSortIcon('status')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-40 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('progress')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Progress
-                          {getSortIcon('progress')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-36 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('createdAt')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Created
-                          {getSortIcon('createdAt')}
-                        </div>
-                      </th>
-                      <th 
-                        className="text-left p-4 text-sm font-semibold text-gray-700 min-w-36 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => handleSort('submittedAt')}
-                      >
-                        <div className="flex items-center gap-2">
-                          Submitted
-                          {getSortIcon('submittedAt')}
-                        </div>
-                      </th>
-                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-32">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Edit Rights
-                        </div>
-                      </th>
-                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-40">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Shared with Level 3
-                        </div>
-                      </th>
-                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-48">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Shared with Emails
-                        </div>
-                      </th>
-                      <th className="text-left p-4 text-sm font-semibold text-gray-700 min-w-48">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredSubmissions.map((submission) => {
-
-                      return (
-                        <tr 
-                          key={submission._id} 
-                          className="hover:bg-gray-50 transition-colors duration-200"
-                        >
-                        <td className="p-4">
-                          <div className="font-medium text-gray-900">{submission.schoolName}</div>
-                        </td>
-                        <td className="p-4 text-sm text-gray-700">
-                          {submission.principalName}
-                        </td>
-                        <td className="p-4 text-sm text-gray-600">
-                          {submission.principalEmail}
-                        </td>
-                        <td className="p-4">
-                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(submission.status || 'draft')}`}>
-                            {getStatusIcon(submission.status || 'draft')}
-                            {getStatusBadge(submission.status || 'draft')}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${((submission.completedSteps?.length || 0) / 14) * 100}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs text-gray-600 min-w-12">
-                              {submission.completedSteps?.length || 0}/14
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-4 text-sm text-gray-600">
-                          {submission.createdAt ? new Date(submission.createdAt).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="p-4 text-sm text-gray-600">
-                          {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="p-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                            submission.userPermission === 'owner'
-                              ? 'bg-green-100 text-green-800'
-                              : submission.userPermission === 'edit'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {submission.userPermission === 'owner' && <CheckCircle className="w-3 h-3" />}
-                            {submission.userPermission === 'edit' && <FileText className="w-3 h-3" />}
-                            {submission.userPermission === 'view' && <Eye className="w-3 h-3" />}
-                            {submission.userPermission || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          {submission.hasLevel3Collaborators && submission.level3Collaborators?.length > 0 ? (
-                            <div className="space-y-1">
-                              {submission.level3Collaborators.map((collab, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                                    collab.permissions === 'edit'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : collab.permissions === 'view'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-gray-100 text-gray-600'
-                                  }`}>
-                                    {collab.permissions === 'edit' && <CheckCircle className="w-3 h-3" />}
-                                    {collab.permissions === 'view' && <Eye className="w-3 h-3" />}
-                                    <span className="font-semibold">{collab.name}</span>
-                                    <span className="text-xs">({collab.permissions})</span>
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                              <XCircle className="w-3 h-3" />
-                              No
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          {submission.sharedWithEmails && submission.sharedWithEmails.length > 0 ? (
-                            <div className="space-y-1">
-                              {submission.sharedWithEmails.map((share, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                                    share.permissions === 'edit'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-blue-100 text-blue-800'
-                                  }`}>
-                                    {share.permissions === 'edit' && <CheckCircle className="w-3 h-3" />}
-                                    {share.permissions === 'view' && <Eye className="w-3 h-3" />}
-                                    <span className="font-semibold text-xs">{share.email}</span>
-                                    <span className="text-xs">({share.permissions})</span>
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                              <XCircle className="w-3 h-3" />
-                              No
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                window.open(`/form/${submission._id}`, '_blank');
-                              }}
-                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors flex items-center gap-1"
-                              title="View Form in New Tab"
-                            >
-                              <Eye className="w-3 h-3" />
-                              View
-                            </button>
-                            <button
-                              onClick={() => {
-                                setPrintSubmission(submission);
-                                setShowPrintModal(true);
-                              }}
-                              className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 transition-colors flex items-center gap-1"
-                              title="Print View"
-                            >
-                              <FileText className="w-3 h-3" />
-                              Print
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedSubmission(submission);
-                                setShowReviewModal(true);
-                              }}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                            >
-                              Review
-                            </button>
-                            {session?.user?.level === 5 && (
-                              <button
-                                onClick={() => openTransferModal(submission)}
-                                className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors"
-                                title="Transfer Ownership"
-                              >
-                                Transfer
-                              </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                setSubmissionToDelete(submission);
-                                setShowDeleteModal(true);
-                              }}
-                              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* Review Modal */}
-      {showReviewModal && selectedSubmission && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-8 max-w-lg w-full max-h-90vh overflow-auto">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Review Submission
-            </h3>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>School:</strong> {selectedSubmission.schoolName}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>Principal:</strong> {selectedSubmission.principalName}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Current Status:</strong> {getStatusBadge(selectedSubmission.status || 'draft')}
-              </p>
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                New Status:
-              </label>
-              <select
-                value={reviewData.status}
-                onChange={(e) => setReviewData({ ...reviewData, status: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="under_review">Under Review</option>
-              </select>
-            </div>
-            <div className="mb-6">
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Comments/Feedback:
-              </label>
-              <textarea
-                value={reviewData.comments}
-                onChange={(e) => setReviewData({ ...reviewData, comments: e.target.value })}
-                placeholder="Provide feedback and comments for the principal..."
-                rows={4}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-              />
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowReviewModal(false);
-                  setSelectedSubmission(null);
-                  setReviewData({ status: 'approved', comments: '' });
-                }}
-                className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReview}
-                className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                Submit Review
-              </button>
-            </div>
-          </div>
+              </Column>
+              <Row gap="8" horizontal="end">
+                <Button variant="secondary" onClick={() => setShowReportModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={generateReport}>Generate report</Button>
+              </Row>
+            </Column>
+          </Card>
         </div>
       )}
 
-      {/* Report Modal */}
-      {showReportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-8 max-w-lg w-full max-h-90vh overflow-auto">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Generate Report
-            </h3>
-            <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Start Date:
-              </label>
-              <input
-                type="date"
-                value={reportData.startDate}
-                onChange={(e) => setReportData({ ...reportData, startDate: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                End Date:
-              </label>
-              <input
-                type="date"
-                value={reportData.endDate}
-                onChange={(e) => setReportData({ ...reportData, endDate: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div className="mb-6">
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Status Filter:
-              </label>
-              <select
-                value={reportData.status}
-                onChange={(e) => setReportData({ ...reportData, status: e.target.value })}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="submitted">Submitted</option>
-                <option value="under_review">Under Review</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={generateReport}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                Generate Report
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && submissionToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-8 max-w-lg w-full max-h-90vh overflow-auto">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Delete Submission
-              </h3>
-            </div>
-            <div className="mb-6">
-              <p className="text-sm text-gray-600 mb-4">
-                Are you sure you want to delete this submission? This action cannot be undone.
-              </p>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800 mb-2">
-                  <strong>School:</strong> {submissionToDelete.schoolName}
-                </p>
-                <p className="text-sm text-red-800 mb-2">
-                  <strong>Principal:</strong> {submissionToDelete.principalName}
-                </p>
-                <p className="text-sm text-red-800">
-                  <strong>Status:</strong> {getStatusBadge(submissionToDelete.status || 'draft')}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setSubmissionToDelete(null);
-                }}
-                className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                Delete Permanently
-              </button>
-            </div>
-          </div>
+        <div className="app-modal-backdrop">
+          <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
+            <Column gap="16">
+              <Heading variant="heading-strong-m">Delete submission</Heading>
+              <Text onBackground="neutral-weak">
+                This cannot be undone. The school plan for {submissionToDelete.schoolName} will be permanently removed.
+              </Text>
+              <Column gap="4" padding="16" background="danger-alpha-weak" radius="m">
+                <Text variant="body-default-s">School: {submissionToDelete.schoolName}</Text>
+                <Text variant="body-default-s">Principal: {submissionToDelete.principalName}</Text>
+                <Text variant="body-default-s">
+                  Status: {getStatusBadge(submissionToDelete.status || 'draft')}
+                </Text>
+              </Column>
+              <Row gap="8" horizontal="end">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setSubmissionToDelete(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button variant="danger" onClick={handleDelete}>
+                  Delete permanently
+                </Button>
+              </Row>
+            </Column>
+          </Card>
         </div>
       )}
 
-      {/* Transfer Ownership Modal */}
       {showTransferModal && submissionToTransfer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-8 max-w-lg w-full max-h-90vh overflow-auto">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Transfer Form Ownership
-              </h3>
-            </div>
-            <div className="mb-6">
-              <p className="text-sm text-gray-600 mb-4">
-                Transfer ownership of this form to another principal. The new owner will have full control over the form.
-              </p>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-purple-800 mb-2">
-                  <strong>Current Owner:</strong> {submissionToTransfer.principalName} ({submissionToTransfer.principalEmail})
-                </p>
-                <p className="text-sm text-purple-800 mb-2">
-                  <strong>School:</strong> {submissionToTransfer.schoolName}
-                </p>
-                <p className="text-sm text-purple-800">
-                  <strong>Form Status:</strong> {getStatusBadge(submissionToTransfer.status || 'draft')}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  New Owner Email *
-                </label>
+        <div className="app-modal-backdrop">
+          <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
+            <Column gap="16">
+              <Heading variant="heading-strong-m">Transfer ownership</Heading>
+              <Text onBackground="neutral-weak">
+                The new owner will have full control of this form and must be a Level 4 principal.
+              </Text>
+              <Column gap="4" padding="16" background="brand-alpha-weak" radius="m">
+                <Text variant="body-default-s">
+                  Current owner: {submissionToTransfer.principalName} ({submissionToTransfer.principalEmail})
+                </Text>
+                <Text variant="body-default-s">School: {submissionToTransfer.schoolName}</Text>
+                <Text variant="body-default-s">
+                  Status: {getStatusBadge(submissionToTransfer.status || 'draft')}
+                </Text>
+              </Column>
+              <Column gap="8">
+                <Text variant="label-default-s">New owner email</Text>
                 <PrincipalEmailAutocomplete
                   value={transferData.newOwnerEmail}
                   onChange={(email) => setTransferData({ newOwnerEmail: email })}
-                  placeholder="Enter principal email (must be Level 4)"
+                  placeholder="Enter principal email"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  The new owner must be a Level 4 (Admin Principal) user
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowTransferModal(false);
-                  setSubmissionToTransfer(null);
-                  setTransferData({ newOwnerEmail: '' });
-                }}
-                className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleTransferOwnership}
-                disabled={!transferData.newOwnerEmail || transferring}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                {transferring ? 'Transferring...' : 'Transfer Ownership'}
-              </button>
-            </div>
-          </div>
+              </Column>
+              <Row gap="8" horizontal="end">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowTransferModal(false);
+                    setSubmissionToTransfer(null);
+                    setTransferData({ newOwnerEmail: '' });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleTransferOwnership}
+                  disabled={!transferData.newOwnerEmail || transferring}
+                >
+                  {transferring ? 'Transferring...' : 'Transfer ownership'}
+                </Button>
+              </Row>
+            </Column>
+          </Card>
         </div>
       )}
 
-      {/* Print Modal */}
       {showPrintModal && printSubmission && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 print-hidden">
-              <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                <Printer className="w-5 h-5" />
-                Form Viewer - {printSubmission.schoolName}
-              </h3>
-              <button
+        <div className="app-modal-backdrop">
+          <Card
+            padding="0"
+            radius="l"
+            direction="column"
+            style={{ width: '100%', maxWidth: '72rem', maxHeight: '90vh', overflow: 'hidden' }}
+          >
+            <Row
+              fillWidth
+              horizontal="between"
+              vertical="center"
+              padding="20"
+              style={{ borderBottom: '1px solid var(--neutral-alpha-medium)' }}
+            >
+              <Heading variant="heading-strong-m">
+                Print view · {printSubmission.schoolName}
+              </Heading>
+              <Button
+                size="s"
+                variant="secondary"
                 onClick={() => {
                   setShowPrintModal(false);
                   setPrintSubmission(null);
                 }}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body - Form Viewer Component */}
-            <div className="flex-1 overflow-auto p-8">
+                Close
+              </Button>
+            </Row>
+            <Column padding="24" style={{ overflow: 'auto', maxHeight: 'calc(90vh - 5rem)' }}>
               <FormViewer form={printSubmission} />
-            </div>
-          </div>
+            </Column>
+          </Card>
         </div>
       )}
-      
-      {/* Scroll to Top */}
-      <ScrollToTop />
 
-      {/* Print Styles */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-content,
-          .print-content * {
-            visibility: visible;
-          }
-          .print-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print {
-            display: none !important;
-          }
-          @page {
-            margin: 1cm;
-          }
-        }
-      `}</style>
-    </div>
+      <ScrollToTop />
+    </DashboardShell>
   );
 }

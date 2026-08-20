@@ -1,0 +1,113 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "District 79 Directory",
+  "colors": {
+    "primary": "#1D4ED8",
+    "light": "#3B82F6",
+    "dark": "#1E3A8A"
+  },
+  "favicon": "https://placehold.co/600x400",
+  "navigation": {
+    "anchors": [
+      {
+        "anchor": "Documentation",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Architecture & Data Flow",
+            "pages": [
+              "architecture/overview",
+              "architecture/data-flow",
+              "architecture/caching",
+              "architecture/security",
+              "architecture/ui"
+            ]
+          },
+          {
+            "group": "Core Features & Workflows",
+            "pages": [
+              "features/roles",
+              "features/role-preview",
+              "features/school-plans",
+              "features/school-year",
+              "features/question-bank",
+              "features/collaboration",
+              "features/reviews-exports",
+              "features/system"
+            ]
+          },
+          {
+            "group": "API & Database Reference",
+            "pages": [
+              "api/overview",
+              "api/errors",
+              "api/forms",
+              "api/admin",
+              "api/users",
+              "database/models",
+              "database/relationships"
+            ]
+          },
+          {
+            "group": "Deployment & Operations",
+            "pages": [
+              "deploy/environment",
+              "deploy/production",
+              "deploy/operations",
+              "guides/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "https://placehold.co/600x400",
+    "dark": "https://placehold.co/600x400"
+  },
+  "background": {
+    "color": {
+      "light": "#FFFFFF",
+      "dark": "#0B1220"
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Public site",
+        "href": "https://district79.school"
+      },
+      {
+        "label": "About",
+        "href": "https://district79.school/about"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open dashboard",
+      "href": "https://district79.school/dashboard"
+    }
+  },
+  "footer": {
+    "socials": {
+      "website": "https://district79.school"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Inter"
+    },
+    "body": {
+      "family": "Inter"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+---
+title: System overview
+description: Runtime topology, app router surfaces, and library boundaries.
+icon: sitemap
+---
+
+![System architecture](https://placehold.co/600x400)
+*Caption: Add diagram showing browser → Next.js App Router → NextAuth/Google → API routes → Mongoose → MongoDB, with optional Redis for step locks, cache, and save rate limits.*
+
+## Runtime
+
+```mermaid
+flowchart LR
+  Browser --> NextApp["Next.js App Router"]
+  NextApp --> Pages["Pages / Once UI"]
+  NextApp --> API["Route handlers in src/app/api"]
+  API --> Auth["NextAuth JWT"]
+  Auth --> Google["Google OAuth"]
+  API --> Mongoose["Mongoose models"]
+  Mongoose --> Mongo[(MongoDB)]
+  API --> Redis[(Redis locks + cache)]
+  API --> JSON["formQuestions.json fallback"]
+```
+
+## Application surfaces
+
+| Path | Audience | Notes |
+| --- | --- | --- |
+| `/`, `/about` | Public | Once UI portal shell (`PublicShell`) |
+| `/login` | Public | Google sign-in |
+| `/dashboard` | Authenticated | Workspace; `?view=` switches comments, analytics, bulk, year setup |
+| `/form/new` | Level 4+ | Create a blank plan for the current (unarchived) year |
+| `/form/[id]` | Assigned users | Multi-step editor (`FormWorkspace`) |
+| `/form/[id]/compare` | Assigned users | Attendance, housing, counseling vs prior year |
+| `/view/[id]` | Authenticated with access | Read-only viewer |
+| `/admin/submissions` | Super Admin | District submissions + year-scoped export |
+| `/admin/users` | Level 4–5 | School users (4) or all users (5) |
+| `/admin/questions` | Super Admin | Draft / publish question bank |
+| `/admin/goals` | Super Admin | Goals clustered by school year |
+| `/admin/system` | Super Admin | API, MongoDB, and Redis health |
+| `/admin/logs` | Super Admin | Audit log UI |
+
+## Important libraries
+
+| Module | Responsibility |
+| --- | --- |
+| `src/lib/mongodb.js` | Cached Mongoose connection + MongoClient promise |
+| `src/lib/auth.js` | NextAuth options (JWT 8h, impersonation, `jti` deny-list) |
+| `src/proxy.js` | Next.js 16 edge gate (session, admin level, auth rate limit) |
+| `src/lib/schoolYear.js` | `currentSchoolYear` (JS month ≥ 6 → July start of `YYYY-YYYY`) |
+| `src/lib/formDuplicate.js` | Clone answers, stamp `duplicatedFrom`, `needsUpdate` |
+| `src/lib/questionBank.js` | Published / draft `FormTemplate`, JSON fallback |
+| `src/lib/schoolYearSettings.js` | Archive lock, deadlines, district goals, compare steps |
+| `src/lib/formSteps.js` | Step key ↔ number mapping |
+| `src/lib/locking.js` | Redis or in-memory step locks (TTL 300s) |
+| `src/lib/redis.js` | Shared Redis client, cache, SCAN, save rate limit |
+| `src/lib/systemHealth.js` | Super Admin health snapshot (API / Mongo / Redis) |
+| `src/lib/auditLogger.js` | Writes `AuditLog` rows |
+
+## UI layering
+
+Authenticated chrome uses Once UI under `.once-ui-root` (`DashboardShell`). Public pages use the same Once UI providers from `src/app/providers.js`. Tailwind utility classes on Once UI pages can fight Once UI spacing; keep new product UI inside `.once-ui-root`.
+
+See also [Caching and Redis](/architecture/caching) and [Edge proxy and security](/architecture/security).

@@ -4,26 +4,12 @@ const { authOptions } = require('../../../../../../lib/auth');
 const connectDB = require('../../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
-const { acquireLock, releaseLock, refreshLock } = require('../../../../../../lib/locking');
-const { hasOtherEditors } = require('../../../../../../lib/activeEditors');
-
-// Step key mapping
-const stepKeyMap = {
-  1: 'tableOfContents',
-  2: 'childAbuseIntervention',
-  3: 'sexualHarassment',
-  4: 'respectForAll',
-  5: 'suicidePrevention',
-  6: 'attendancePlan',
-  7: 'temporaryHousing',
-  8: 'serviceInSchools',
-  9: 'planningInterviews',
-  10: 'militaryRecruitment',
-  11: 'schoolCulture',
-  12: 'afterSchoolPrograms',
-  13: 'cellPhonePolicy',
-  14: 'counselingPlan'
-};
+const { acquireLock, releaseLock } = require('../../../../../../lib/locking');
+const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
+const { getStepKeyByNumber } = require('../../../../../../lib/formSteps');
+const { normalizeIncomingData, diffDirtyFields, buildCompletedSteps } = require('../../../../../../lib/stepSave');
+const { rateLimit } = require('../../../../../../lib/redis');
+const { reportError } = require('../../../../../../lib/reportError');
 
 // GET /api/forms/[id]/step/[stepNumber] - Get specific step data
 async function GET(request, { params }) {
@@ -41,15 +27,20 @@ async function GET(request, { params }) {
 
     const { id, stepNumber } = await params;
     const stepNum = parseInt(stepNumber);
-    const stepKey = stepKeyMap[stepNum];
-
-    if (!stepKey) {
-      return NextResponse.json({ error: 'Invalid step number' }, { status: 400 });
-    }
 
     const form = await FormSubmission.findById(id);
     if (!form) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+    }
+
+    const { inferSchoolYear } = require('../../../../../../lib/schoolYear');
+    const bank = await getPublishedOrJson({
+      schoolYear: inferSchoolYear(form),
+      version: form.questionBankVersion,
+    });
+    const stepKey = getStepKeyByNumber(bank.steps, stepNum);
+    if (!stepKey) {
+      return NextResponse.json({ error: 'Invalid step number' }, { status: 400 });
     }
 
     // Check permissions (same logic as main form route)
@@ -58,7 +49,9 @@ async function GET(request, { params }) {
     const isOwner = formUserId === userId;
     const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
     const isSuperAdmin = user.level === 5;
-    const isSameSchool = user.schoolName === form.schoolName && (user.level === 2 || user.level === 3);
+    const isSameSchool =
+      Boolean(user.schoolName && form.schoolName && user.schoolName === form.schoolName) &&
+      (user.level === 2 || user.level === 3 || user.level === 4);
     const hasEditAccess = form.editAccess?.some(ea => ea.userId?.toString() === userId);
     const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some(at => at.userId?.toString() === userId);
     const shareEntry = form.sharedWithEmails?.find(share => share.email?.toLowerCase() === user.email?.toLowerCase());
@@ -89,7 +82,7 @@ async function GET(request, { params }) {
       revisionCount: stepData.revisionCount || 0
     });
   } catch (error) {
-    console.error('Error fetching step data:', error);
+    reportError(error, { route: 'GET /api/forms/[id]/step/[stepNumber]' });
     return NextResponse.json({ 
       error: 'Internal server error',
       message: error.message 
@@ -97,8 +90,19 @@ async function GET(request, { params }) {
   }
 }
 
-// PUT /api/forms/[id]/step/[stepNumber] - Update specific step data with conflict detection
 async function PUT(request, { params }) {
+  let lockAcquired = false;
+  let id;
+  let stepKey;
+  let userId;
+
+  const releaseLockOnExit = async () => {
+    if (lockAcquired && id && stepKey && userId) {
+      await releaseLock(id, stepKey, userId);
+      lockAcquired = false;
+    }
+  };
+
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -111,234 +115,227 @@ async function PUT(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const { id, stepNumber } = await params;
-    const stepNum = parseInt(stepNumber);
-    const stepKey = stepKeyMap[stepNum];
+    const resolved = await params;
+    id = resolved.id;
+    const stepNum = parseInt(resolved.stepNumber, 10);
+    userId = user._id.toString();
 
-    if (!stepKey) {
-      return NextResponse.json({ error: 'Invalid step number' }, { status: 400 });
+    const limited = await rateLimit(`rl:save:${userId}:${id}`, 30, 60);
+    if (!limited.ok) {
+      return NextResponse.json({
+        error: 'Too many saves',
+        message: 'Please wait a moment before saving again.',
+        retryAfter: limited.retryAfter,
+      }, {
+        status: 429,
+        headers: { 'Retry-After': String(limited.retryAfter) },
+      });
     }
 
     const body = await request.json();
-    let { stepData: newStepData, lastUpdated: clientLastUpdated, mergeStrategy = 'last-write-wins' } = body;
+    const {
+      lastUpdated: clientLastUpdated,
+      revisionCount: clientRevision,
+      mergeStrategy = 'reject',
+      dirty,
+    } = body || {};
+    let incoming = normalizeIncomingData(body?.stepData, dirty);
 
-    // Fetch form with retry logic
-    let form;
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount <= maxRetries) {
-      try {
-        form = await FormSubmission.findById(id);
-        if (form) break;
-        
-        if (retryCount === 0) {
-          return NextResponse.json({ error: 'Form not found' }, { status: 404 });
-        }
-      } catch (error) {
-        if (retryCount < maxRetries && (
-          error.name === 'MongoNetworkError' || 
-          error.name === 'MongoServerSelectionError'
-        )) {
-          retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-          continue;
-        }
-        throw error;
-      }
-      retryCount++;
-    }
-
+    const form = await FormSubmission.findById(id);
     if (!form) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    // Check permissions
-    const formUserId = form.userId?.toString();
-    const userId = user._id?.toString();
-    const isOwner = formUserId === userId;
-    const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
-    const isSuperAdmin = user.level === 5;
-    const isSameSchool = user.schoolName === form.schoolName && (user.level === 2 || user.level === 3);
-    const hasEditAccess = form.editAccess?.some(ea => ea.userId?.toString() === userId);
-    const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some(at => at.userId?.toString() === userId);
-    const shareEntry = form.sharedWithEmails?.find(share => share.email?.toLowerCase() === user.email?.toLowerCase());
-    const hasSharedEditAccess = shareEntry && shareEntry.permissions === 'edit';
-
-    if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool && !hasEditAccess && !isAssignedLevel3 && !hasSharedEditAccess) {
-      return NextResponse.json({ 
-        error: 'Access denied',
-        message: 'You do not have permission to edit this form.'
+    const { inferSchoolYear } = require('../../../../../../lib/schoolYear');
+    const { isFormLocked } = require('../../../../../../lib/schoolYearSettings');
+    if (await isFormLocked(form)) {
+      return NextResponse.json({
+        error: 'This school year is archived and read-only',
       }, { status: 403 });
     }
 
-    // Get current step data
+    const bank = await getPublishedOrJson({
+      schoolYear: inferSchoolYear(form),
+      version: form.questionBankVersion,
+    });
+    stepKey = getStepKeyByNumber(bank.steps, stepNum);
+    if (!stepKey) {
+      return NextResponse.json({ error: 'Invalid step number' }, { status: 400 });
+    }
+
+    const formUserId = form.userId?.toString();
+    const isOwner = formUserId === userId;
+    const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
+    const isSuperAdmin = user.level === 5;
+    const isSameSchool =
+      Boolean(user.schoolName && form.schoolName && user.schoolName === form.schoolName) &&
+      (user.level === 2 || user.level === 3 || user.level === 4);
+    const hasEditAccess = form.editAccess?.some((ea) => ea.userId?.toString() === userId);
+    const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some((at) => at.userId?.toString() === userId);
+    const shareEntry = form.sharedWithEmails?.find((share) => share.email?.toLowerCase() === user.email?.toLowerCase());
+    const hasSharedEditAccess = shareEntry && shareEntry.permissions === 'edit';
+
+    if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool && !hasEditAccess && !isAssignedLevel3 && !hasSharedEditAccess) {
+      return NextResponse.json({
+        error: 'Access denied',
+        message: 'You do not have permission to edit this form.',
+      }, { status: 403 });
+    }
+
+    const lockResult = await acquireLock(
+      id,
+      stepKey,
+      userId,
+      user.name || user.email,
+      user.email,
+      45
+    );
+    if (!lockResult.success) {
+      return NextResponse.json({
+        error: 'Step is locked',
+        message: lockResult.message || 'This step is currently being edited by another user. Please wait and try again.',
+        lockedBy: lockResult.lockedBy,
+        conflict: true,
+      }, { status: 423 });
+    }
+    lockAcquired = true;
+
     const currentStepData = form.formData?.[stepKey] || {
       completed: false,
       data: {},
       startedAt: null,
       lastUpdated: null,
       timeSpent: 0,
-      revisionCount: 0
+      revisionCount: 0,
     };
+    const serverData = currentStepData.data && typeof currentStepData.data === 'object'
+      ? currentStepData.data
+      : {};
+    const serverRevision = Number(currentStepData.revisionCount || 0);
+    const dirtyFields = diffDirtyFields(incoming, serverData);
 
-    // Check if someone else is actively editing this step
-    // Only block if another user is editing the SAME step
-    const hasOthers = await hasOtherEditors(id, stepKey, userId);
-    let lockAcquired = false;
-    
-    if (hasOthers) {
-      // Another user is editing this step - try to acquire lock (will fail if they have it)
-      const lockResult = await acquireLock(
-        id,
-        stepKey,
-        userId,
-        user.name || user.email,
-        user.email,
-        30 // Short lock for save operation (30 seconds)
-      );
-
-      if (!lockResult.success) {
+    if (clientRevision !== undefined && clientRevision !== null && Number(clientRevision) !== serverRevision) {
+      if (mergeStrategy === 'last-write-wins') {
+        // Apply dirty fields only; lock already serializes this writer.
+      } else if (mergeStrategy === 'merge') {
+        Object.keys(dirtyFields).forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(serverData, key) && !valuesEqualMaybe(serverData[key], incoming[key])) {
+            delete dirtyFields[key];
+          }
+        });
+      } else {
+        await releaseLockOnExit();
         return NextResponse.json({
-          error: 'Step is locked',
-          message: lockResult.message || 'This step is currently being edited by another user. Please wait and try again.',
-          lockedBy: lockResult.lockedBy,
-          conflict: true
-        }, { status: 423 }); // 423 Locked status code
-      }
-      
-      // Lock acquired - will be released after save
-      lockAcquired = true;
-    }
-    // If no other editors, proceed without lock (allow concurrent saves on different steps)
-
-    // Release lock if we acquired one
-    let lockReleased = false;
-    const releaseLockOnExit = async () => {
-      if (lockAcquired && !lockReleased) {
-        await releaseLock(id, stepKey, userId);
-        lockReleased = true;
-      }
-    };
-
-    // Conflict detection: Check if data was modified since client last fetched it
-    if (clientLastUpdated && currentStepData.lastUpdated) {
-      const serverLastUpdated = new Date(currentStepData.lastUpdated).getTime();
-      const clientLastUpdatedTime = new Date(clientLastUpdated).getTime();
-      
-      if (serverLastUpdated > clientLastUpdatedTime) {
-        // Conflict detected - server has newer data
-        if (mergeStrategy === 'reject') {
-          return NextResponse.json({
-            error: 'Conflict detected',
-            message: 'This step was modified by another user. Please refresh and try again.',
-            conflict: true,
-            serverData: currentStepData.data,
-            serverLastUpdated: currentStepData.lastUpdated,
-            clientLastUpdated: clientLastUpdated
-          }, { status: 409 });
-        } else if (mergeStrategy === 'merge') {
-          // Merge strategy: combine non-conflicting fields
-          const mergedData = { ...currentStepData.data };
-          Object.keys(newStepData).forEach(key => {
-            // Only merge if the field wasn't changed on server
-            if (!mergedData[key] || JSON.stringify(mergedData[key]) === JSON.stringify(currentStepData.data[key])) {
-              mergedData[key] = newStepData[key];
-            }
-          });
-          newStepData = mergedData;
-        }
-        // else: 'last-write-wins' - use newStepData as is
+          error: 'Conflict detected',
+          message: 'This step was modified by another user. Please refresh and try again.',
+          conflict: true,
+          serverData,
+          serverLastUpdated: currentStepData.lastUpdated,
+          serverRevision,
+          clientLastUpdated,
+          clientRevision,
+        }, { status: 409 });
       }
     }
 
-    // Prepare update object for atomic operation
-    const updateData = {
-      [`formData.${stepKey}.data`]: newStepData,
-      [`formData.${stepKey}.lastUpdated`]: new Date(),
-      [`formData.${stepKey}.revisionCount`]: (currentStepData.revisionCount || 0) + 1,
-      updatedAt: new Date()
-    };
-
-    // Set startedAt if not already set
-    if (!currentStepData.startedAt) {
-      updateData[`formData.${stepKey}.startedAt`] = new Date();
-    }
-
-    // Check if step is completed (has data)
-    const hasData = newStepData && Object.keys(newStepData).length > 0;
-    updateData[`formData.${stepKey}.completed`] = hasData;
-
-    // Update completed steps array
-    const stepNumberMap = {
-      'tableOfContents': 1,
-      'childAbuseIntervention': 2,
-      'sexualHarassment': 3,
-      'respectForAll': 4,
-      'suicidePrevention': 5,
-      'attendancePlan': 6,
-      'temporaryHousing': 7,
-      'serviceInSchools': 8,
-      'planningInterviews': 9,
-      'militaryRecruitment': 10,
-      'schoolCulture': 11,
-      'afterSchoolPrograms': 12,
-      'cellPhonePolicy': 13,
-      'counselingPlan': 14
-    };
-
-    try {
-      // Use findOneAndUpdate for atomic operation
-      const updatedForm = await FormSubmission.findOneAndUpdate(
-        { _id: id },
-        { $set: updateData },
-        { new: true, runValidators: true }
-      );
-
-      if (!updatedForm) {
-        await releaseLockOnExit();
-        return NextResponse.json({ error: 'Failed to update form' }, { status: 500 });
-      }
-
-      // Recalculate completed steps
-      const completedSteps = Object.keys(updatedForm.formData)
-        .filter(key => updatedForm.formData[key]?.completed)
-        .map(key => stepNumberMap[key])
-        .filter(stepNumber => stepNumber !== undefined)
-        .sort((a, b) => a - b);
-
-      updatedForm.completedSteps = completedSteps;
-      await updatedForm.save();
-
-      // Release lock immediately after successful save (no need to hold it)
-      if (lockAcquired) {
-        await releaseLockOnExit();
-      }
-
+    if (Object.keys(dirtyFields).length === 0 && Object.keys(incoming).length > 0) {
+      await releaseLockOnExit();
       return NextResponse.json({
         success: true,
-        message: 'Step updated successfully',
-        stepData: updatedForm.formData[stepKey],
+        message: 'No changes to save',
+        stepData: currentStepData,
         stepKey,
         stepNumber: stepNum,
-        lastUpdated: updatedForm.formData[stepKey].lastUpdated,
-        revisionCount: updatedForm.formData[stepKey].revisionCount,
-        conflict: false
+        lastUpdated: currentStepData.lastUpdated,
+        revisionCount: serverRevision,
+        conflict: false,
       });
-    } catch (error) {
-      // Release lock on error
-      await releaseLockOnExit();
-      throw error;
     }
+
+    const now = new Date();
+    const updateData = {
+      [`formData.${stepKey}.lastUpdated`]: now,
+      updatedAt: now,
+    };
+    Object.keys(dirtyFields).forEach((questionId) => {
+      updateData[`formData.${stepKey}.data.${questionId}`] = dirtyFields[questionId];
+    });
+    if (!currentStepData.startedAt) {
+      updateData[`formData.${stepKey}.startedAt`] = now;
+    }
+
+    const mergedData = { ...serverData, ...dirtyFields };
+    const hasData = Object.keys(mergedData).length > 0;
+    updateData[`formData.${stepKey}.completed`] = hasData;
+
+    const nextFormData = {
+      ...(form.formData && typeof form.formData.toObject === 'function'
+        ? form.formData.toObject()
+        : form.formData || {}),
+    };
+    nextFormData[stepKey] = {
+      ...currentStepData,
+      data: mergedData,
+      completed: hasData,
+      lastUpdated: now,
+    };
+    updateData.completedSteps = buildCompletedSteps(nextFormData, bank.steps);
+
+    const filter = { _id: id };
+    if (clientRevision !== undefined && clientRevision !== null && mergeStrategy !== 'last-write-wins') {
+      const revision = Number(clientRevision);
+      filter.$or = [
+        { [`formData.${stepKey}.revisionCount`]: revision },
+      ];
+      if (revision === 0) {
+        filter.$or.push({ [`formData.${stepKey}.revisionCount`]: { $exists: false } });
+      }
+    }
+
+    const updatedForm = await FormSubmission.findOneAndUpdate(
+      filter,
+      {
+        $set: updateData,
+        $inc: { [`formData.${stepKey}.revisionCount`]: 1 },
+      },
+      { new: true, runValidators: true, strict: false }
+    );
+
+    if (!updatedForm) {
+      await releaseLockOnExit();
+      return NextResponse.json({
+        error: 'Conflict detected',
+        message: 'This step was modified by another user. Please refresh and try again.',
+        conflict: true,
+        serverData,
+        serverRevision,
+      }, { status: 409 });
+    }
+
+    await releaseLockOnExit();
+    const savedStep = updatedForm.formData?.[stepKey] || nextFormData[stepKey];
+    return NextResponse.json({
+      success: true,
+      message: 'Step updated successfully',
+      stepData: savedStep,
+      stepKey,
+      stepNumber: stepNum,
+      lastUpdated: savedStep.lastUpdated,
+      revisionCount: savedStep.revisionCount,
+      conflict: false,
+    });
   } catch (error) {
-    console.error('Error updating step:', error);
-    return NextResponse.json({ 
+    await releaseLockOnExit();
+    reportError(error, { route: 'PUT /api/forms/[id]/step/[stepNumber]', formId: id, stepKey });
+    return NextResponse.json({
       error: 'Internal server error',
-      message: error.message 
+      message: error.message,
     }, { status: 500 });
   }
 }
 
-// Export named exports for Next.js 16 (ES module syntax)
-export { GET, PUT };
+function valuesEqualMaybe(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
 
+export { GET, PUT };

@@ -1,0 +1,39 @@
+---
+title: Reviews, goals, and exports
+description: Super Admin comments, year-scoped goals, and PDF/DOCX/CSV export.
+icon: file-export
+---
+
+## Review comments
+
+`FormComment` documents attach to a form (optional `stepKey` / `stepNumber`). Only Super Admin can **create** comments.
+
+```json
+POST /api/forms/<id>/comments
+{
+  "comment": "Update the attendance liaison name.",
+  "status": "under_review",
+  "stepNumber": 6,
+  "stepKey": "attendancePlan"
+}
+```
+
+`status`: `approved` | `rejected` | `under_review`. Principals see comments on the dashboard (`?view=comments`) and on the form. Comments can be marked fixed; `DELETE`-style removal is via the comment id route.
+
+![Review comments](https://placehold.co/600x400)
+*Caption: Add screenshot showing a Super Admin comment on a step and the principal dashboard Comments view.*
+
+## Goals
+
+`/admin/goals` and `GET /api/admin/goals` cluster plan answers (including N/A detection) and honor **school year** query params. District targets live on `SchoolYearSettings.districtGoals`.
+
+## Exports
+
+| Output | Route | Who |
+| --- | --- | --- |
+| PDF | `GET /api/forms/[id]/export/pdf` | Users with form access |
+| DOCX | `GET /api/forms/[id]/export/docx` | Users with form access |
+| Year CSV/HTML | `GET /api/admin/forms/export?schoolYear=2026-2027&format=csv` | Super Admin |
+| Reports CSV | `/api/admin/reports` | Admin |
+
+PDF/DOCX use `pdfkit` / `docx` on the server (webpack externals). Year export includes compare-step answers for attendance, housing, and counseling.

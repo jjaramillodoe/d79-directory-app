@@ -1,0 +1,96 @@
+---
+title: Database models
+description: Mongoose collections, indexes, and the formData contract.
+icon: database
+---
+
+MongoDB database name is taken from `MONGODB_URI` (typically `d79-directory`). Collection relationships and the ownership vs collaboration split are on [Data relationships](/database/relationships).
+
+![Schema map](https://placehold.co/600x400)
+*Caption: Add ER-style diagram: User 1—n FormSubmission, FormSubmission 1—n FormComment, FormTemplate versions, SchoolYearSettings per year, AuditLog.*
+
+## `User`
+
+Collection: `users`
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `name` | String | required |
+| `email` | String | unique, lowercase |
+| `level` | Number 1–5 | 4 principal, 5 Super Admin |
+| `schoolName` | String | indexed, required |
+| `title` | String | optional |
+| `isActive` | Boolean | default true |
+| `canCollaborate` | Boolean | default true |
+| `collaborationLevel` | `view` \| `edit` \| `admin` | |
+| `assignedForms[]` | `{ formId, permissions, assignedSections, assignedBy, assignedAt }` | |
+| `lastLogin` / `lastActivity` | Date | |
+| `activityLog[]` | embedded | also mirrored to `AuditLog` for many actions |
+
+Indexes: `{ email, isActive }`, `{ schoolName, isActive }`, `{ assignedForms.formId }`.
+
+## `FormSubmission`
+
+Collection: `formsubmissions`
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `userId` | ObjectId → User | owner |
+| `schoolName` | String | |
+| `principalEmail` / `principalName` | String | |
+| `status` | enum | `draft`, `submitted`, `under_review`, `approved`, `rejected` |
+| `currentStep` | Number | |
+| `completedSteps` | Number[] | recomputed on save |
+| `formData` | Mixed map | **strict: false** so extra step keys persist |
+| `questionBankVersion` | Number \| null | pin |
+| `schoolYear` | String | `YYYY-YYYY` |
+| `allowEditsWhenArchived` | Boolean | Super Admin reopen of one plan after year archive |
+| `duplicatedFrom` | ObjectId | source plan |
+| `needsUpdate[]` | flags | `new` \| `changed` \| `revisit` |
+| `attestation` | `{ confirmed, name, signedAt, signedBy }` | |
+| `sharedWithEmails[]` | `{ email, permissions, sharedBy, sharedAt }` | |
+| `transferHistory[]` | ownership moves | |
+| `createdBy` | ObjectId | Super Admin creator |
+
+`formData[stepKey]` shape:
+
+```json
+{
+  "completed": false,
+  "data": { "<question.id>": "answer" },
+  "startedAt": null,
+  "lastUpdated": null,
+  "timeSpent": 0,
+  "revisionCount": 0
+}
+```
+
+Partial unique index `schoolName_schoolYear_unique` on `{ schoolName: 1, schoolYear: 1 }` (only when `schoolYear` is a non-empty string). Duplicate and create routes return `409` when a school already has a plan for that year. Super Admin **System** reports whether this index is present.
+
+## `FormTemplate`
+
+Collection: `formtemplates`
+
+- Unique `version`
+- `status`: `draft` \| `published` \| `archived`
+- `schoolYear` optional
+- `steps[]`: `{ id, key, title, questions[] }`
+- Question: `{ id, question_number, title, placeholder, type, required, description, active, order }` plus extra keys (`strict: false`)
+
+## `SchoolYearSettings`
+
+Collection: `schoolyearsettings` — unique `schoolYear`.
+
+`archived`, `archivedAt`, `archivedBy`, `questionBankVersion`, `deadlines[]`, `districtGoals[]`.
+
+## `FormComment`
+
+Collection: `formcomments`
+
+`formId`, reviewer identity, `comment`, `status`, optional `stepNumber` / `stepKey`, `isActive`, `isFixed`, `readBy`.
+
+## `AuditLog`
+
+Collection: `auditlogs`
+
+Actions include `login`, `form_created`, `form_duplicated`, `form_attested`, `form_submitted`, `question_bank_published`, `csv_import`, `settings_changed`, and others listed on the schema enum.

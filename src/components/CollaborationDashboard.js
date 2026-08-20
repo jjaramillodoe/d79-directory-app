@@ -12,10 +12,13 @@ import {
   UserX,
   Eye
 } from 'lucide-react';
+import useAppToast from '../hooks/useAppToast';
 
 const CollaborationDashboard = ({ user }) => {
+  const toast = useAppToast();
   const [schoolUsers, setSchoolUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showShareForm, setShowShareForm] = useState(false);
   const [userForms, setUserForms] = useState([]);
@@ -47,14 +50,20 @@ const CollaborationDashboard = ({ user }) => {
 
   const fetchSchoolUsers = async () => {
     try {
+      setError(null);
       const response = await fetch('/api/admin/users/school');
       if (response.ok) {
         const data = await response.json();
-        console.log('👥 School Users:', data.users);
-        setSchoolUsers(data.users);
+        setSchoolUsers(data.users || []);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setError(data.error || 'Failed to load school users');
+        setSchoolUsers([]);
       }
-    } catch (error) {
-      console.error('Error fetching school users:', error);
+    } catch (err) {
+      console.error('Error fetching school users:', err);
+      setError('Failed to load school users');
+      setSchoolUsers([]);
     } finally {
       setLoading(false);
     }
@@ -96,7 +105,7 @@ const CollaborationDashboard = ({ user }) => {
     e.preventDefault();
     
     if (!shareFormData.formId || shareFormData.userIds.length === 0) {
-      alert('Please select at least one user to share with.');
+      toast.error('Please select at least one user to share with.');
       return;
     }
 
@@ -114,16 +123,16 @@ const CollaborationDashboard = ({ user }) => {
 
       if (response.ok) {
         const data = await response.json();
-        alert('Form shared successfully!');
+        toast.success('Form shared');
         setShowShareForm(false);
         fetchUserForms(); // Refresh
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        toast.error(error.error || 'Request failed');
       }
     } catch (error) {
       console.error('Error sharing form:', error);
-      alert('Failed to share form');
+      toast.error('Failed to share form');
     }
   };
 
@@ -140,15 +149,15 @@ const CollaborationDashboard = ({ user }) => {
       });
 
       if (response.ok) {
-        alert('Form unshared successfully!');
+        toast.success('Form unshared');
         fetchUserForms(); // Refresh
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        toast.error(error.error || 'Request failed');
       }
     } catch (error) {
       console.error('Error unsharing form:', error);
-      alert('Failed to unshare form');
+      toast.error('Failed to unshare form');
     }
   };
 
@@ -167,14 +176,14 @@ const CollaborationDashboard = ({ user }) => {
         setSchoolUsers(prev => [...prev, data.user]);
         setShowCreateUser(false);
         setNewUser({ name: '', email: '', title: '', level: 3, canCollaborate: true, collaborationLevel: 'edit' });
-        alert('User created successfully!');
+        toast.success('User created');
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        toast.error(error.error || 'Request failed');
       }
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Failed to create user');
+      toast.error('Failed to create user');
     }
   };
 
@@ -196,32 +205,36 @@ const CollaborationDashboard = ({ user }) => {
     );
   }
 
-  // Get Level 3 users from the same school
-  const level3Users = schoolUsers.filter(u => u.level === 3 && u.isActive && u.canCollaborate);
+  const level3Users = schoolUsers.filter(
+    (u) => u.level === 3 && u.isActive !== false && u.canCollaborate !== false
+  );
 
   return (
-    <div className="max-w-[140rem] mx-auto px-12 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Form Collaboration</h1>
-        <p className="text-gray-600">
-          Share forms with Level 3 users from {user?.level === 4 ? 'your school' : 'any school'}
-        </p>
-        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            {user?.level === 5 ? (
-              <>
-                <strong>Super Admin Access:</strong> All Schools | 
-                <strong className="ml-4">Level 3 Users:</strong> {level3Users.length} (across all schools)
-              </>
-            ) : (
-              <>
-                <strong>Your School:</strong> {user?.schoolName} | 
-                <strong className="ml-4">Level 3 Users:</strong> {level3Users.length}
-              </>
-            )}
-          </p>
+    <div>
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+          {error}
         </div>
+      )}
+
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-800">
+          {user?.level === 5 ? (
+            <>
+              <strong>Super Admin:</strong> sharing across all schools
+              <span className="ml-4">
+                <strong>Level 3 users:</strong> {level3Users.length}
+              </span>
+            </>
+          ) : (
+            <>
+              <strong>School:</strong> {user?.schoolName}
+              <span className="ml-4">
+                <strong>Level 3 users:</strong> {level3Users.length}
+              </span>
+            </>
+          )}
+        </p>
       </div>
 
       {/* Tabs */}
@@ -449,7 +462,7 @@ const CollaborationDashboard = ({ user }) => {
 
       {/* Create User Modal */}
       {showCreateUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Create Level 3 User</h3>
             <p className="text-sm text-gray-600 mb-4">
@@ -515,7 +528,7 @@ const CollaborationDashboard = ({ user }) => {
 
       {/* Share Form Modal */}
       {showShareForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <h3 className="text-lg font-semibold mb-4">Share Form with Level 3 Users</h3>
             

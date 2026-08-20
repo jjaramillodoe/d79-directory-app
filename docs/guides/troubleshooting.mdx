@@ -1,0 +1,97 @@
+---
+title: Troubleshooting
+description: Common 401/403/429 failures, OAuth, Redis, and local setup FAQ.
+icon: life-ring
+---
+
+Use this page when the UI loads but an API fails, Google sign-in bounces to `/login`, or two people can edit the same step. Related: [Errors and rate limits](/api/errors), [Environment variables](/deploy/environment), [Role preview](/features/role-preview).
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Google sign-in returns to /login">
+    All of these must be true:
+
+    1. Email ends with `@schools.nyc.gov`.
+    2. A `users` document exists for that **lowercase** email.
+    3. `isActive` is not `false`.
+    4. Google OAuth redirect URI matches the origin (`/api/auth/callback/google`).
+    5. `NEXTAUTH_URL` is that same origin (`http://localhost:3000` locally).
+
+    Seed with `npm run seed-users`. Demo mailboxes (`d79.demo.*`) cannot Google-sign-in — [preview them](/features/role-preview) from a Super Admin session.
+  </Accordion>
+
+  <Accordion title="403 on GET /api/forms/:id/editors (form page still opens)">
+    The form GET allows a **level 4 principal at the same school**. Presence used to omit level 4 unless `principalEmail` matched.
+
+    Current rule: same-school levels **2, 3, and 4** may read editors/locks. Assistant Principals still need assignment to **edit** answers.
+
+    If you preview as Principal on a plan owned by someone else at that school, editors should return 200. If you preview as AP on a plan you were never assigned, expect 403 on write.
+  </Accordion>
+
+  <Accordion title="Assistant Principal cannot edit">
+    Intended. Level 3 is a collaborator. The principal (or Super Admin) must **share/assign** the plan (`User.assignedForms` or `sharedWithEmails`). Same school is not enough. See [Roles and access](/features/roles).
+  </Accordion>
+
+  <Accordion title="401 immediately after Sign out, or session lasts after logout">
+    Logout adds `sess:deny:{jti}` in Redis. Without `REDIS_URL`, the JWT cookie remains valid until the 8-hour `maxAge`. Set Redis in production.
+  </Accordion>
+
+  <Accordion title="429 Too many requests">
+    Auth POSTs are limited to 20 / 60s per IP. User mutations and form create are limited per user. In production, if Redis is down those limits **fail closed** (you get 429 instead of unlimited traffic). Check `/admin/system` → Redis, then **Retry Redis**.
+  </Accordion>
+
+  <Accordion title="Autosave 409 or lock held by someone else">
+    Step locks last 5 minutes (`form:{id}:step:{stepKey}`). Presence heartbeats last 60s. Two serverless instances without Redis cannot see each other’s locks — configure `REDIS_URL`. Closing the tab should `POST .../step/:n/unlock`.
+  </Accordion>
+
+  <Accordion title="NEXTAUTH_SECRET is required crash">
+    `src/lib/auth.js` throws if the secret is missing. Copy `.env.example` to `.env.local` and run `openssl rand -base64 32`. Preview/impersonation also needs this secret on Vercel.
+  </Accordion>
+
+  <Accordion title="Production build fails on page.js exports">
+    Next.js 16 type-checks `page.js`. Only the default page export (plus reserved fields such as `metadata`) is allowed. Keep helpers as local functions or move them to `src/components`.
+  </Accordion>
+
+  <Accordion title="Mongoose schema change not visible">
+    Restart `npm run dev`. The connection is cached on `global.mongoose`.
+  </Accordion>
+
+  <Accordion title="Public homepage counts look stale">
+    `GET /api/public/overview` is cached 60s in Redis. Super Admin → System → **Flush caches**.
+  </Accordion>
+</AccordionGroup>
+
+## Diagnose a 403
+
+<Steps>
+  <Step title="Confirm who the API thinks you are">
+    Session email and `level` come from the JWT. During role preview they are the **demo** user, not your Super Admin mailbox.
+  </Step>
+  <Step title="Compare with the form document">
+    `userId` (owner), `principalEmail`, `schoolName`, `assignedTo` / collaborator `assignedForms`, `sharedWithEmails`.
+  </Step>
+  <Step title="Match the handler">
+    `GET /api/forms/[id]` allows same-school **level 2 and 4**. Writes also allow assigned level 3. Presence/locks also allow same-school level 3 to *see* who is editing.
+  </Step>
+</Steps>
+
+## Local checklist
+
+```bash
+cp .env.example .env.local
+npm install
+npm run seed-users
+node src/scripts/create-demo-users.js   # optional, for Preview as
+npm run dev
+curl -s http://localhost:3000/api/public/overview
+```
+
+Open [http://localhost:3000](http://localhost:3000) → Sign in. Super Admin: `/admin/system` should show MongoDB connected.
+
+## Support
+
+| Role | Contact |
+| --- | --- |
+| Data Systems Administrator | Javier Jaramillo · jjaramillo7@schools.nyc.gov |
+| Executive Director, School Support and Operations | Veronica Pichardo · VPichardo@schools.nyc.gov |

@@ -29,6 +29,8 @@ const AuditLogSchema = new mongoose.Schema({
       'user_activated',
       'user_deactivated',
       'form_created',
+      'form_duplicated',
+      'form_attested',
       'form_edited',
       'form_submitted',
       'form_approved',
@@ -41,6 +43,9 @@ const AuditLogSchema = new mongoose.Schema({
       'csv_import',
       'export',
       'settings_changed',
+      'question_bank_seeded',
+      'question_bank_updated',
+      'question_bank_published',
       'other'
     ],
   },

@@ -13,9 +13,12 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import formQuestionsData from '../data/formQuestions.json';
+import useQuestionBank from '../hooks/useQuestionBank';
+import useAppToast from '../hooks/useAppToast';
 
 const FormViewer = ({ form }) => {
+  const { questionBank } = useQuestionBank();
+  const toast = useAppToast();
   // Format checkbox values to show "Confirmed" instead of "true"
   const formatValue = (value, type) => {
     if (type === 'checkbox') {
@@ -42,14 +45,14 @@ const FormViewer = ({ form }) => {
     try {
       // Check if required libraries are available
       if (typeof jsPDF === 'undefined' || typeof html2canvas === 'undefined') {
-        alert('PDF export libraries not loaded. Please refresh the page and try again.');
+        toast.error('PDF export libraries not loaded. Refresh the page and try again.');
         return;
       }
 
       const element = document.getElementById('form-viewer-content');
       if (!element) {
         console.error('Form viewer content element not found');
-        alert('Error: Could not find form content to export');
+        toast.error('Could not find form content to export');
         return;
       }
 
@@ -246,7 +249,7 @@ const FormViewer = ({ form }) => {
         // Give it a moment, then show success message
         setTimeout(() => {
           console.log('PDF export completed successfully!');
-          alert(`✅ PDF exported successfully!\n\nFile: ${fileName}\nLocation: Your Downloads folder\n\nIf you don't see the file, check your browser's download settings or try right-clicking the page and selecting "Save As".`);
+          toast.success(`PDF downloaded: ${fileName}`);
         }, 1000);
         
       } catch (saveError) {
@@ -272,7 +275,7 @@ const FormViewer = ({ form }) => {
           }, 100);
           
           console.log('PDF download initiated via blob method');
-          alert(`PDF exported successfully as: ${fileName}\nCheck your Downloads folder.`);
+          toast.success(`PDF downloaded: ${fileName}`);
           
         } catch (blobError) {
           console.error('Blob method failed, trying data URI:', blobError);
@@ -289,13 +292,13 @@ const FormViewer = ({ form }) => {
           document.body.removeChild(link);
           
           console.log('PDF download initiated via data URI method');
-          alert(`PDF generated! If download didn't start automatically, check your browser's download folder for: ${fileName}`);
+          toast.success(`PDF generated: ${fileName}`);
         }
       }
 
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert(`Error generating PDF: ${error.message || 'Unknown error occurred. Please try again.'}`);
+      toast.error(`Error generating PDF: ${error.message || 'Please try again.'}`);
     }
   };
 
@@ -393,10 +396,26 @@ const FormViewer = ({ form }) => {
       </div>
 
       {/* Form Steps */}
-      {formQuestionsData.steps.map((step, index) => {
+      {questionBank.steps.map((step, index) => {
         const stepKey = step.key;
         const stepData = form.formData?.[stepKey];
-        const questions = step.questions || [];
+        const answers = stepData?.data || {};
+        const questions = (step.questions || []).filter((question) => {
+          const answer = answers[question.id];
+          const hasAnswer = answer !== undefined && answer !== null && answer !== '';
+          return hasAnswer;
+        });
+        const knownIds = new Set((step.questions || []).map((question) => question.id));
+        Object.keys(answers).forEach((id) => {
+          if (knownIds.has(id)) return;
+          const answer = answers[id];
+          if (answer === undefined || answer === null || answer === '') return;
+          questions.push({
+            id,
+            title: id,
+            type: typeof answer === 'boolean' ? 'checkbox' : 'textarea',
+          });
+        });
         
         if (!hasStepData(stepKey)) {
           return null; // Skip steps with no data

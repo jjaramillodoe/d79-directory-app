@@ -33,7 +33,9 @@ async function GET(request, { params }) {
     const isOwner = formUserId === userId;
     const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
     const isSuperAdmin = user.level === 5;
-    const isSameSchool = user.schoolName === form.schoolName && (user.level === 2 || user.level === 3);
+    const isSameSchool =
+      Boolean(user.schoolName && form.schoolName && user.schoolName === form.schoolName) &&
+      (user.level === 2 || user.level === 3 || user.level === 4);
     const hasEditAccess = form.editAccess?.some(ea => ea.userId?.toString() === userId);
     const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some(at => at.userId?.toString() === userId);
     const shareEntry = form.sharedWithEmails?.find(share => share.email?.toLowerCase() === user.email?.toLowerCase());
@@ -48,27 +50,33 @@ async function GET(request, { params }) {
     // Get all active editors for this form
     const editors = await getActiveEditors(id);
 
-    // Group by step and remove duplicates (same user on same step)
     const stepMap = {};
     const uniqueEditors = [];
-    const seenUsers = new Set();
+    const seenOnStep = new Set();
+    const latestByPerson = new Map();
 
-    editors.forEach(editor => {
-      const key = `${editor.userId}-${editor.stepKey}`;
-      if (!seenUsers.has(key)) {
-        seenUsers.add(key);
-        if (!stepMap[editor.stepKey]) {
-          stepMap[editor.stepKey] = [];
-        }
-        stepMap[editor.stepKey].push({
-          userId: editor.userId,
-          userName: editor.userName,
-          email: editor.email,
-          lastSeen: editor.lastSeen,
-        });
-        uniqueEditors.push(editor);
+    editors.forEach((editor) => {
+      const stepKey = `${editor.userId || editor.email}-${editor.stepKey}`;
+      if (seenOnStep.has(stepKey)) return;
+      seenOnStep.add(stepKey);
+
+      if (!stepMap[editor.stepKey]) stepMap[editor.stepKey] = [];
+      stepMap[editor.stepKey].push({
+        userId: editor.userId,
+        userName: editor.userName,
+        email: editor.email,
+        lastSeen: editor.lastSeen,
+      });
+
+      const personKey = String(editor.email || editor.userId || '').toLowerCase();
+      if (!personKey) return;
+      const existing = latestByPerson.get(personKey);
+      if (!existing || new Date(editor.lastSeen) > new Date(existing.lastSeen || 0)) {
+        latestByPerson.set(personKey, editor);
       }
     });
+
+    uniqueEditors.push(...latestByPerson.values());
 
     return NextResponse.json({
       success: true,

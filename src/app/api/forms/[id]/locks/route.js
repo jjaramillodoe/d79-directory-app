@@ -33,7 +33,9 @@ async function GET(request, { params }) {
     const isOwner = formUserId === userId;
     const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
     const isSuperAdmin = user.level === 5;
-    const isSameSchool = user.schoolName === form.schoolName && (user.level === 2 || user.level === 3);
+    const isSameSchool =
+      Boolean(user.schoolName && form.schoolName && user.schoolName === form.schoolName) &&
+      (user.level === 2 || user.level === 3 || user.level === 4);
     const hasEditAccess = form.editAccess?.some(ea => ea.userId?.toString() === userId);
     const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some(at => at.userId?.toString() === userId);
     const shareEntry = form.sharedWithEmails?.find(share => share.email?.toLowerCase() === user.email?.toLowerCase());

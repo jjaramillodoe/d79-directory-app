@@ -1,49 +1,43 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
-import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import ScrollToTop from '../../components/ScrollToTop';
 import AnalyticsDashboard from '../../components/AnalyticsDashboard';
 import SmartNotifications from '../../components/SmartNotifications';
 import BulkOperations from '../../components/BulkOperations';
 import SchoolPerformanceScoring from '../../components/SchoolPerformanceScoring';
 import BulkFormCreation from '../../components/BulkFormCreation';
+import YearRollover from '../../components/admin/YearRollover';
+import YearLockPanel from '../../components/admin/YearLockPanel';
+import YearSettingsPanel from '../../components/admin/YearSettingsPanel';
+import SetupNextYear from '../../components/admin/SetupNextYear';
+import DeadlineReminders from '../../components/dashboard/DeadlineReminders';
+import DashboardHeader from '../../components/dashboard/DashboardHeader';
+import DashboardShell from '../../components/dashboard/DashboardShell';
+import DashboardSidebar from '../../components/dashboard/DashboardSidebar';
+import FormsOverview from '../../components/dashboard/FormsOverview';
+import SuperAdminPanel from '../../components/dashboard/SuperAdminPanel';
+import RoleHowTo from '../../components/dashboard/RoleHowTo';
+import RolePreviewCard from '../../components/dashboard/RolePreviewCard';
+import DashboardStatsGrid from '../../components/dashboard/DashboardStatsGrid';
+import { completedStepCount } from '../../lib/formProgress';
+import DashboardSection from '../../components/dashboard/DashboardSection';
+import CommentsOverview from '../../components/dashboard/CommentsOverview';
+import ReviewNotifications from '../../components/dashboard/ReviewNotifications';
+import { Spinner, Column, Text, SegmentedControl } from '@once-ui-system/core';
 import { 
-  Building2, 
-  User, 
-  LogOut, 
-  FileText, 
-  Search, 
-  Users, 
-  BarChart3, 
-  Bell, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Eye, 
-  Edit,
-  Plus,
-  FileSpreadsheet,
-  AlertCircle,
-  TrendingUp,
-  Shield,
-  GraduationCap,
   PieChart,
-  BarChart,
-  Settings,
-  Award,
-  Calendar
 } from 'lucide-react';
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [showBulkCreate, setShowBulkCreate] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     draft: 0,
@@ -65,7 +59,8 @@ export default function DashboardPage() {
     totals: { submitted: 0, approved: 0, underReview: 0, total: 0 }
   });
   const [loadingTimeline, setLoadingTimeline] = useState(false);
-  const [activeTab, setActiveTab] = useState('comments');
+  const [setupYear, setSetupYear] = useState('');
+  const activeView = searchParams.get('view') || 'overview';
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -173,7 +168,7 @@ export default function DashboardPage() {
     const rejected = formsData.filter(f => f.status === 'rejected').length;
     
     const totalProgress = formsData.reduce((sum, form) => {
-      const completedSteps = form.completedSteps?.length || 0;
+      const completedSteps = completedStepCount(form);
       return sum + (completedSteps / 14) * 100;
     }, 0);
     
@@ -192,12 +187,10 @@ export default function DashboardPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-transparent border-t-primary-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-secondary-500">Loading...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading...</Text>
+      </Column>
     );
   }
 
@@ -207,659 +200,129 @@ export default function DashboardPage() {
 
   const userLevel = session.user.level;
   const isAdmin = userLevel >= 4; // Level 4+ (Admin Principal and Super Admin)
-
-
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/login' });
+  const isOverview = activeView === 'overview';
+  const viewTitles = {
+    overview: 'Overview',
+    howto: 'How to',
+    comments: 'Comments',
+    analytics: 'Analytics',
+    notifications: 'Notifications',
+    bulk: 'Bulk operations',
+    performance: 'Performance',
+    'bulk-create': 'Bulk create',
   };
 
   return (
-    <div className="min-h-screen bg-secondary-50">
-      {/* Header */}
-      <header className="bg-white shadow-lg border-b-2 border-primary-200">
-        <div className="max-w-[140rem] mx-auto px-6">
-          <div className="flex justify-between items-center py-8">
-            <div>
-              <h1 className="text-5xl font-extrabold text-secondary-800 mb-3 flex items-center gap-3">
-                <Building2 size={48} className="text-primary-500" />
-                District 79 Dashboard
-              </h1>
-              <p className="text-lg text-secondary-500">
-                Welcome back, <span className="text-primary-500 font-semibold">{session.user.name}</span>
-                <span className="ml-3 px-3 py-1 bg-secondary-100 rounded-lg text-sm font-semibold text-secondary-700">
-                  Level {userLevel}
-                </span>
-              </p>
-            </div>
-            <div className="flex items-center gap-6">
-              {session.user.level < 4 && notifications.length > 0 && (
-                <div className="relative px-6 py-3 bg-gradient-to-r from-warning-500 to-warning-600 text-white rounded-xl text-base font-semibold shadow-lg border-2 border-white/10 animate-pulse-slow flex items-center gap-2">
-                  <Bell size={20} />
-                  {notifications.length} Review{notifications.length !== 1 ? 's' : ''} Available
-                </div>
-              )}
-              <button
-                onClick={handleSignOut}
-                className="btn-danger flex items-center gap-2"
-              >
-                <LogOut size={20} />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <DashboardShell
+      sidebar={
+        <DashboardSidebar
+          session={session}
+          userLevel={userLevel}
+        />
+      }
+      header={
+        <DashboardHeader
+          title={viewTitles[activeView] || 'Overview'}
+          description={
+            activeView === 'analytics'
+              ? 'Track submission trends, completion, and school performance'
+              : activeView === 'notifications'
+                ? 'Deadlines, quality issues, and plans waiting for review'
+                : activeView === 'performance'
+                  ? 'Compare school plan scores, tiers, and completion speed'
+                  : activeView === 'howto'
+                    ? 'What you can do in this role, and what stays with someone else'
+                    : activeView === 'bulk-create'
+                    ? 'Set up the next school year, copy last year’s plans, or create blank drafts'
+                    : undefined
+          }
+          session={session}
+          userLevel={userLevel}
+          notificationsCount={notifications.length}
+        />
+      }
+    >
+        {isOverview && userLevel < 5 && (
+          <RoleHowTo userLevel={userLevel} compact />
+        )}
 
-      {/* Main Content */}
-      <main className="max-w-[140rem] mx-auto px-6 py-8">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {/* Start New Form - Level 4+ (Principals and Super Admins) */}
-          {userLevel >= 4 && (
-            <Link
-              href="/form/new"
-              className="card group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-blue-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <FileText className="text-blue-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Start New Form
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
-                      Begin a new school plan submission
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
+        {activeView === 'howto' && (
+          <RoleHowTo userLevel={userLevel} />
+        )}
 
-          {/* Bulk Form Creation - Super Admin Only */}
-          {userLevel === 5 && (
-            <button
-              onClick={() => setShowBulkCreate(!showBulkCreate)}
-              className="card group overflow-hidden relative cursor-pointer text-left w-full"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-blue-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <FileText className="text-blue-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Bulk Form Creation
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors mb-2">
-                      Create and assign forms to multiple principals at once
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-red-600 group-hover:text-white/90 transition-colors" />
-                      <span className="text-xs text-red-600 group-hover:text-white/90 transition-colors font-semibold">
-                        Super Admin Only
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </button>
-          )}
+        {userLevel === 5 && isOverview && !session.impersonating && (
+          <RolePreviewCard />
+        )}
 
-          {/* Review All Submissions - Super Admin Only */}
-          {userLevel === 5 && (
-            <Link
-              href="/admin/submissions"
-              className="card group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <Search className="text-green-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Review All Submissions
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
-                      Review and approve all forms across all schools
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
+        {userLevel === 5 && isOverview && (
+          <DashboardStatsGrid stats={stats} />
+        )}
 
-          {/* Manage All Users - Super Admin Only */}
-          {userLevel === 5 && (
-            <Link
-              href="/admin/users"
-              className="card group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Manage All Users
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
-                      Manage all users across all schools
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
-          {/* Manage Goals - Super Admin Only */}
-          {userLevel === 5 && (
-            <Link
-              href="/admin/goals"
-              className="card group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Manage Goals
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
-                      Manage goals across all schools
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
+        {isOverview && userLevel >= 4 && (
+          <DeadlineReminders forms={forms} userLevel={userLevel} />
+        )}
 
-          {/* Manage School Users - Admin Principal Only */}
-          {userLevel === 4 && (
-            <Link
-              href="/admin/users"
-              className="card group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Manage School Users
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
-                      Manage users from your school
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
-
-          {/* Collaboration Dashboard - Admin Principal Only */}
-          {userLevel === 4 && (
-            <Link
-              href="/admin/users?tab=collaboration"
-              className="card group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Collaboration Dashboard
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
-                      Manage staff and share forms for collaboration
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
-
-          {/* Collaboration Dashboard - Super Admin Only */}
-          {userLevel === 5 && (
-            <Link
-              href="/admin/users?tab=collaboration"
-              className="card group overflow-hidden relative cursor-pointer"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="bg-green-100 group-hover:bg-white/20 transition-colors p-3 rounded-lg">
-                    <Users className="text-green-600 group-hover:text-white transition-colors" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-white transition-colors mb-1">
-                      Collaboration Dashboard
-                    </h3>
-                    <p className="text-sm text-gray-600 group-hover:text-white/90 transition-colors">
-                      Manage staff and share forms for collaboration
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
-        </div>
-
-        {/* Bulk Form Creation Section - Super Admin Only */}
-        {userLevel === 5 && showBulkCreate && (
-          <div className="mb-12">
-            <BulkFormCreation 
+        {userLevel === 5 && activeView === 'bulk-create' && (
+          <Column gap="24" fillWidth>
+            <SetupNextYear
+              onCreated={(year) => {
+                setSetupYear(year);
+                fetchForms();
+              }}
+            />
+            <YearRollover onComplete={() => fetchForms()} />
+            <YearLockPanel />
+            <YearSettingsPanel focusYear={setupYear} />
+            <BulkFormCreation
               onFormsCreated={() => {
                 fetchForms();
-                setShowBulkCreate(false);
-              }} 
+              }}
             />
-          </div>
+          </Column>
         )}
 
-        {/* Enhanced Admin Dashboard */}
         {(userLevel === 4 || userLevel === 5) && (
-          <div className="mb-12">
-            {/* Tab Navigation */}
-            <div className="card mb-6 overflow-hidden">
-              <div className="card-header">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <BarChart3 size={28} />
-                    Super Admin Dashboard
-                  </h2>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setActiveTab('comments')}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                        activeTab === 'comments' 
-                          ? 'bg-primary-500 text-white' 
-                          : 'bg-white/10 text-white border border-white/20'
-                      }`}
-                    >
-                      <FileText size={16} className="inline mr-2" />
-                      Comments
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('analytics')}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                        activeTab === 'analytics' 
-                          ? 'bg-primary-500 text-white' 
-                          : 'bg-white/10 text-white border border-white/20'
-                      }`}
-                    >
-                      <BarChart3 size={16} className="inline mr-2" />
-                      Analytics
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('notifications')}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                        activeTab === 'notifications' 
-                          ? 'bg-primary-500 text-white' 
-                          : 'bg-white/10 text-white border border-white/20'
-                      }`}
-                    >
-                      <Bell size={16} className="inline mr-2" />
-                      Notifications
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('bulk')}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                        activeTab === 'bulk' 
-                          ? 'bg-primary-500 text-white' 
-                          : 'bg-white/10 text-white border border-white/20'
-                      }`}
-                    >
-                      <Settings size={16} className="inline mr-2" />
-                      Bulk Operations
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('performance')}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                        activeTab === 'performance' 
-                          ? 'bg-primary-500 text-white' 
-                          : 'bg-white/10 text-white border border-white/20'
-                      }`}
-                    >
-                      <Award size={16} className="inline mr-2" />
-                      Performance
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              {activeTab === 'comments' && (
-                <div>
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Review Comments & Feedback</h3>
-                    <p className="text-gray-600">View all review comments from super admins on your Consolidated Plan submissions.</p>
-                  </div>
-                  
-                  {forms.filter(form => {
-                    // Check if form has comments (either in new comments array or legacy reviewComments field)
-                    const hasComments = form.comments && form.comments.length > 0;
-                    const hasLegacyComment = form.reviewComments && form.reviewComments.trim().length > 0;
-                    return hasComments || hasLegacyComment;
-                  }).length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText size={64} className="mx-auto text-gray-400 mb-4" />
-                      <p className="text-lg text-gray-600 font-medium">No review comments yet</p>
-                      <p className="text-sm text-gray-500 mt-2">Review comments will appear here once a super admin provides feedback on your form submissions.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {forms
-                        .filter(form => {
-                          // Check if form has comments (either in new comments array or legacy reviewComments field)
-                          const hasComments = form.comments && form.comments.length > 0;
-                          const hasLegacyComment = form.reviewComments && form.reviewComments.trim().length > 0;
-                          return hasComments || hasLegacyComment;
-                        })
-                        .sort((a, b) => {
-                          // Sort by reviewedAt date (most recent first)
-                          // Use latest comment date if available, otherwise use form reviewedAt
-                          const getLatestDate = (form) => {
-                            if (form.comments && form.comments.length > 0) {
-                              return new Date(form.comments[0].reviewedAt);
-                            }
-                            return form.reviewedAt ? new Date(form.reviewedAt) : new Date(0);
-                          };
-                          const dateA = getLatestDate(a);
-                          const dateB = getLatestDate(b);
-                          return dateB - dateA;
-                        })
-                        .map((form) => {
-                          // Get the latest comment (from new collection or legacy field)
-                          const latestComment = form.comments && form.comments.length > 0 
-                            ? form.comments[0] 
-                            : (form.reviewComments ? { comment: form.reviewComments, reviewedBy: form.reviewedBy, reviewedAt: form.reviewedAt } : null);
-                          
-                          return (
-                          <div key={form._id} className="border-2 border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-white to-gray-50">
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <h4 className="text-lg font-bold text-gray-800">{form.schoolName}</h4>
-                                  {form.status === 'approved' ? (
-                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                      <CheckCircle size={12} className="text-emerald-500" />
-                                      Approved
-                                    </span>
-                                  ) : form.status === 'rejected' ? (
-                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-                                      <XCircle size={12} className="text-red-500" />
-                                      Rejected
-                                    </span>
-                                  ) : form.status === 'under_review' ? (
-                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                      <Clock size={12} className="text-amber-500" />
-                                      Under Review
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-gray-600">
-                                  <span className="flex items-center gap-1">
-                                    <User size={14} />
-                                    {form.principalName}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Calendar size={14} />
-                                    {latestComment?.reviewedAt ? `Reviewed: ${new Date(latestComment.reviewedAt).toLocaleDateString()}` : form.reviewedAt ? `Reviewed: ${new Date(form.reviewedAt).toLocaleDateString()}` : 'Not reviewed'}
-                                  </span>
-                                  {(latestComment?.reviewedBy?.name || latestComment?.reviewedByName || form.reviewedBy?.name) && (
-                                    <span className="flex items-center gap-1">
-                                      <Shield size={14} />
-                                      Reviewed by: {latestComment?.reviewedBy?.name || latestComment?.reviewedByName || form.reviewedBy?.name}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Link
-                                  href={`/form/${form._id}`}
-                                  className="btn-primary inline-flex items-center gap-2 whitespace-nowrap"
-                                >
-                                  <Edit size={16} />
-                                  Edit Form
-                                </Link>
-                                <Link
-                                  href={`/view/${form._id}`}
-                                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-                                  title="View all steps in one page (print-friendly)"
-                                >
-                                  <Eye size={16} />
-                                  View All
-                                </Link>
-                              </div>
-                            </div>
-                            
-                            <div className="bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4 mt-4">
-                              <div className="flex items-start gap-3">
-                                <FileText size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                  <h5 className="text-sm font-semibold text-blue-900 mb-2">
-                                    {form.comments && form.comments.length > 1 
-                                      ? `Review Comments (${form.comments.length} total):` 
-                                      : 'Review Comments:'}
-                                  </h5>
-                                  {latestComment && (
-                                    <div className="mb-3">
-                                      <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
-                                        {latestComment.comment || latestComment}
-                                      </p>
-                                      
-                                      {/* Show step-specific comments if any */}
-                                      {form.comments && form.comments.some(c => c.stepNumber) && (
-                                        <div className="mt-4 pt-4 border-t border-blue-200">
-                                          <h6 className="text-xs font-semibold text-blue-900 mb-2">Step-Specific Comments:</h6>
-                                          <div className="space-y-2">
-                                            {form.comments
-                                              .filter(c => c.stepNumber)
-                                              .sort((a, b) => (a.stepNumber || 0) - (b.stepNumber || 0))
-                                              .map((comment) => (
-                                                <div key={comment._id} className={`bg-white rounded p-3 border-2 ${
-                                                  comment.isFixed ? 'border-green-300 bg-green-50' : 'border-blue-200'
-                                                }`}>
-                                                  <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-xs font-semibold text-blue-900">
-                                                      Step {comment.stepNumber}
-                                                    </span>
-                                                    <div className="flex items-center gap-2">
-                                                      {comment.isFixed && (
-                                                        <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center gap-1">
-                                                          <CheckCircle size={12} />
-                                                          Fixed
-                                                        </span>
-                                                      )}
-                                                      {comment.readBy && !comment.isFixed && (
-                                                        <span className="text-xs text-gray-500">Read</span>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                                                    {comment.comment}
-                                                  </p>
-                                                </div>
-                                              ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                      
-                                      {form.comments && form.comments.length > 1 && !form.comments.some(c => c.stepNumber) && (
-                                        <details className="mt-3">
-                                          <summary className="text-sm text-blue-700 cursor-pointer hover:text-blue-900 font-medium">
-                                            View all {form.comments.length} comments
-                                          </summary>
-                                          <div className="mt-3 space-y-3 pl-4 border-l-2 border-blue-300">
-                                            {form.comments.slice(1).map((comment, idx) => (
-                                              <div key={comment._id || idx} className="bg-white rounded p-3 border border-blue-200">
-                                                <div className="text-xs text-gray-600 mb-1">
-                                                  {comment.reviewedBy?.name || comment.reviewedByName} - {new Date(comment.reviewedAt).toLocaleDateString()}
-                                                </div>
-                                                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                                                  {comment.comment}
-                                                </p>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </details>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {form.status === 'rejected' || form.status === 'under_review' ? (
-                              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                <p className="text-sm text-amber-800 flex items-center gap-2">
-                                  <AlertCircle size={16} className="text-amber-600" />
-                                  <span className="font-medium">Action Required:</span> Please review the comments above and make the necessary changes to your Consolidated Plan.
-                                </p>
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                        })}
-                    </div>
-                  )}
-                </div>
-              )}
-              {activeTab === 'analytics' && <AnalyticsDashboard forms={forms} stats={stats} />}
-              {activeTab === 'notifications' && <SmartNotifications forms={forms} stats={stats} />}
-              {activeTab === 'bulk' && <BulkOperations forms={forms} onUpdateForms={setForms} />}
-              {activeTab === 'performance' && <SchoolPerformanceScoring forms={forms} />}
-            </div>
-          </div>
+          <>
+            {activeView === 'comments' && (
+              <SuperAdminPanel>
+                <CommentsOverview forms={forms} />
+              </SuperAdminPanel>
+            )}
+            {activeView === 'analytics' && (
+              <AnalyticsDashboard forms={forms} stats={stats} />
+            )}
+            {activeView === 'notifications' && (
+              <SmartNotifications forms={forms} stats={stats} />
+            )}
+            {activeView === 'bulk' && (
+              <SuperAdminPanel>
+                <BulkOperations forms={forms} onUpdateForms={setForms} />
+              </SuperAdminPanel>
+            )}
+            {activeView === 'performance' && (
+              <SchoolPerformanceScoring forms={forms} />
+            )}
+          </>
         )}
 
-        {/* Legacy Statistics (for non-super-admin users) */}
-        {(userLevel >= 4 && userLevel < 5) && (
-          <div className="card mb-12 overflow-hidden">
-            <div className="card-header flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                <BarChart3 size={28} />
-                School Submission Statistics
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setStatsView('cards')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                    statsView === 'cards' 
-                      ? 'bg-primary-500 text-white' 
-                      : 'bg-white/10 text-white border border-white/20'
-                  }`}
-                >
-                  <BarChart3 size={16} className="inline mr-2" />
-                  Cards
-                </button>
-                <button
-                  onClick={() => setStatsView('graph')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                    statsView === 'graph' 
-                      ? 'bg-primary-500 text-white' 
-                      : 'bg-white/10 text-white border border-white/20'
-                  }`}
-                >
-                  <PieChart size={16} className="inline mr-2" />
-                  Graph
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-10">
+        {userLevel >= 4 && userLevel < 5 && isOverview && (
+          <DashboardSection
+            title="School Submission Statistics"
+            description="Track submission trends for your school"
+            actions={
+              <SegmentedControl
+                buttons={[
+                  { value: 'cards', label: 'Cards' },
+                  { value: 'graph', label: 'Graph' },
+                ]}
+                selected={statsView}
+                onToggle={setStatsView}
+                compact
+              />
+            }
+          >
               {statsView === 'cards' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
-                  <div className="card text-center p-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <BarChart3 size={32} className="text-secondary-800" />
-                      <div className="text-5xl font-extrabold text-secondary-800">
-                        {stats.total}
-                      </div>
-                    </div>
-                    <div className="text-base text-secondary-600 font-semibold uppercase tracking-wide">
-                      Total Submissions
-                    </div>
-                  </div>
-                  
-                  <div className="card text-center p-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <TrendingUp size={32} className="text-primary-500" />
-                      <div className="text-5xl font-extrabold text-primary-500">
-                        {stats.submitted}
-                      </div>
-                    </div>
-                    <div className="text-base text-secondary-600 font-semibold uppercase tracking-wide">
-                      Submitted
-                    </div>
-                  </div>
-                  
-                  <div className="card text-center p-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <Clock size={32} className="text-warning-500" />
-                      <div className="text-5xl font-extrabold text-warning-500">
-                        {stats.underReview}
-                      </div>
-                    </div>
-                    <div className="text-base text-secondary-600 font-semibold uppercase tracking-wide">
-                      Under Review
-                    </div>
-                  </div>
-                  
-                  <div className="card text-center p-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <CheckCircle size={32} className="text-success-500" />
-                      <div className="text-5xl font-extrabold text-success-500">
-                        {stats.approved}
-                      </div>
-                    </div>
-                    <div className="text-base text-secondary-600 font-semibold uppercase tracking-wide">
-                      Approved
-                    </div>
-                  </div>
-                  
-                  <div className="card text-center p-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <XCircle size={32} className="text-danger-500" />
-                      <div className="text-5xl font-extrabold text-danger-500">
-                        {stats.rejected}
-                      </div>
-                    </div>
-                    <div className="text-base text-secondary-600 font-semibold uppercase tracking-wide">
-                      Rejected
-                    </div>
-                  </div>
-                  
-                  <div className="card text-center p-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <TrendingUp size={32} className="text-purple-500" />
-                      <div className="text-5xl font-extrabold text-purple-500">
-                        {stats.averageProgress}%
-                      </div>
-                    </div>
-                    <div className="text-base text-secondary-600 font-semibold uppercase tracking-wide">
-                      Avg. Progress
-                    </div>
-                  </div>
-                </div>
+                <DashboardStatsGrid stats={stats} />
               ) : (
                 <div className="card text-center p-8">
                   <div className="flex items-center justify-center gap-4 mb-8">
@@ -1010,221 +473,39 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
+          </DashboardSection>
         )}
 
-        {/* Notifications for Principals */}
-        {session.user.level < 4 && notifications.length > 0 && (
-          <div className="card mb-12 overflow-hidden border-2 border-warning-500">
-            <div className="card-header bg-gradient-to-r from-warning-700 to-warning-800">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                <Bell size={28} />
-                Review Notifications
-              </h2>
-            </div>
-            
-            <div className="p-10">
-              <div className="flex flex-col gap-6">
-                {notifications.map((notification) => (
-                  <div key={notification._id} className={`p-6 border-2 border-warning-500 rounded-xl shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
-                    notification.status === 'approved' ? 'bg-success-50' : 
-                    notification.status === 'rejected' ? 'bg-danger-50' : 'bg-warning-50'
-                  }`}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-xl font-bold text-secondary-800 mb-2">
-                          {notification.schoolName} - {notification.status === 'approved' ? 'Approved' : 
-                                                       notification.status === 'rejected' ? 'Rejected' : 'Under Review'}
-                        </h4>
-                        <p className="text-base text-secondary-600 font-medium">
-                          Reviewed by {notification.reviewedBy?.name || 'Admin'} on {new Date(notification.reviewedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      {notification.status === 'approved' ? (
-                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-                          <CheckCircle size={14} className="text-emerald-500" />
-                          Approved
-                        </span>
-                      ) : notification.status === 'rejected' ? (
-                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-red-50 text-red-700 border border-red-200 shadow-sm">
-                          <XCircle size={14} className="text-red-500" />
-                          Rejected
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
-                          <Clock size={14} className="text-amber-500" />
-                          Under Review
-                        </span>
-                      )}
-                    </div>
-                    {notification.reviewComments && (
-                      <div className="mt-4 p-4 bg-white rounded-xl border border-secondary-200 shadow-sm">
-                        <p className="text-base text-secondary-700 italic leading-relaxed">
-                          "{notification.reviewComments}"
-                        </p>
-                      </div>
-                    )}
-                    <div className="mt-4">
-                      <Link
-                        href={`/form/${notification._id}`}
-                        className="btn-primary inline-flex items-center gap-2"
-                      >
-                        <Eye size={16} />
-                        View Submission
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {isOverview && session.user.level < 4 && (
+          <ReviewNotifications notifications={notifications} />
         )}
 
-        {/* Forms Overview */}
-        <div className="card overflow-hidden">
-          <div className="card-header">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              <FileSpreadsheet size={28} />
-              {isAdmin ? 'All Form Submissions' : 'Your Form Submissions'}
-            </h2>
-          </div>
-          
-          <div className="p-10">
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="inline-block w-12 h-12 border-3 border-transparent border-t-primary-500 rounded-full animate-spin mb-4"></div>
-                <p className="text-lg text-secondary-600 font-medium">Loading forms...</p>
-              </div>
-            ) : forms.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-8xl mb-6 opacity-70 flex justify-center">
-                  <FileSpreadsheet size={80} className="text-secondary-500" />
-                </div>
-                <p className="text-2xl text-secondary-600 mb-4 font-semibold">No forms found yet.</p>
-                <p className="text-base text-secondary-500 mb-8 leading-relaxed">
-                  {isAdmin 
-                    ? 'No form submissions have been created yet.'
-                    : 'This is where your school plan submissions will appear once you create them.'
-                  }
-                </p>
-                {userLevel >= 4 && !isAdmin && (
-                  <Link href="/form/new" className="btn-primary inline-flex items-center gap-2">
-                    <Plus size={20} />
-                    Create your first form
-                  </Link>
-                )}
-                {userLevel === 3 && (
-                  <p className="text-base text-secondary-500 mt-4">
-                    Forms will appear here once your principal assigns them to you for collaboration.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse min-w-8xl">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-64">School</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-48">Principal</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-64">Email</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-40">Status</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-48">Progress</th>
-                      <th className="text-left p-5 text-base font-bold text-gray-800 border-b-2 border-gray-200 min-w-48">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {forms.slice(0, 10).map((form, index) => (
-                      <tr key={form._id} className="border-b border-gray-100 transition-all duration-300 hover:bg-gray-50 hover:scale-[1.01] animate-fade-in"
-                          style={{ animationDelay: `${index * 0.1}s` }}>
-                        <td className="p-5 text-base">
-                          <div className="font-semibold text-secondary-800 text-lg">{form.schoolName}</div>
-                        </td>
-                        <td className="p-5 text-base text-secondary-700 font-medium">
-                          {form.principalName}
-                        </td>
-                        <td className="p-5 text-base text-secondary-600 font-medium">
-                          {form.principalEmail}
-                        </td>
-                        <td className="p-5">
-                          {form.status === 'draft' ? (
-                            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-600 border border-gray-200 shadow-sm">
-                              <FileText size={14} className="text-gray-500" />
-                              Draft
-                            </span>
-                          ) : form.status === 'submitted' ? (
-                            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">
-                              <TrendingUp size={14} className="text-blue-500" />
-                              Submitted
-                            </span>
-                          ) : form.status === 'under_review' ? (
-                            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
-                              <Clock size={14} className="text-amber-500" />
-                              Under Review
-                            </span>
-                          ) : form.status === 'approved' ? (
-                            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-                              <CheckCircle size={14} className="text-emerald-500" />
-                              Approved
-                            </span>
-                          ) : form.status === 'rejected' ? (
-                            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-red-50 text-red-700 border border-red-200 shadow-sm">
-                              <XCircle size={14} className="text-red-500" />
-                              Rejected
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-600 border border-gray-200 shadow-sm">
-                              <FileText size={14} className="text-gray-500" />
-                              {form.status}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-5 text-base">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-gray-200 rounded-full h-2.5 border border-gray-300 overflow-hidden">
-                              <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-1000 shadow-sm"
-                                   style={{ width: `${(form.completedSteps?.length || 0) / 14 * 100}%` }}></div>
-                            </div>
-                            <span className="text-sm text-gray-600 min-w-14 font-semibold">
-                              {form.completedSteps?.length || 0}/14
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-5">
-                          <Link
-                            href={`/form/${form._id}`}
-                            className="btn-primary inline-flex items-center gap-2"
-                          >
-                            <Eye size={16} />
-                            View
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                
-                {forms.length > 10 && (
-                  <div className="text-center py-8 border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-                    <p className="text-base text-gray-600 font-medium">
-                      Showing first 10 submissions. 
-                      {userLevel === 5 && (
-                        <Link href="/admin/submissions" className="ml-3 text-blue-600 no-underline font-semibold px-4 py-2 bg-white rounded-lg border-2 border-gray-200 transition-all duration-300 hover:bg-blue-600 hover:text-white hover:-translate-y-1">
-                          View all submissions →
-                        </Link>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        {isOverview && (
+          <FormsOverview
+            forms={forms}
+            loading={loading}
+            isAdmin={isAdmin}
+            userLevel={userLevel}
+            onDuplicated={fetchForms}
+          />
+        )}
 
-      </main>
-      
-      {/* Scroll to Top Button */}
       <ScrollToTop />
-    </div>
+    </DashboardShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+          <Spinner size="l" />
+          <Text onBackground="neutral-weak">Loading...</Text>
+        </Column>
+      }
+    >
+      <DashboardPageContent />
+    </Suspense>
   );
 }

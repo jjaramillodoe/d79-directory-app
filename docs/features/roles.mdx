@@ -1,0 +1,80 @@
+---
+title: Roles and access
+description: Levels 1–5, form RBAC, school-user management, and who must be assigned.
+icon: user-shield
+---
+
+Levels are stored on `User.level` (1–5) and copied onto the JWT. Route handlers should reload `User` from MongoDB (especially Super Admin mutations) rather than trusting `session.user.level` alone.
+
+| Level | Title | Typical access |
+| --- | --- | --- |
+| 1 | Viewer | Open plans assigned to you |
+| 2 | School staff | Open and edit plans **at your school** |
+| 3 | Assistant Principal | Edit plans the principal **assigned or shared** — not every plan at the school |
+| 4 | Principal | Own/create/duplicate/attest/submit school plans; manage users levels 1–3 at that school |
+| 5 | Super Admin | All schools, question bank, rollover, goals, comments, ownership transfer, bulk import, System, [role preview](/features/role-preview) |
+
+![Dashboard by role](https://placehold.co/600x400)
+*Caption: Add screenshot showing Super Admin sidebar (Submissions, Users, Goals, Question bank, System, Audit logs, Year setup) versus a principal sidebar.*
+
+## Form authorization
+
+<Tabs>
+  <Tab title="View">
+    A user may **open** a form if any of:
+
+    - Super Admin
+    - Form owner (`userId`)
+    - `principalEmail` matches the session email
+    - Same `schoolName` and level **2 or 4**
+    - Listed in `User.assignedForms` for that `formId`
+    - Listed in `FormSubmission.sharedWithEmails`
+  </Tab>
+  <Tab title="Edit">
+    Writes (`PUT /api/forms/[id]`, step save) additionally allow:
+
+    - Assigned **level 3** (`assignedForms` on the user, any permission — the handler treats assignment as edit)
+    - `sharedWithEmails` entry with `permissions: "edit"`
+    - `form.editAccess[]` user ids when present
+
+    Archived years reject writes unless Super Admin set `allowEditsWhenArchived` on that plan (or un-archived the year).
+  </Tab>
+  <Tab title="Create / attest / submit">
+    **Create** and **duplicate** require level ≥ 4 (Super Admin may pass `initialOwnerEmail` for a level-4 principal). Principals cannot set another school’s name on create — the API forces `user.schoolName` when `level < 5`.
+
+    **Attest** requires level ≥ 4. Copied plans (`duplicatedFrom`) should be attested before submit.
+
+    **Review comments** (`POST /api/forms/[id]/comments`) are Super Admin only.
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+  Assistant Principal is a **collaborator**, not a second owner. If Preview as AP cannot edit, share the plan from Collaboration. That is expected, not a 403 bug.
+</Callout>
+
+## School users (`canManageTarget`)
+
+`src/lib/canManageUser.js`:
+
+- Nobody manages themselves
+- Actor level must be **strictly higher** than the target
+- Principals only see/manage people at **their school** with **level ≤ 3** (list filter is `level: { $lt: 5 }` so Super Admins at that school do not appear)
+- Principals cannot create or promote to level 4 or 5
+
+## Collaboration fields
+
+On `User.assignedForms[]`:
+
+```json
+{
+  "formId": "66f0...",
+  "permissions": "edit",
+  "assignedSections": [],
+  "assignedBy": "66ee...",
+  "assignedAt": "2026-08-19T16:00:00.000Z"
+}
+```
+
+Empty `assignedSections` means all steps. `permissions` is `view` | `edit` | `admin`.
+
+In-app how-to copy lives in `src/lib/roleGuides.js` (dashboard **How to**, `/dashboard?view=howto`).

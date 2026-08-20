@@ -2,99 +2,78 @@ const { getServerSession } = require('next-auth/next');
 const { authOptions } = require('../../../../lib/auth');
 const connectDB = require('../../../../lib/mongodb');
 const User = require('../../../../models/User');
+const { jsonError, requireAdminActor, enforceRateLimit } = require('../../../../lib/userAccess');
 
-// POST /api/users/create - Create new user (admin only)
 async function POST(request) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const limited = await enforceRateLimit(`rl:users-create:${session?.user?.id || 'anon'}`, 20, 60);
+    if (limited) return limited;
 
-    // Check if user is admin (Level 4)
-    if (session.user.level < 4) {
-      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const auth = await requireAdminActor(session);
+    if (auth.error) return auth.error;
+    const { actor } = auth;
 
     const { name, email, level, schoolName, title, isActive } = await request.json();
 
-    // Level 4 (Principal) users can only create Level 1-3 users
-    // Only Level 5 (Super Admin) can create Level 4-5 users
-    if (session.user.level === 4 && level !== undefined && (level === 4 || level === 5)) {
-      return new Response(JSON.stringify({ 
-        error: 'Forbidden: You can only create users with Level 1, 2, or 3. Only Super Admins can create Level 4 or 5 users.' 
-      }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     if (!name || !email) {
-      return new Response(JSON.stringify({ error: 'Name and email are required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError(400, 'Name and email are required');
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return new Response(JSON.stringify({ error: 'Invalid email format' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError(400, 'Invalid email format');
     }
 
-    // Check if email ends with @schools.nyc.gov
-    if (!email.endsWith('@schools.nyc.gov')) {
-      return new Response(JSON.stringify({ error: 'Email must be from @schools.nyc.gov domain' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!email.toLowerCase().endsWith('@schools.nyc.gov')) {
+      return jsonError(400, 'Email must be from @schools.nyc.gov domain');
     }
 
-    // Connect to database
+    const nextLevel = level === undefined ? 3 : Number(level);
+    if (!Number.isInteger(nextLevel) || nextLevel < 1 || nextLevel > 5) {
+      return jsonError(400, 'Level must be between 1 and 5');
+    }
+    if (nextLevel >= actor.level) {
+      return jsonError(403, 'Forbidden: You cannot create a user at or above your own level');
+    }
+    if (actor.level < 5 && nextLevel > 3) {
+      return jsonError(403, 'Forbidden: You can only create users with Level 1, 2, or 3');
+    }
+
+    const nextSchool = actor.level < 5
+      ? actor.schoolName
+      : (schoolName || '');
+    if (actor.level < 5 && schoolName && schoolName !== actor.schoolName) {
+      return jsonError(403, 'Forbidden: You can only create users at your school');
+    }
+
     await connectDB();
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return new Response(JSON.stringify({ error: 'User with this email already exists' }), {
-        status: 409,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonError(409, 'User with this email already exists');
     }
 
-    // Create new user
     const newUser = await User.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      level: level || 3,
-      schoolName: schoolName || '',
+      level: nextLevel,
+      schoolName: nextSchool,
       title: title || '',
       isActive: isActive !== undefined ? isActive : true,
     });
 
-    // Log the user creation
     const { logUserCreated } = require('../../../../lib/auditLogger');
-    // Create a request-like object for logging
     const requestObj = {
       headers: Object.fromEntries(request.headers || []),
       ip: null,
       connection: { remoteAddress: null },
     };
-    logUserCreated(session.user, newUser, requestObj).catch(err => 
+    logUserCreated(session.user, newUser, requestObj).catch((err) =>
       console.error('Error logging user creation:', err)
     );
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       message: 'User created successfully',
       user: {
         _id: newUser._id,
@@ -104,19 +83,15 @@ async function POST(request) {
         schoolName: newUser.schoolName,
         title: newUser.title,
         isActive: newUser.isActive,
-        createdAt: newUser.createdAt
-      }
+        createdAt: newUser.createdAt,
+      },
     }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' },
     });
-
   } catch (error) {
     console.error('Error creating user:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonError(500, 'Internal server error');
   }
 }
 

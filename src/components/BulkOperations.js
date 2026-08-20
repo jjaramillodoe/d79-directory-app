@@ -1,521 +1,468 @@
 'use client';
 
-import { useState } from 'react';
-import { 
-  CheckSquare, 
-  Square, 
-  Settings, 
-  Mail, 
-  FileText, 
-  Download, 
-  Upload,
-  Trash2,
-  Edit,
-  Copy,
-  Filter,
-  Search,
-  ChevronDown,
-  AlertCircle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  Column,
+  Row,
+  Text,
+  Button,
+  Card,
+  ProgressBar,
+  Tag,
+} from '@once-ui-system/core';
+import DashboardSection from './dashboard/DashboardSection';
+import FormStatusTag from './dashboard/FormStatusTag';
+import FormConfirmModal from './form-steps/FormConfirmModal';
+import useAppToast from '../hooks/useAppToast';
+import { inferSchoolYear } from '../lib/schoolYear';
+import { completedStepCount, stepProgressPercent, TOTAL_STEPS } from '../lib/formProgress';
 
-const BulkOperations = ({ forms, onUpdateForms }) => {
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All statuses' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'under_review', label: 'Under review' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
+const SORT_COLUMNS = [
+  { field: 'schoolName', label: 'School', width: '28%' },
+  { field: 'principalName', label: 'Principal', width: '18%' },
+  { field: 'schoolYear', label: 'Year', width: '12%' },
+  { field: 'status', label: 'Status', width: '14%' },
+  { field: 'progress', label: 'Progress', width: '16%' },
+  { field: 'updatedAt', label: 'Updated', width: '12%' },
+];
+
+function formatDate(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString();
+}
+
+function sortValue(form, field) {
+  switch (field) {
+    case 'schoolName':
+      return (form.schoolName || '').toLowerCase();
+    case 'principalName':
+      return (form.principalName || '').toLowerCase();
+    case 'schoolYear':
+      return inferSchoolYear(form);
+    case 'status':
+      return form.status || '';
+    case 'progress':
+      return completedStepCount(form);
+    case 'updatedAt':
+      return new Date(form.updatedAt || form.createdAt || 0).getTime();
+    default:
+      return '';
+  }
+}
+
+function SortHeader({ field, label, sortField, sortDirection, onSort }) {
+  const active = sortField === field;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      style={{
+        background: 'none',
+        border: 0,
+        padding: 0,
+        cursor: 'pointer',
+        textAlign: 'left',
+        color: 'inherit',
+      }}
+    >
+      <Text variant={active ? 'label-strong-s' : 'label-default-s'} onBackground={active ? 'brand-strong' : 'neutral-weak'}>
+        {label}
+        {active ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : ''}
+      </Text>
+    </button>
+  );
+}
+
+export default function BulkOperations({ forms, onUpdateForms }) {
+  const toast = useAppToast();
   const [selectedForms, setSelectedForms] = useState([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
-  const [bulkAction, setBulkAction] = useState('');
   const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [schoolYearFilter, setSchoolYearFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('schoolName');
+  const [sortDirection, setSortDirection] = useState('asc');
 
-  // Filter and search forms
-  const filteredForms = forms.filter(form => {
-    const matchesStatus = filterStatus === 'all' || form.status === filterStatus;
-    const matchesSearch = form.schoolName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         form.principalName?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  const schoolYears = useMemo(
+    () =>
+      Array.from(new Set(forms.map((form) => inferSchoolYear(form)).filter(Boolean))).sort().reverse(),
+    [forms]
+  );
 
-  // Handle form selection
-  const handleSelectForm = (formId) => {
-    if (selectedForms.includes(formId)) {
-      setSelectedForms(selectedForms.filter(id => id !== formId));
-    } else {
-      setSelectedForms([...selectedForms, formId]);
-    }
-  };
-
-  // Handle select all
-  const handleSelectAll = () => {
-    if (selectedForms.length === filteredForms.length) {
-      setSelectedForms([]);
-    } else {
-      setSelectedForms(filteredForms.map(form => form._id));
-    }
-  };
-
-  // Bulk status update
-  const handleBulkStatusUpdate = async (newStatus) => {
-    if (selectedForms.length === 0) return;
-
-    try {
-      // Simulate API call for bulk update
-      console.log(`Updating ${selectedForms.length} forms to status: ${newStatus}`);
-      
-      // Update local state (in real app, this would be handled by the parent component)
-      const updatedForms = forms.map(form => {
-        if (selectedForms.includes(form._id)) {
-          return { ...form, status: newStatus, updatedAt: new Date().toISOString() };
-        }
-        return form;
+  const filteredForms = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return forms
+      .filter((form) => {
+        const matchesStatus = filterStatus === 'all' || form.status === filterStatus;
+        const year = inferSchoolYear(form);
+        const matchesYear = schoolYearFilter === 'all' || year === schoolYearFilter;
+        const matchesSearch =
+          !query ||
+          (form.schoolName || '').toLowerCase().includes(query) ||
+          (form.principalName || '').toLowerCase().includes(query) ||
+          (form.principalEmail || '').toLowerCase().includes(query);
+        return matchesStatus && matchesYear && matchesSearch;
+      })
+      .sort((a, b) => {
+        const left = sortValue(a, sortField);
+        const right = sortValue(b, sortField);
+        if (left < right) return sortDirection === 'asc' ? -1 : 1;
+        if (left > right) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
       });
-
-      onUpdateForms?.(updatedForms);
-      setSelectedForms([]);
-      setShowBulkActions(false);
-      
-      alert(`Successfully updated ${selectedForms.length} forms to ${newStatus} status!`);
-    } catch (error) {
-      console.error('Error updating forms:', error);
-      alert('Error updating forms. Please try again.');
-    }
-  };
-
-  // Bulk email
-  const handleBulkEmail = async () => {
-    if (selectedForms.length === 0 || !emailSubject || !emailMessage) return;
-
-    try {
-      const selectedFormData = forms.filter(form => selectedForms.includes(form._id));
-      console.log('Sending email to:', selectedFormData.map(f => f.schoolName));
-      console.log('Subject:', emailSubject);
-      console.log('Message:', emailMessage);
-      
-      setSelectedForms([]);
-      setShowEmailComposer(false);
-      setEmailSubject('');
-      setEmailMessage('');
-      
-      alert(`Email sent to ${selectedForms.length} schools!`);
-    } catch (error) {
-      console.error('Error sending email:', error);
-      alert('Error sending email. Please try again.');
-    }
-  };
-
-  // Export selected forms
-  const handleExport = () => {
-    if (selectedForms.length === 0) return;
-
-    const selectedFormData = forms.filter(form => selectedForms.includes(form._id));
-    const csvData = selectedFormData.map(form => ({
-      'School Name': form.schoolName,
-      'Principal': form.principalName,
-      'Email': form.principalEmail,
-      'Status': form.status,
-      'Progress': `${form.completedSteps?.length || 0}/14`,
-      'Created': new Date(form.createdAt).toLocaleDateString(),
-      'Updated': new Date(form.updatedAt || form.createdAt).toLocaleDateString()
-    }));
-
-    // Convert to CSV
-    const headers = Object.keys(csvData[0]).join(',');
-    const rows = csvData.map(row => Object.values(row).join(','));
-    const csvContent = [headers, ...rows].join('\n');
-
-    // Download
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `school-plans-export-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-
-    alert(`Exported ${selectedForms.length} forms to CSV!`);
-  };
-
-  // Bulk delete forms
-  const handleBulkDelete = async () => {
-    if (selectedForms.length === 0) return;
-
-    const confirmMessage = `Are you sure you want to permanently delete ${selectedCount} form${selectedCount > 1 ? 's' : ''}?\n\nThis action cannot be undone.`;
-    
-    if (!confirm(confirmMessage)) return;
-
-    try {
-      // Show loading state
-      const deletePromises = selectedForms.map(formId => 
-        fetch(`/api/forms/${formId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-      );
-
-      const responses = await Promise.all(deletePromises);
-      
-      // Check if all deletions were successful
-      const failedDeletions = responses.filter(response => !response.ok);
-      
-      if (failedDeletions.length > 0) {
-        throw new Error(`${failedDeletions.length} deletion${failedDeletions.length > 1 ? 's' : ''} failed`);
-      }
-
-      // Update local state by removing deleted forms
-      const updatedForms = forms.filter(form => !selectedForms.includes(form._id));
-      onUpdateForms?.(updatedForms);
-      
-      // Clear selection and close bulk actions
-      setSelectedForms([]);
-      setShowBulkActions(false);
-      
-      alert(`Successfully deleted ${selectedCount} form${selectedCount > 1 ? 's' : ''}!`);
-    } catch (error) {
-      console.error('Error deleting forms:', error);
-      alert(`Error deleting forms: ${error.message}. Please try again.`);
-    }
-  };
-
-  // Get status color and icon
-  const getStatusStyle = (status) => {
-    const styles = {
-      draft: { color: 'text-gray-600', bg: 'bg-gray-100', icon: Edit },
-      submitted: { color: 'text-blue-600', bg: 'bg-blue-100', icon: FileText },
-      under_review: { color: 'text-orange-600', bg: 'bg-orange-100', icon: Clock },
-      approved: { color: 'text-green-600', bg: 'bg-green-100', icon: CheckCircle },
-      rejected: { color: 'text-red-600', bg: 'bg-red-100', icon: AlertCircle }
-    };
-    return styles[status] || styles.draft;
-  };
+  }, [forms, filterStatus, schoolYearFilter, searchTerm, sortField, sortDirection]);
 
   const selectedCount = selectedForms.length;
   const totalCount = filteredForms.length;
+  const allSelected = totalCount > 0 && selectedCount === totalCount;
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDirection(field === 'updatedAt' || field === 'progress' ? 'desc' : 'asc');
+  };
+
+  const handleSelectForm = (formId) => {
+    setSelectedForms((current) =>
+      current.includes(formId) ? current.filter((id) => id !== formId) : [...current, formId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedForms(allSelected ? [] : filteredForms.map((form) => form._id));
+  };
+
+  const handleBulkStatusUpdate = (newStatus) => {
+    if (selectedCount === 0) return;
+    const updatedForms = forms.map((form) =>
+      selectedForms.includes(form._id)
+        ? { ...form, status: newStatus, updatedAt: new Date().toISOString() }
+        : form
+    );
+    onUpdateForms?.(updatedForms);
+    setSelectedForms([]);
+    setShowBulkActions(false);
+    toast.success(`Updated ${selectedCount} plans to ${newStatus.replace('_', ' ')}`);
+  };
+
+  const handleBulkEmail = () => {
+    if (selectedCount === 0 || !emailSubject || !emailMessage) return;
+    setSelectedForms([]);
+    setShowEmailComposer(false);
+    setEmailSubject('');
+    setEmailMessage('');
+    toast.success(`Email queued for ${selectedCount} schools`);
+  };
+
+  const handleExport = () => {
+    if (selectedCount === 0) return;
+    const selectedFormData = forms.filter((form) => selectedForms.includes(form._id));
+    const csvData = selectedFormData.map((form) => ({
+      School: form.schoolName || '',
+      Principal: form.principalName || '',
+      Email: form.principalEmail || '',
+      Year: inferSchoolYear(form),
+      Status: form.status || '',
+      Progress: `${completedStepCount(form)}/${TOTAL_STEPS}`,
+      Updated: formatDate(form.updatedAt || form.createdAt),
+    }));
+    const headers = Object.keys(csvData[0]).join(',');
+    const rows = csvData.map((row) => Object.values(row).join(','));
+    const blob = new Blob([[headers, ...rows].join('\n')], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `school-plans-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    toast.success(`Exported ${selectedCount} plans`);
+  };
+
+  const handleBulkDelete = async () => {
+    setDeleting(true);
+    try {
+      const responses = await Promise.all(
+        selectedForms.map((formId) => fetch(`/api/forms/${formId}`, { method: 'DELETE' }))
+      );
+      const failed = responses.filter((response) => !response.ok).length;
+      if (failed) throw new Error(`${failed} delete${failed === 1 ? '' : 's'} failed`);
+      onUpdateForms?.(forms.filter((form) => !selectedForms.includes(form._id)));
+      setSelectedForms([]);
+      setShowBulkActions(false);
+      setShowDeleteConfirm(false);
+      toast.success(`Deleted ${selectedCount} plan${selectedCount === 1 ? '' : 's'}`);
+    } catch (error) {
+      toast.error(error.message || 'Could not delete plans');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Bulk Operations</h2>
-        <div className="flex items-center gap-3">
-          {selectedCount > 0 && (
-            <span className="text-sm text-gray-600">
-              {selectedCount} of {totalCount} selected
-            </span>
-          )}
-          <button
-            onClick={() => setShowBulkActions(!showBulkActions)}
-            disabled={selectedCount === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Settings className="w-4 h-4" />
-            Bulk Actions
-          </button>
-        </div>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+    <Column gap="24" fillWidth>
+      <DashboardSection
+        title="Plans"
+        description="Select rows, then export, email, or update status. Click a column header to sort."
+        actions={
+          <Row gap="8" vertical="center">
+            {selectedCount > 0 && (
+              <Text variant="label-default-s" onBackground="neutral-weak">
+                {selectedCount} of {totalCount} selected
+              </Text>
+            )}
+            <Button
+              size="s"
+              onClick={() => setShowBulkActions((open) => !open)}
+              disabled={selectedCount === 0}
+            >
+              {showBulkActions ? 'Hide actions' : 'Bulk actions'}
+            </Button>
+          </Row>
+        }
+      >
+        <Column gap="16" fillWidth>
+          <Row gap="12" wrap>
+            <Column gap="8" style={{ flex: 2, minWidth: 200 }}>
+              <Text variant="label-default-s">Search</Text>
               <input
-                type="text"
-                placeholder="Search schools or principals..."
+                className="app-field"
+                type="search"
+                placeholder="School, principal, or email"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(event) => setSearchTerm(event.target.value)}
               />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="all">All Statuses</option>
-              <option value="draft">Draft</option>
-              <option value="submitted">Submitted</option>
-              <option value="under_review">Under Review</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-        </div>
-      </div>
+            </Column>
+            <Column gap="8" style={{ minWidth: 160 }}>
+              <Text variant="label-default-s">School year</Text>
+              <select
+                className="app-field"
+                value={schoolYearFilter}
+                onChange={(event) => setSchoolYearFilter(event.target.value)}
+              >
+                <option value="all">All years</option>
+                {schoolYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </Column>
+            <Column gap="8" style={{ minWidth: 160 }}>
+              <Text variant="label-default-s">Status</Text>
+              <select
+                className="app-field"
+                value={filterStatus}
+                onChange={(event) => setFilterStatus(event.target.value)}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Column>
+          </Row>
 
-      {/* Bulk Actions Panel */}
-      {showBulkActions && selectedCount > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-blue-900">
-              Bulk Actions for {selectedCount} Selected Forms
-            </h3>
-            <button
-              onClick={() => setShowBulkActions(false)}
-              className="text-blue-600 hover:text-blue-800"
-            >
-              <ChevronDown className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Status Updates */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-blue-800">Update Status</h4>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleBulkStatusUpdate('draft')}
-                  className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
-                >
-                  Mark Draft
-                </button>
-                <button
-                  onClick={() => handleBulkStatusUpdate('submitted')}
-                  className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Mark Submitted
-                </button>
-                <button
-                  onClick={() => handleBulkStatusUpdate('under_review')}
-                  className="px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
-                >
-                  Mark Under Review
-                </button>
-                <button
-                  onClick={() => handleBulkStatusUpdate('approved')}
-                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleBulkStatusUpdate('rejected')}
-                  className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
+          {showBulkActions && selectedCount > 0 && (
+            <Card padding="16" radius="m" fillWidth background="neutral-weak">
+              <Column gap="12">
+                <Text variant="label-strong-s">Actions for {selectedCount} plans</Text>
+                <Row gap="8" wrap>
+                  <Button size="s" variant="secondary" onClick={() => handleBulkStatusUpdate('draft')}>
+                    Draft
+                  </Button>
+                  <Button size="s" variant="secondary" onClick={() => handleBulkStatusUpdate('submitted')}>
+                    Submitted
+                  </Button>
+                  <Button size="s" variant="secondary" onClick={() => handleBulkStatusUpdate('under_review')}>
+                    Under review
+                  </Button>
+                  <Button size="s" variant="secondary" onClick={() => handleBulkStatusUpdate('approved')}>
+                    Approve
+                  </Button>
+                  <Button size="s" variant="secondary" onClick={() => handleBulkStatusUpdate('rejected')}>
+                    Reject
+                  </Button>
+                  <Button size="s" variant="secondary" onClick={() => setShowEmailComposer(true)}>
+                    Email
+                  </Button>
+                  <Button size="s" variant="secondary" onClick={handleExport}>
+                    Export CSV
+                  </Button>
+                  <Button size="s" variant="danger" onClick={() => setShowDeleteConfirm(true)}>
+                    Delete
+                  </Button>
+                </Row>
+              </Column>
+            </Card>
+          )}
 
-            {/* Communication */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-blue-800">Communication</h4>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setShowEmailComposer(true)}
-                  className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 flex items-center gap-1"
-                >
-                  <Mail className="w-3 h-3" />
-                  Send Email
-                </button>
-              </div>
-            </div>
-
-            {/* Data Operations */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-blue-800">Data Operations</h4>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handleExport}
-                  className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 flex items-center gap-1"
-                >
-                  <Download className="w-3 h-3" />
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => alert('Duplicate feature coming soon!')}
-                  className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 flex items-center gap-1"
-                >
-                  <Copy className="w-3 h-3" />
-                  Duplicate
-                </button>
-              </div>
-            </div>
-
-            {/* Advanced */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-blue-800">Advanced</h4>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handleBulkDelete}
-                  className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 flex items-center gap-1"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Forms Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <label className="flex items-center">
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--neutral-alpha-medium)' }}>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', width: 44 }}>
                     <input
                       type="checkbox"
-                      checked={selectedCount === totalCount && totalCount > 0}
+                      checked={allSelected}
                       onChange={handleSelectAll}
-                      className="rounded border-gray-300"
+                      aria-label="Select all plans"
                     />
-                    <span className="ml-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Select All
-                    </span>
-                  </label>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  School
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Principal
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Progress
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Updated
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredForms.map((form) => {
-                const statusStyle = getStatusStyle(form.status);
-                const StatusIcon = statusStyle.icon;
-                const isSelected = selectedForms.includes(form._id);
-
-                return (
-                  <tr key={form._id} className={isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}>
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleSelectForm(form._id)}
-                        className="rounded border-gray-300"
+                  </th>
+                  {SORT_COLUMNS.map((column) => (
+                    <th
+                      key={column.field}
+                      style={{ textAlign: 'left', padding: '12px 8px', width: column.width }}
+                    >
+                      <SortHeader
+                        field={column.field}
+                        label={column.label}
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
                       />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{form.schoolName}</div>
-                        <div className="text-sm text-gray-500">{form.principalEmail}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{form.principalName}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.color}`}>
-                        <StatusIcon className="w-3 h-3" />
-                        {form.status?.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
-                            style={{ width: `${((form.completedSteps?.length || 0) / 14) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-gray-600">
-                          {form.completedSteps?.length || 0}/14
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(form.updatedAt || form.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        
-        {filteredForms.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
-            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p>No forms match your current filters.</p>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredForms.map((form) => {
+                  const selected = selectedForms.includes(form._id);
+                  const progress = stepProgressPercent(form, TOTAL_STEPS);
+                  const completed = completedStepCount(form);
+                  return (
+                    <tr
+                      key={form._id}
+                      style={{
+                        borderBottom: '1px solid var(--neutral-alpha-medium)',
+                        background: selected ? 'var(--brand-alpha-weak)' : undefined,
+                      }}
+                    >
+                      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => handleSelectForm(form._id)}
+                          aria-label={`Select ${form.schoolName}`}
+                        />
+                      </td>
+                      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                        <Column gap="4">
+                          <Row gap="8" vertical="center" wrap>
+                            <Text variant="label-strong-s">{form.schoolName}</Text>
+                            {form.locked && <Tag size="s" variant="warning" label="Archived" />}
+                            {form.yearArchived && form.allowEditsWhenArchived && (
+                              <Tag size="s" variant="success" label="Live" />
+                            )}
+                          </Row>
+                          <Text variant="label-default-s" onBackground="neutral-weak">
+                            {form.principalEmail}
+                          </Text>
+                        </Column>
+                      </td>
+                      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                        <Text variant="body-default-s">{form.principalName || '—'}</Text>
+                      </td>
+                      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                        <Text variant="body-default-s">{inferSchoolYear(form)}</Text>
+                      </td>
+                      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                        <FormStatusTag status={form.status} />
+                      </td>
+                      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                        <Column gap="4">
+                          <ProgressBar value={progress} label={false} barBackground="brand-strong" />
+                          <Text variant="label-default-s" onBackground="neutral-weak">
+                            {completed}/{TOTAL_STEPS}
+                          </Text>
+                        </Column>
+                      </td>
+                      <td style={{ padding: '12px 8px', verticalAlign: 'top' }}>
+                        <Text variant="label-default-s" onBackground="neutral-weak">
+                          {formatDate(form.updatedAt || form.createdAt)}
+                        </Text>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
 
-      {/* Email Composer Modal */}
+          {filteredForms.length === 0 && (
+            <Column horizontal="center" paddingY="32" gap="8">
+              <Text variant="heading-strong-s">No plans match these filters</Text>
+              <Text onBackground="neutral-weak">Try another year, status, or search.</Text>
+            </Column>
+          )}
+        </Column>
+      </DashboardSection>
+
       {showEmailComposer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Send Email to Selected Schools</h3>
-                <button
-                  onClick={() => setShowEmailComposer(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subject
-                </label>
+        <div className="app-modal-backdrop">
+          <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
+            <Column gap="16">
+              <Text variant="heading-strong-m">Email selected schools</Text>
+              <Text variant="body-default-s" onBackground="neutral-weak">
+                {selectedCount} recipient{selectedCount === 1 ? '' : 's'}
+              </Text>
+              <Column gap="8">
+                <Text variant="label-default-s">Subject</Text>
                 <input
-                  type="text"
+                  className="app-field"
                   value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Email subject..."
+                  onChange={(event) => setEmailSubject(event.target.value)}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Message
-                </label>
+              </Column>
+              <Column gap="8">
+                <Text variant="label-default-s">Message</Text>
                 <textarea
-                  value={emailMessage}
-                  onChange={(e) => setEmailMessage(e.target.value)}
+                  className="app-field"
                   rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Type your message here..."
+                  value={emailMessage}
+                  onChange={(event) => setEmailMessage(event.target.value)}
                 />
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  <strong>Recipients:</strong> {selectedCount} schools selected
-                </p>
-              </div>
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  onClick={() => setShowEmailComposer(false)}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
+              </Column>
+              <Row gap="8" horizontal="end">
+                <Button variant="secondary" onClick={() => setShowEmailComposer(false)}>
                   Cancel
-                </button>
-                <button
-                  onClick={handleBulkEmail}
-                  disabled={!emailSubject || !emailMessage}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Send Email
-                </button>
-              </div>
-            </div>
-          </div>
+                </Button>
+                <Button onClick={handleBulkEmail} disabled={!emailSubject || !emailMessage}>
+                  Send
+                </Button>
+              </Row>
+            </Column>
+          </Card>
         </div>
       )}
-    </div>
-  );
-};
 
-export default BulkOperations;
+      {showDeleteConfirm && (
+        <FormConfirmModal
+          title={`Delete ${selectedCount} plan${selectedCount === 1 ? '' : 's'}?`}
+          description="This cannot be undone."
+          confirmLabel="Delete"
+          busy={deleting}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleBulkDelete}
+        />
+      )}
+    </Column>
+  );
+}

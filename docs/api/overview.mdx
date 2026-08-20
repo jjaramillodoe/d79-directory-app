@@ -1,0 +1,90 @@
+---
+title: API overview
+description: Authn, status codes, and the route map for District 79 Directory.
+icon: code
+---
+
+All routes except `GET /api/public/overview` and NextAuth callbacks require a valid NextAuth session cookie. The [edge proxy](/architecture/security) returns `401` before the handler if the JWT is missing, inactive, or on the logout deny-list.
+
+Base URL (local): `http://localhost:3000`
+
+## Conventions
+
+- JSON request bodies unless noted (CSV/PDF/DOCX downloads).
+- Errors: `{ "error": "message" }` with `400` / `401` / `403` / `404` / `409` / `429` / `500`. Full catalog: [Errors and rate limits](/api/errors).
+- Dynamic `[id]` params are MongoDB ObjectIds.
+- Super Admin checks should reload `User.level` from MongoDB on mutating admin APIs.
+
+<Callout type="note">
+  There is no API key. Browser and `curl` callers must send the session cookie from Google sign-in.
+</Callout>
+
+## Route map
+
+<AccordionGroup>
+  <Accordion title="Public and auth">
+    - `GET` `POST` `/api/auth/[...nextauth]` — NextAuth (POST auth limited to 20 / 60s per IP)
+    - `GET` `/api/public/overview` — unauthenticated district snapshot (Redis 60s)
+    - `GET` `/api/question-bank` — published or JSON bank for the editor
+    - `GET` `POST` `PUT` `/api/school-year` — year settings; POST/PUT Super Admin
+  </Accordion>
+  <Accordion title="Forms">
+    Collection: `GET` `POST` `/api/forms`
+
+    Per plan: `GET` `PUT` `DELETE` `/api/forms/[id]`
+
+    Steps: `GET` `PUT` `/api/forms/[id]/step/[stepNumber]` · `POST` `.../unlock`
+
+    Year-over-year: `POST` `.../duplicate` · `GET` `.../compare` · `POST` `.../attest` · `POST` `.../review-flag`
+
+    Presence: `GET` `.../locks` · `GET` `.../editors` · `POST` `.../editors/register`
+
+    Review: `POST` `.../comments` (level 5) · `PUT` `.../comments/[commentId]` (`action`: `read` \| `fixed`)
+
+    Share / owner: `POST` `GET` `DELETE` `/api/admin/forms/share` · `POST` `/api/forms/[id]/share` (level 5 email share) · `POST` `/api/forms/transfer-ownership`
+
+    Export: `GET` `.../export/pdf` · `GET` `.../export/docx`
+
+    Details: [Forms API](/api/forms).
+  </Accordion>
+  <Accordion title="Admin">
+    Question bank, rollover, live override, year CSV, goals, reports, timeline, health — [Admin API](/api/admin) and [System health](/features/system).
+  </Accordion>
+  <Accordion title="Users">
+    `GET` `PUT` `DELETE` `/api/users` · `POST` `/api/users/create` · `POST` `/api/users/bulk` · `POST` `/api/users/bulk-import` · `PUT` `/api/users/[id]/permissions` · `GET` `/api/users/audit-logs`
+
+    Plus `GET` `/api/notifications` (review pings for the plan owner).
+
+    Details: [Users API](/api/users).
+  </Accordion>
+</AccordionGroup>
+
+## Public overview
+
+```bash
+curl -s http://localhost:3000/api/public/overview
+```
+
+<ResponseField name="currentYear" type="string">
+  July–June label from `currentSchoolYear()` (on 19 August 2026 this is `2026-2027`).
+</ResponseField>
+
+<ResponseField name="previousYear" type="string">
+  Prior cycle (`2025-2026`).
+</ResponseField>
+
+<ResponseField name="requiredPlans" type="number">
+  Section count from the published bank or `formQuestions.json`.
+</ResponseField>
+
+<ResponseField name="schoolsServed" type="number">
+  Distinct `schoolName` values with a plan.
+</ResponseField>
+
+<ResponseField name="currentYearPlans" type="number">
+  Plans whose `schoolYear` is the current cycle.
+</ResponseField>
+
+<ResponseField name="submittedThisYear" type="number">
+  Counts `submitted`, `under_review`, and `approved` for the current year.
+</ResponseField>

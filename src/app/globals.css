@@ -4,6 +4,11 @@
 
 /* Print styles for form viewer */
 @media print {
+  .app-footer,
+  .no-print {
+    display: none !important;
+  }
+
   /* Hide non-printable elements */
   .print-break-inside-avoid {
     break-inside: avoid;

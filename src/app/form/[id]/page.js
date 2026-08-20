@@ -1,70 +1,42 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  Clock, 
-  Save, 
-  Send,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  AlertCircle,
-  Loader2,
-  X,
-  Target,
-  BarChart3,
-  Trophy,
-  Award,
-  BookOpen,
-  Home,
-  ClipboardList,
-  RefreshCw,
-  Shield,
-  MessageSquare,
-  Check,
-  Eye,
-  Edit,
-  Share2,
-  Mail,
-  Users,
-} from 'lucide-react';
 
 // Import form step components
 import Step1TableOfContents from '../../../components/form-steps/Step1TableOfContents';
-//import Step2PrincipalLetter from '../../../components/form-steps/Step2PrincipalLetter';
-import Step3ChildAbusePreventionPlan from '../../../components/form-steps/Step3ChildAbusePreventionPlan';
-import Step4StudenttoStudentSexualHarassment from '../../../components/form-steps/Step4StudenttoStudentSexualHarassment';
-import Step5RespectForAllPlan from '../../../components/form-steps/Step5RespectForAllPlan';
-import Step6SchoolCrisisInterventionPlan from '../../../components/form-steps/Step6SchoolCrisisInterventionPlan';
-import Step7SchoolAttendancePlan from '../../../components/form-steps/Step7SchoolAttendancePlan';
-import Step8StudentsinTemporaryHousingProgramPlan from '../../../components/form-steps/Step8StudentsinTemporaryHousingProgramPlan';
-import Step9ServiceInSchoolsPlan from '../../../components/form-steps/Step9ServiceInSchoolsPlan';
-import Step10PlanningInterviews from '../../../components/form-steps/Step10PlanningInterviews';
-import Step11MilitaryRecruitmentOptOut from '../../../components/form-steps/Step11MilitaryRecruitmentOptOut';
-import Step12SchoolCulturePlan from '../../../components/form-steps/Step12SchoolCulturePlan';
-import Step13AfterSchoolPrograms from '../../../components/form-steps/Step13AfterSchoolPrograms';
-import Step14CellPhonePolicy from '../../../components/form-steps/Step14CellPhonePolicy';
-import Step15SchoolCounselingPlan from '../../../components/form-steps/Step15SchoolCounselingPlan';
+import GenericFormStep from '../../../components/form-steps/GenericFormStep';
 import DefaultFormStep from '../../../components/form-steps/DefaultFormStep';
+import FormWorkspace from '../../../components/form-steps/FormWorkspace';
+import FormStepMeta from '../../../components/form-steps/FormStepMeta';
+import FormSubmitSummary from '../../../components/form-steps/FormSubmitSummary';
+import DuplicateFormModal from '../../../components/admin/DuplicateFormModal';
+import FormAttestModal from '../../../components/form-steps/FormAttestModal';
+import FormShareModal from '../../../components/form-steps/FormShareModal';
+import FormCommentModal from '../../../components/form-steps/FormCommentModal';
+import FormConfirmModal from '../../../components/form-steps/FormConfirmModal';
 import ScrollToTop from '../../../components/ScrollToTop';
-import formQuestionsData from '../../../data/formQuestions.json';
+import useQuestionBank from '../../../hooks/useQuestionBank';
+import useAppToast from '../../../hooks/useAppToast';
+import { Spinner, Column, Row, Text, Button } from '@once-ui-system/core';
 
-export default function FormPage() {
+function FormPageContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const formId = params.id;
   const { data: session, status } = useSession();
+  const toast = useAppToast();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     schoolName: '',
     status: 'draft'
+  });
+  const { questionBank } = useQuestionBank({
+    schoolYear: formData.schoolYear,
+    version: formData.questionBankVersion,
   });
   const [collaborationInfo, setCollaborationInfo] = useState(null);
   const [userPermissions, setUserPermissions] = useState(null); // 'owner', 'edit', 'view', or null
@@ -84,6 +56,18 @@ export default function FormPage() {
   const [commentText, setCommentText] = useState('');
   const [commentStatus, setCommentStatus] = useState('under_review');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showAttestModal, setShowAttestModal] = useState(false);
+  const [submitConfirm, setSubmitConfirm] = useState(null);
+  const [unshareEmail, setUnshareEmail] = useState('');
+  const [attestName, setAttestName] = useState('');
+  const [needsUpdate, setNeedsUpdate] = useState([]);
+  const [formLocked, setFormLocked] = useState(false);
+  const [yearArchived, setYearArchived] = useState(false);
+  const [allowEditsWhenArchived, setAllowEditsWhenArchived] = useState(false);
+  const [formDeadlines, setFormDeadlines] = useState([]);
+  const [attestation, setAttestation] = useState(null);
+  const [duplicatedFrom, setDuplicatedFrom] = useState(null);
   const [shareEmails, setShareEmails] = useState('');
   const [sharePermissions, setSharePermissions] = useState('view');
   const [sharedWithEmails, setSharedWithEmails] = useState([]);
@@ -124,7 +108,7 @@ export default function FormPage() {
       loadFormData();
     } else if (session && (!formId || formId === 'undefined' || formId === 'null')) {
       console.error('Invalid form ID:', formId);
-      alert('Invalid form ID. Redirecting to dashboard...');
+      toast.error('Invalid form ID. Redirecting to dashboard…');
       setTimeout(() => router.push('/dashboard'), 500);
     }
   }, [session, formId, router]);
@@ -253,23 +237,19 @@ export default function FormPage() {
     }
   };
 
-  const FORM_STEPS = [
-    { id: 1, title: 'Table of Contents' },
-    //{ id: 2, title: 'Principal Letter' },
-    { id: 2, title: 'Child Abuse and Neglect Intervention' },
-    { id: 3, title: 'Student to Student Sexual Harassment' },
-    { id: 4, title: 'Respect For All Plan' },
-    { id: 5, title: 'Suicide Prevention and Crisis Intervention' },
-    { id: 6, title: 'School Attendance Plan' },
-    { id: 7, title: 'Students in Temporary Housing Program' },
-    { id: 8, title: 'Service In Schools Plan' },
-    { id: 9, title: 'Planning Interviews' },
-    { id: 10, title: 'Military Recruitment Opt-Out' },
-    { id: 11, title: 'School Culture Plan' },
-    { id: 12, title: 'After School Programs' },
-    { id: 13, title: 'Cell Phone Policy' },
-    { id: 14, title: 'School Counseling Plan' },
-  ];
+  const FORM_STEPS = (questionBank.steps || []).map((step, index) => ({
+    id: index + 1,
+    title: step.title,
+    key: step.key,
+  }));
+  const bankStepKeys = FORM_STEPS.map((step) => step.key);
+
+  const getStepKey = (step) => FORM_STEPS[step - 1]?.key || null;
+
+  const getStepNumberFromKey = (stepKey) => {
+    const index = bankStepKeys.indexOf(stepKey);
+    return index >= 0 ? index + 1 : 0;
+  };
 
   // Register as active editor and poll for active editors when step changes
   useEffect(() => {
@@ -292,10 +272,15 @@ export default function FormPage() {
   }, [formId, session, currentStep]);
 
   // Enhanced save function with retry logic for connection issues
-  const saveCurrentStep = async (retries = 3, mergeStrategy = 'last-write-wins') => {
+  const saveCurrentStep = async (retries = 3, mergeStrategy = 'reject') => {
     // Check permissions before attempting to save
     if (userPermissions === 'view') {
       const error = new Error('You only have view permissions on this form. Please contact an administrator to grant edit access.');
+      setSaveError(error.message);
+      throw error;
+    }
+    if (formLocked) {
+      const error = new Error('This school year is archived and read-only.');
       setSaveError(error.message);
       throw error;
     }
@@ -310,25 +295,9 @@ export default function FormPage() {
     
     // Get step key and number
     const stepKey = getStepKey(currentStep);
-    const stepNumberMap = {
-      'tableOfContents': 1,
-      'childAbuseIntervention': 2,
-      'sexualHarassment': 3,
-      'respectForAll': 4,
-      'suicidePrevention': 5,
-      'attendancePlan': 6,
-      'temporaryHousing': 7,
-      'serviceInSchools': 8,
-      'planningInterviews': 9,
-      'militaryRecruitment': 10,
-      'schoolCulture': 11,
-      'afterSchoolPrograms': 12,
-      'cellPhonePolicy': 13,
-      'counselingPlan': 14
-    };
-    const stepNumber = stepNumberMap[stepKey];
+    const stepNumber = currentStep;
     
-    if (!stepNumber) {
+    if (!stepKey || !stepNumber) {
       throw new Error('Unknown step');
     }
     
@@ -339,8 +308,9 @@ export default function FormPage() {
     // Use step-level API endpoint for atomic updates with conflict detection
     const apiPayload = {
       stepData: currentStepData,
-      lastUpdated: lastUpdated, // Send for conflict detection
-      mergeStrategy: mergeStrategy // 'last-write-wins', 'merge', or 'reject'
+      lastUpdated: lastUpdated,
+      revisionCount: currentStepDataObj?.revisionCount ?? 0,
+      mergeStrategy: mergeStrategy
     };
 
     // Log that we're using the new step-level API (for debugging)
@@ -404,13 +374,15 @@ export default function FormPage() {
                 [stepKey]: {
                   ...prev[stepKey],
                   data: mergedData,
-                  lastUpdated: errorData.serverLastUpdated
+                  lastUpdated: errorData.serverLastUpdated,
+                  revisionCount: errorData.serverRevision
                 }
               }));
               
               // Retry with merged data
               apiPayload.stepData = mergedData;
               apiPayload.lastUpdated = errorData.serverLastUpdated;
+              apiPayload.revisionCount = errorData.serverRevision;
               await new Promise(resolve => setTimeout(resolve, 500));
               continue;
             }
@@ -461,12 +433,13 @@ export default function FormPage() {
         if (result.stepData) {
           setStepData(prev => ({
             ...prev,
-            [stepKey]: {
-              ...prev[stepKey],
-              ...result.stepData,
-              data: currentStepData, // Keep our current data
-              lastUpdated: result.lastUpdated
-            }
+                [stepKey]: {
+                  ...prev[stepKey],
+                  ...result.stepData,
+                  data: result.stepData?.data || currentStepData,
+                  lastUpdated: result.lastUpdated,
+                  revisionCount: result.revisionCount
+                }
           }));
         } else {
           // Fallback: update with what we know
@@ -476,7 +449,8 @@ export default function FormPage() {
               ...prev[stepKey],
               completed: hasData,
               data: currentStepData,
-              lastUpdated: result.lastUpdated || new Date()
+              lastUpdated: result.lastUpdated || new Date(),
+              revisionCount: result.revisionCount
             }
           }));
         }
@@ -626,38 +600,9 @@ export default function FormPage() {
     }
   };
 
-  // Map step numbers to form data section names
-  const getStepKey = (step) => {
-    const stepMap = {
-      1: 'tableOfContents',
-      2: 'childAbuseIntervention',
-      3: 'sexualHarassment',
-      4: 'respectForAll',
-      5: 'suicidePrevention',
-      6: 'attendancePlan',
-      7: 'temporaryHousing',
-      8: 'serviceInSchools',
-      9: 'planningInterviews',
-      10: 'militaryRecruitment',
-      11: 'schoolCulture',
-      12: 'afterSchoolPrograms',
-      13: 'cellPhonePolicy',
-      14: 'counselingPlan'
-    };
-    return stepMap[step] || `step${step}`;
-  };
-
   // Enhanced updateStepData with optimized auto-save capability
   const updateStepData = (stepKey, data) => {
-    // stepKey can be either the field name (for backward compatibility) or the actual step key
-    const actualStepKey = stepKey === 'tableOfContents' || stepKey === 'principalLetter' || 
-                         stepKey === 'childAbuseIntervention' || stepKey === 'sexualHarassment' || 
-                         stepKey === 'respectForAll' || stepKey === 'suicidePrevention' || 
-                         stepKey === 'attendancePlan' || stepKey === 'temporaryHousing' || 
-                         stepKey === 'serviceInSchools' || stepKey === 'planningInterviews' || 
-                         stepKey === 'militaryRecruitment' || stepKey === 'schoolCulture' || 
-                         stepKey === 'afterSchoolPrograms' || stepKey === 'cellPhonePolicy' || 
-                         stepKey === 'counselingPlan' ? stepKey : getStepKey(currentStep);
+    const actualStepKey = bankStepKeys.includes(stepKey) ? stepKey : getStepKey(currentStep);
     
     setStepData(prev => {
       const newStepData = {
@@ -685,57 +630,43 @@ export default function FormPage() {
     }, 360000); // 6 minutes
     setSaveReminderTimeout(reminderTimeout);
 
-    // Debounced auto-save - only save after 5 minutes (300 seconds) of inactivity
-    // Significantly reduced frequency to prevent 429 errors and excessive MongoDB calls
-    // Users can always use "Save Draft" button for immediate saves
-    // IMPORTANT: Capture the data and stepKey at the time of update, not when timeout fires
-    // This ensures we save the actual data that was just updated, not stale state
+    // Debounced auto-save after 3 seconds of inactivity
     const stepKeyToSave = actualStepKey;
-    const dataToSave = { ...data }; // Create a copy of the data to save
+    const dataToSave = { ...data };
     
-    // Clear any existing auto-save timeout to prevent multiple queued saves
     if (window.autoSaveTimeout) {
       clearTimeout(window.autoSaveTimeout);
       window.autoSaveTimeout = null;
     }
     
-    // Prevent too many simultaneous saves by checking if a save is already in progress
     if (window.autoSaveInProgress) {
-      // If a save is in progress, just update the data to save and extend the timeout
       window.pendingAutoSaveData = { stepKey: stepKeyToSave, data: dataToSave };
       return;
     }
+
+    const flushAutoSave = (saveData) => {
+      if (!saveData?.data || Object.keys(saveData.data).length === 0) return;
+      window.autoSaveInProgress = true;
+      saveStepDataDirectly(saveData.stepKey, saveData.data, true)
+        .then(() => {
+          window.autoSaveInProgress = false;
+          const pending = window.pendingAutoSaveData;
+          window.pendingAutoSaveData = null;
+          if (pending) {
+            window.autoSaveTimeout = setTimeout(() => flushAutoSave(pending), 3000);
+          }
+        })
+        .catch((error) => {
+          console.error('Auto-save failed:', error);
+          window.autoSaveInProgress = false;
+        });
+    };
     
     window.autoSaveTimeout = setTimeout(() => {
-      // Check if there's pending data (from rapid typing)
       const saveData = window.pendingAutoSaveData || { stepKey: stepKeyToSave, data: dataToSave };
       window.pendingAutoSaveData = null;
-      
-      if (Object.keys(saveData.data).length > 0) {
-        // Mark that a save is in progress
-        window.autoSaveInProgress = true;
-        
-        // Save the specific step data that was just updated
-        saveStepDataDirectly(saveData.stepKey, saveData.data, true)
-          .then(() => {
-            window.autoSaveInProgress = false;
-            console.log('Auto-save completed successfully');
-          })
-          .catch(error => {
-            console.error('Auto-save failed:', error);
-            window.autoSaveInProgress = false;
-            // If it's a 429 error, wait longer before next save
-            if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
-              console.warn('Rate limited (429), will wait longer before next auto-save');
-              // Clear any pending auto-save and wait 5 minutes
-              if (window.autoSaveTimeout) {
-                clearTimeout(window.autoSaveTimeout);
-                window.autoSaveTimeout = null;
-              }
-            }
-          });
-      }
-    }, 300000); // Save after 5 minutes (300 seconds) of inactivity - significantly reduced frequency to prevent 429 errors
+      flushAutoSave(saveData);
+    }, 3000);
   };
 
   const getCurrentStepData = () => {
@@ -747,7 +678,7 @@ export default function FormPage() {
   };
 
   // Helper function to save step data directly using step-level API (prevents overwrites)
-  const saveStepDataDirectly = async (stepKey, stepDataToSave, silent = true, mergeStrategy = 'last-write-wins') => {
+  const saveStepDataDirectly = async (stepKey, stepDataToSave, silent = true, mergeStrategy = 'merge') => {
     if (!stepDataToSave || Object.keys(stepDataToSave).length === 0) {
       return { success: true, message: 'No data to save' };
     }
@@ -762,48 +693,7 @@ export default function FormPage() {
       return { success: false, message: 'View-only permissions' };
     }
     
-    // Rate limiting: Check if we've made too many requests recently
-    const now = Date.now();
-    if (!window.saveRequestHistory) {
-      window.saveRequestHistory = [];
-    }
-    
-    // Remove requests older than 5 minutes
-    window.saveRequestHistory = window.saveRequestHistory.filter(
-      timestamp => now - timestamp < 300000 // 5 minutes
-    );
-    
-    // If we've made more than 5 requests in the last 5 minutes, wait a bit
-    if (window.saveRequestHistory.length >= 5) {
-      const waitTime = 5000; // Wait 5 seconds
-      console.warn(`Rate limit protection: Too many saves (${window.saveRequestHistory.length} in last 5 minutes), waiting ${waitTime}ms`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      window.saveRequestHistory = window.saveRequestHistory.filter(
-        timestamp => Date.now() - timestamp < 300000
-      );
-    }
-    
-    // Record this request
-    window.saveRequestHistory.push(now);
-    
-    // Get the step number from stepKey
-    const stepNumberMap = {
-      'tableOfContents': 1,
-      'childAbuseIntervention': 2,
-      'sexualHarassment': 3,
-      'respectForAll': 4,
-      'suicidePrevention': 5,
-      'attendancePlan': 6,
-      'temporaryHousing': 7,
-      'serviceInSchools': 8,
-      'planningInterviews': 9,
-      'militaryRecruitment': 10,
-      'schoolCulture': 11,
-      'afterSchoolPrograms': 12,
-      'cellPhonePolicy': 13,
-      'counselingPlan': 14
-    };
-    const stepNumber = stepNumberMap[stepKey];
+    const stepNumber = getStepNumberFromKey(stepKey);
     
     if (!stepNumber) {
       console.error('Unknown step key:', stepKey);
@@ -817,8 +707,9 @@ export default function FormPage() {
     // Use step-level API endpoint for atomic updates
     const apiPayload = {
       stepData: stepDataToSave,
-      lastUpdated: lastUpdated, // Send for conflict detection
-      mergeStrategy: mergeStrategy // 'last-write-wins', 'merge', or 'reject'
+      lastUpdated: lastUpdated,
+      revisionCount: currentStepData?.revisionCount ?? 0,
+      mergeStrategy: mergeStrategy
     };
     
     const retries = 3;
@@ -868,13 +759,15 @@ export default function FormPage() {
                 [stepKey]: {
                   ...prev[stepKey],
                   data: mergedData,
-                  lastUpdated: errorData.serverLastUpdated
+                  lastUpdated: errorData.serverLastUpdated,
+                  revisionCount: errorData.serverRevision
                 }
               }));
               
               // Retry with merged data
               apiPayload.stepData = mergedData;
               apiPayload.lastUpdated = errorData.serverLastUpdated;
+              apiPayload.revisionCount = errorData.serverRevision;
               await new Promise(resolve => setTimeout(resolve, 500));
               continue;
             }
@@ -935,7 +828,8 @@ export default function FormPage() {
             [stepKey]: {
               ...prev[stepKey],
               ...result.stepData,
-              lastUpdated: result.lastUpdated
+              lastUpdated: result.lastUpdated,
+              revisionCount: result.revisionCount
             }
           }));
         }
@@ -1021,59 +915,26 @@ export default function FormPage() {
     }, 300);
   }, [currentStep]);
 
-  // Silent periodic auto-save - every 10 minutes to prevent data loss
-  // Significantly reduced frequency to avoid overwhelming the server and prevent 429 errors
-  // Users have plenty of time to fill out forms and can use "Save Draft" for immediate saves
+  // Backup periodic save in case debounce is skipped while a save is in flight
   useEffect(() => {
     const interval = setInterval(() => {
-      // Skip periodic save if a save is already in progress or if debounced save is pending
       if (window.autoSaveInProgress || window.autoSaveTimeout) {
-        return; // Skip this cycle to avoid overwhelming the server
+        return;
       }
       
       const stepKey = getStepKey(currentStep);
       const currentStepData = stepData[stepKey]?.data || {};
       if (Object.keys(currentStepData).length > 0) {
-        // Mark that a save is in progress
         window.autoSaveInProgress = true;
-        
-        // Use direct save function to ensure we save the actual current state
         saveStepDataDirectly(stepKey, currentStepData, true)
           .then(() => {
             window.autoSaveInProgress = false;
-            console.log('Periodic auto-save completed');
           })
-          .catch(error => {
-            // Silently handle errors - don't interrupt user
-            console.error('Periodic auto-save failed:', error);
+          .catch(() => {
             window.autoSaveInProgress = false;
-            
-            // If it's a 429 error, extend the interval significantly
-            if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
-              console.warn('Rate limited (429) during periodic save, extending interval to 10 minutes');
-              // Clear the interval and restart with much longer delay
-              clearInterval(interval);
-              setTimeout(() => {
-                // Restart periodic saves after 10 minutes
-                const newInterval = setInterval(() => {
-                  if (window.autoSaveInProgress || window.autoSaveTimeout) {
-                    return;
-                  }
-                  const stepKey = getStepKey(currentStep);
-                  const currentStepData = stepData[stepKey]?.data || {};
-                  if (Object.keys(currentStepData).length > 0) {
-                    window.autoSaveInProgress = true;
-                    saveStepDataDirectly(stepKey, currentStepData, true)
-                      .then(() => { window.autoSaveInProgress = false; })
-                      .catch(() => { window.autoSaveInProgress = false; });
-                  }
-                }, 600000); // 10 minutes after rate limit
-                return () => clearInterval(newInterval);
-              }, 600000);
-            }
           });
       }
-    }, 600000); // Auto-save every 10 minutes (600,000ms = 10 minutes) - significantly reduced to prevent 429 errors
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [currentStep, stepData]);
@@ -1117,7 +978,7 @@ export default function FormPage() {
         
         // If it's a permission error, redirect to dashboard
         if (response.status === 403 || response.status === 401) {
-          alert(`Access denied: ${errorMessage}`);
+          toast.error(`Access denied: ${errorMessage}`);
           router.push('/dashboard');
           return;
         }
@@ -1135,8 +996,18 @@ export default function FormPage() {
       if (data.form) {
         setFormData({
           schoolName: data.form.schoolName || '',
-          status: data.form.status || 'draft'
+          status: data.form.status || 'draft',
+          schoolYear: data.form.schoolYear || '',
+          createdAt: data.form.createdAt,
+          questionBankVersion: data.form.questionBankVersion || null,
         });
+        setFormLocked(Boolean(data.form.locked));
+        setYearArchived(Boolean(data.form.yearArchived));
+        setAllowEditsWhenArchived(Boolean(data.form.allowEditsWhenArchived));
+        setNeedsUpdate(data.form.needsUpdate || []);
+        setFormDeadlines(data.form.deadlines || []);
+        setAttestation(data.form.attestation || null);
+        setDuplicatedFrom(data.form.duplicatedFrom || null);
         setCurrentStep(data.form.currentStep || 1);
         // Register as active editor when form loads
         if (formId && session) {
@@ -1186,7 +1057,7 @@ export default function FormPage() {
         
         // Ensure stepData is properly initialized with all steps
         const loadedStepData = data.form.formData || {};
-        const stepKeys = [
+        const stepKeys = bankStepKeys.length ? bankStepKeys : [
           'tableOfContents', 'childAbuseIntervention',
           'sexualHarassment', 'respectForAll', 'suicidePrevention',
           'attendancePlan', 'temporaryHousing', 'serviceInSchools',
@@ -1217,7 +1088,7 @@ export default function FormPage() {
           }
           
           initializedStepData[key] = {
-            completed: stepInfo?.completed || false,
+            completed: Boolean(stepInfo?.completed) || Object.keys(stepData).length > 0,
             data: stepData,
             startedAt: stepInfo?.startedAt || null,
             lastUpdated: stepInfo?.lastUpdated || null,
@@ -1239,7 +1110,7 @@ export default function FormPage() {
       const errorMessage = error.message || 'Unknown error occurred';
       
       // Show error to user before redirecting
-      alert(`Failed to load form: ${errorMessage}\n\nRedirecting to dashboard...`);
+      toast.error(`Failed to load form: ${errorMessage}`);
       
       // Redirect back to dashboard after showing error
       setTimeout(() => {
@@ -1315,137 +1186,58 @@ export default function FormPage() {
 
   const renderFormStep = () => {
     const currentStepData = getCurrentStepData();
-    
-    switch (currentStep) {
-      case 1:
-        return (
-          <Step1TableOfContents 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            navigateToStep={navigateToStep}
-            allStepData={stepData}
-            currentStep={currentStep}
-          />
-        );
-      //case 2:
-        /*return (
-          <Step2PrincipalLetter 
-            stepData={currentStepData} 
-            updateStepData={updateStepData} 
-          />
-        );*/
-      case 2:
-        return (
-          <Step3ChildAbusePreventionPlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 3:
-        return (
-          <Step4StudenttoStudentSexualHarassment 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 4:
-        return (
-          <Step5RespectForAllPlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 5:
-        return (
-          <Step6SchoolCrisisInterventionPlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 6:
-        return (
-          <Step7SchoolAttendancePlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 7:
-        return (
-          <Step8StudentsinTemporaryHousingProgramPlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 8:
-        return (
-          <Step9ServiceInSchoolsPlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 9:
-        return (
-          <Step10PlanningInterviews 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 10:
-        return (
-          <Step11MilitaryRecruitmentOptOut 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 11:
-        return (
-          <Step12SchoolCulturePlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 12:
-        return (
-          <Step13AfterSchoolPrograms 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 13:
-        return (
-          <Step14CellPhonePolicy 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      case 14:
-        return (
-          <Step15SchoolCounselingPlan 
-            stepData={currentStepData} 
-            updateStepData={updateStepData}
-            currentStep={currentStep}
-          />
-        );
-      default:
-        return (
-          <DefaultFormStep 
-            currentStep={currentStep} 
-            stepTitle={FORM_STEPS[currentStep - 1]?.title} 
-          />
-        );
+    const stepKey = getStepKey(currentStep);
+    const stepConfig = questionBank.steps.find((step) => step.key === stepKey);
+    const stepQuestions = stepConfig?.questions || [];
+    const stepTitle = `Section ${currentStep}: ${FORM_STEPS[currentStep - 1]?.title || stepConfig?.title || ''}`;
+
+    if (currentStep === 1) {
+      return (
+        <Step1TableOfContents 
+          stepData={currentStepData} 
+          updateStepData={updateStepData}
+          navigateToStep={navigateToStep}
+          allStepData={stepData}
+          currentStep={currentStep}
+          questions={stepQuestions}
+          formSteps={FORM_STEPS}
+          readOnly={formLocked || userPermissions === 'view'}
+        />
+      );
     }
+
+    if (stepConfig) {
+      return (
+        <GenericFormStep
+          stepKey={stepKey}
+          stepTitle={stepTitle}
+          questions={stepQuestions}
+          stepData={currentStepData}
+          updateStepData={updateStepData}
+          currentStep={currentStep}
+          readOnly={formLocked || userPermissions === 'view'}
+          needsUpdate={needsUpdate.filter((item) => item.stepKey === stepKey || !item.stepKey)}
+          onReviewQuestion={async (questionId) => {
+            const response = await fetch(`/api/forms/${formId}/review-flag`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ questionId }),
+            });
+            if (response.ok) {
+              const payload = await response.json();
+              setNeedsUpdate(payload.needsUpdate || []);
+            }
+          }}
+        />
+      );
+    }
+
+    return (
+      <DefaultFormStep 
+        currentStep={currentStep} 
+        stepTitle={FORM_STEPS[currentStep - 1]?.title} 
+      />
+    );
   };
 
   // Save Now - saves and redirects to dashboard
@@ -1456,9 +1248,7 @@ export default function FormPage() {
       
       if (result.success) {
         const completionStatus = getCompletionStatus();
-        const saveMessage = `✅ Step ${currentStep} saved successfully!\n\n📊 Progress: ${completionStatus.completed}/${completionStatus.total} steps completed (${completionStatus.percentage}%)\n\n🎯 Redirecting to dashboard in 3 seconds...`;
-        
-        alert(saveMessage);
+        toast.success(`Step ${currentStep} saved. ${completionStatus.completed}/${completionStatus.total} steps complete. Redirecting…`);
         
         // Set redirecting state and auto-redirect to dashboard after 3 seconds
         setRedirecting(true);
@@ -1484,7 +1274,7 @@ export default function FormPage() {
       }
     } catch (error) {
       console.error('Error saving form:', error);
-      alert(`❌ Failed to save form: ${error.message}. Please try again.`);
+      toast.error(`Failed to save form: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -1506,15 +1296,13 @@ export default function FormPage() {
       if (result.success) {
         const completionStatus = getCompletionStatus();
         // Show a brief success message without redirect
-        const saveMessage = `✅ Draft saved successfully!\n\n📊 Progress: ${completionStatus.completed}/${completionStatus.total} steps completed (${completionStatus.percentage}%)\n\n💾 Your work has been saved. You can continue editing.`;
-        
-        alert(saveMessage);
+        toast.success(`Draft saved. ${completionStatus.completed}/${completionStatus.total} steps complete.`);
       } else {
         throw new Error(result.message || 'Save failed');
       }
     } catch (error) {
       console.error('Error saving draft:', error);
-      alert(`❌ Failed to save draft: ${error.message}. Please try again.`);
+      toast.error(`Failed to save draft: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -1523,65 +1311,37 @@ export default function FormPage() {
   const handleSubmit = async () => {
     setSaving(true);
     try {
-      // First save the current step
       await saveCurrentStep();
-      
-      // Reload form data to ensure we have the latest saved data
       await loadFormData();
-
-      // Validate form data before submission
       const validation = validateFormData();
-      if (!validation.isValid) {
-        // Show validation errors but allow user to proceed if they want
-        const errorMessage = `The following steps appear to have no data:\n\n${validation.errors.join('\n')}\n\nWould you like to submit anyway? You can always edit the form later.`;
-        const shouldProceed = confirm(errorMessage);
-        if (!shouldProceed) {
-          setSaving(false);
-          return;
-        }
-      }
-
-      // Check if all steps are completed
-      const allStepsCompleted = checkAllStepsCompleted();
-      if (!allStepsCompleted) {
-        const confirmSubmit = confirm(
-          'Some steps are not marked as completed. Are you sure you want to submit the form? You can always edit it later.'
+      const completion = getCompletionStatus();
+      const warnings = [...(validation.errors || [])];
+      if (completion.completed < completion.total) {
+        warnings.push(
+          `${completion.total - completion.completed} of ${completion.total} sections are not fully complete.`
         );
-        if (!confirmSubmit) {
-          setSaving(false);
-          return;
-        }
       }
+      setSubmitConfirm({ warnings, completion });
+    } catch (error) {
+      console.error('Error preparing submission:', error);
+      toast.error(`Could not prepare submission: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      // Final confirmation before submission
-      const finalConfirm = confirm(
-        `🚀 Ready to submit your School Plan Form?\n\n` +
-        `📊 Progress: ${getCompletionStatus().completed}/${getCompletionStatus().total} steps completed\n` +
-        `📝 School: ${formData.schoolName}\n` +
-        `👤 Principal: ${session.user.name}\n\n` +
-        `This will submit your form for administrative review. You can still edit it later if needed.\n\n` +
-        `Click OK to submit, or Cancel to continue editing.`
-      );
-
-      if (!finalConfirm) {
-        setSaving(false);
-        return;
-      }
-
-             // Get completion status for submission
-       const completionStatus = getCompletionStatus();
-
-      // Submit the complete form with all step data
+  const performSubmit = async () => {
+    setSaving(true);
+    try {
+      const allStepsCompleted = checkAllStepsCompleted();
       const response = await fetch(`/api/forms/${formId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'submit',
-          currentStep: currentStep,
-          formData: stepData, // Send all collected form data
-          allStepsCompleted: allStepsCompleted
+          currentStep,
+          formData: stepData,
+          allStepsCompleted,
         }),
       });
 
@@ -1590,31 +1350,12 @@ export default function FormPage() {
       }
 
       const result = await response.json();
-      
       if (result.success) {
-        const successMessage = 
-          `🎉 CONGRATULATIONS! 🎉\n\n` +
-          `Your School Plan Form has been successfully submitted for review!\n\n` +
-          `📊 Submission Details:\n` +
-          `• School: ${formData.schoolName}\n` +
-          `• Principal: ${session.user.name}\n` +
-          `• Steps Completed: ${getCompletionStatus().completed}/${getCompletionStatus().total}\n` +
-          `• Submission Date: ${new Date().toLocaleDateString()}\n\n` +
-          `📝 Next Steps:\n` +
-          `• Your form is now under administrative review\n` +
-          `• You will receive notifications about the review status\n` +
-          `• You can still edit the form if needed\n\n` +
-          `🎯 Redirecting to dashboard in 5 seconds...\n\n` +
-          `Thank you for completing your School Plan Form!`;
-        
-        alert(successMessage);
-        
-        // Set redirecting state and auto-redirect to dashboard after 5 seconds
+        toast.success(`Submitted ${formData.schoolName} for review. Redirecting…`);
         setRedirecting(true);
         setRedirectCountdown(5);
-        
         const countdownInterval = setInterval(() => {
-          setRedirectCountdown(prev => {
+          setRedirectCountdown((prev) => {
             if (prev <= 1) {
               clearInterval(countdownInterval);
               return 0;
@@ -1622,8 +1363,6 @@ export default function FormPage() {
             return prev - 1;
           });
         }, 1000);
-        
-        // Set a separate timeout for the actual redirect
         const timeoutRef = setTimeout(() => {
           router.push('/dashboard');
         }, 5000);
@@ -1633,22 +1372,26 @@ export default function FormPage() {
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert(`Failed to submit form: ${error.message}. Please try again.`);
+      toast.error(`Failed to submit form: ${error.message}`);
     } finally {
       setSaving(false);
     }
   };
 
+  const continueAfterSubmitConfirm = () => {
+    setSubmitConfirm(null);
+    if (duplicatedFrom && !attestation?.confirmed) {
+      setAttestName(session?.user?.name || '');
+      setShowAttestModal(true);
+      return;
+    }
+    performSubmit();
+  };
+
   // Check if all steps are completed
   const checkAllStepsCompleted = () => {
     // Only check steps that actually exist (principalLetter was removed)
-    const stepKeys = [
-      'tableOfContents', 'childAbuseIntervention',
-      'sexualHarassment', 'respectForAll', 'suicidePrevention',
-      'attendancePlan', 'temporaryHousing', 'serviceInSchools',
-      'planningInterviews', 'militaryRecruitment', 'schoolCulture',
-      'afterSchoolPrograms', 'cellPhonePolicy', 'counselingPlan'
-    ];
+    const stepKeys = bankStepKeys;
 
     return stepKeys.every(stepKey => stepData[stepKey]?.completed === true);
   };
@@ -1656,13 +1399,7 @@ export default function FormPage() {
   // Validate form data before submission
   const validateFormData = () => {
     // Only check steps that actually exist (principalLetter was removed)
-    const stepKeys = [
-      'tableOfContents', 'childAbuseIntervention',
-      'sexualHarassment', 'respectForAll', 'suicidePrevention',
-      'attendancePlan', 'temporaryHousing', 'serviceInSchools',
-      'planningInterviews', 'militaryRecruitment', 'schoolCulture',
-      'afterSchoolPrograms', 'cellPhonePolicy', 'counselingPlan'
-    ];
+    const stepKeys = bankStepKeys;
 
     const validationErrors = [];
     
@@ -1730,7 +1467,7 @@ export default function FormPage() {
 
   // Check if all required questions in a step are answered
   const areAllRequiredQuestionsAnswered = (stepKey) => {
-    const step = formQuestionsData.steps.find(s => s.key === stepKey);
+    const step = questionBank.steps.find(s => s.key === stepKey);
     if (!step || !step.questions) {
       return false;
     }
@@ -1741,7 +1478,7 @@ export default function FormPage() {
     }
     
     // Get all required questions for this step
-    const requiredQuestions = step.questions.filter(q => q.required === true);
+    const requiredQuestions = step.questions.filter(q => q.required === true && q.active !== false);
     
     // If no required questions, check if step has any data
     if (requiredQuestions.length === 0) {
@@ -1754,7 +1491,7 @@ export default function FormPage() {
 
   // Get detailed completion status for a step
   const getStepCompletionDetails = (stepKey) => {
-    const step = formQuestionsData.steps.find(s => s.key === stepKey);
+    const step = questionBank.steps.find(s => s.key === stepKey);
     if (!step || !step.questions) {
       return {
         totalQuestions: 0,
@@ -1770,8 +1507,8 @@ export default function FormPage() {
     const stepDataObj = stepInfo?.data || {};
     
     const allQuestions = step.questions;
-    const requiredQuestions = allQuestions.filter(q => q.required === true);
-    const optionalQuestions = allQuestions.filter(q => q.required !== true);
+    const requiredQuestions = allQuestions.filter(q => q.required === true && q.active !== false);
+    const optionalQuestions = allQuestions.filter(q => q.required !== true || q.active === false);
     
     const answeredRequired = requiredQuestions.filter(q => isQuestionAnswered(q, stepDataObj));
     const answeredOptional = optionalQuestions.filter(q => isQuestionAnswered(q, stepDataObj));
@@ -1809,13 +1546,7 @@ export default function FormPage() {
 
   // Get completion status for display (weighted by required questions)
   const getCompletionStatus = () => {
-    const stepKeys = [
-      'tableOfContents', 'childAbuseIntervention',
-      'sexualHarassment', 'respectForAll', 'suicidePrevention',
-      'attendancePlan', 'temporaryHousing', 'serviceInSchools',
-      'planningInterviews', 'militaryRecruitment', 'schoolCulture',
-      'afterSchoolPrograms', 'cellPhonePolicy', 'counselingPlan'
-    ];
+    const stepKeys = bankStepKeys;
 
     // Calculate completion based on required questions answered, not just step completion flag
     let totalRequiredQuestions = 0;
@@ -1861,27 +1592,6 @@ export default function FormPage() {
     };
   };
 
-  // Helper function to get step number from step key
-  const getStepNumberFromKey = (stepKey) => {
-    const stepMap = {
-      'tableOfContents': 1,
-      'childAbuseIntervention': 2,
-      'sexualHarassment': 3,
-      'respectForAll': 4,
-      'suicidePrevention': 5,
-      'attendancePlan': 6,
-      'temporaryHousing': 7,
-      'serviceInSchools': 8,
-      'planningInterviews': 9,
-      'militaryRecruitment': 10,
-      'schoolCulture': 11,
-      'afterSchoolPrograms': 12,
-      'cellPhonePolicy': 13,
-      'counselingPlan': 14
-    };
-    return stepMap[stepKey] || 0;
-  };
-
   // Get comments for current step
   const getCurrentStepComments = () => {
     const stepKey = getStepKey(currentStep);
@@ -1901,7 +1611,7 @@ export default function FormPage() {
   // Add comment (Super Admin only)
   const handleAddComment = async () => {
     if (!commentText.trim()) {
-      alert('Please enter a comment');
+      toast.error('Please enter a comment');
       return;
     }
 
@@ -1948,17 +1658,17 @@ export default function FormPage() {
 
       setCommentText('');
       setShowCommentModal(false);
-      alert('Comment added successfully!');
+      toast.success('Comment added');
     } catch (error) {
       console.error('Error adding comment:', error);
-      alert(`Failed to add comment: ${error.message}`);
+      toast.error(`Failed to add comment: ${error.message}`);
     }
   };
 
   // Share form with email addresses
   const handleShareForm = async () => {
     if (!shareEmails.trim()) {
-      alert('Please enter at least one email address');
+      toast.error('Please enter at least one email address');
       return;
     }
 
@@ -1971,7 +1681,7 @@ export default function FormPage() {
         .filter(email => email.length > 0);
 
       if (emails.length === 0) {
-        alert('Please enter at least one valid email address');
+        toast.error('Please enter at least one valid email address');
         setSharing(false);
         return;
       }
@@ -2008,10 +1718,10 @@ export default function FormPage() {
 
       setShareEmails('');
       setShowShareModal(false);
-      alert(`Form shared successfully with ${emails.length} email address(es)!`);
+      toast.success(`Shared with ${emails.length} email${emails.length === 1 ? '' : 's'}`);
     } catch (error) {
       console.error('Error sharing form:', error);
-      alert(`Failed to share form: ${error.message}`);
+      toast.error(`Failed to share form: ${error.message}`);
     } finally {
       setSharing(false);
     }
@@ -2034,10 +1744,12 @@ export default function FormPage() {
 
   // Remove shared email
   const handleRemoveSharedEmail = async (email) => {
-    if (!confirm(`Remove ${email} from shared list?`)) {
-      return;
-    }
+    setUnshareEmail(email);
+  };
 
+  const confirmRemoveSharedEmail = async () => {
+    const email = unshareEmail;
+    setUnshareEmail('');
     try {
       const response = await fetch(`/api/forms/${formId}/share`, {
         method: 'DELETE',
@@ -2051,10 +1763,10 @@ export default function FormPage() {
       }
 
       await loadSharedEmails();
-      alert('Email removed from shared list');
+      toast.success('Email removed from shared list');
     } catch (error) {
       console.error('Error removing shared email:', error);
-      alert(`Failed to remove email: ${error.message}`);
+      toast.error(`Failed to remove email: ${error.message}`);
     }
   };
 
@@ -2082,1037 +1794,242 @@ export default function FormPage() {
       }
 
       if (action === 'fixed') {
-        alert('Comment marked as fixed!');
+        toast.success('Comment marked as fixed');
       }
     } catch (error) {
       console.error(`Error marking comment as ${action}:`, error);
-      alert(`Failed to mark comment: ${error.message}`);
+      toast.error(`Failed to mark comment: ${error.message}`);
     }
   };
+
+  const handleAttestConfirm = async () => {
+    const response = await fetch(`/api/forms/${formId}/attest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: attestName }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      toast.error(payload.error || 'Could not save attestation');
+      return;
+    }
+    setAttestation(payload.attestation);
+    setShowAttestModal(false);
+    performSubmit();
+  };
+
+  const canManageSharing = session?.user?.level === 5 || session?.user?.email?.toLowerCase() === 'jjaramillo7@gmail.com';
 
   // Don't render until session and form data are loaded
   if (status === 'loading' || !session || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading form...</Text>
+      </Column>
     );
   }
 
 
   return (
-    <div className={`min-h-screen ${isPrintView ? 'bg-white' : 'bg-gray-50'}`}>
-      {/* Header */}
-      <header className={`bg-white shadow-lg border-b-2 border-sky-200 ${isPrintView ? 'no-print' : ''}`}>
-        <div className="max-w-8xl mx-auto px-6">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-6">
-            <div className="mb-4 lg:mb-0">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-sky-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <FileText className="w-6 h-6 text-white" />
-                </div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  School Plan Form - {formData.schoolName}
-                </h1>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex items-center gap-2 text-gray-600 text-sm">
-                  <ClipboardList className="w-4 h-4" />
-                  <span>Form ID: {formId} | Step {currentStep} of {FORM_STEPS.length}</span>
-                </div>
-                
-                {/* Permission Status Banner */}
-                {userPermissions && (
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border shadow-sm ${
-                    userPermissions === 'owner' 
-                      ? 'bg-green-100 text-green-800 border-green-300'
-                      : userPermissions === 'edit'
-                      ? 'bg-blue-100 text-blue-800 border-blue-300'
-                      : 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                  }`}>
-                    {userPermissions === 'owner' && (
-                      <>
-                        <Shield className="w-3 h-3" />
-                        <span>Owner Access</span>
-                      </>
-                    )}
-                    {userPermissions === 'edit' && (
-                      <>
-                        <FileText className="w-3 h-3" />
-                        <span>Edit Access</span>
-                      </>
-                    )}
-                    {userPermissions === 'view' && (
-                      <>
-                        <AlertCircle className="w-3 h-3" />
-                        <span>View Only - Cannot Edit</span>
-                      </>
-                    )}
-                    {collaborationInfo && collaborationInfo.assignedAt && (
-                      <>
-                        <span className="font-semibold">•</span>
-                        <span>Assigned {new Date(collaborationInfo.assignedAt).toLocaleDateString()}</span>
-                      </>
-                    )}
-                  </div>
-                )}
-                
-                {/* Quick Completion Status */}
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border shadow-sm ${
-                  getCompletionStatus().completed === getCompletionStatus().total 
-                    ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200' 
-                    : 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border-amber-200'
-                }`}>
-                  {getCompletionStatus().completed === getCompletionStatus().total ? (
-                    <Trophy className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <ClipboardList className="w-4 h-4 text-amber-600" />
-                  )}
-                  <span className="font-semibold">
-                    {getCompletionStatus().completed}/{getCompletionStatus().total} Steps
-                  </span>
-                  {getCompletionStatus().completed < getCompletionStatus().total && (
-                    <span className="text-red-600 text-xs font-semibold flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      {getCompletionStatus().total - getCompletionStatus().completed} Missing
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              {currentStep !== 1 && (
-                <button
-                  onClick={() => navigateToStep(1)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:from-purple-600 hover:to-purple-700 hover:shadow-lg transform hover:-translate-y-0.5"
-                  title="Go to Table of Contents"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Table of Contents
-                </button>
-              )}
-              <Link
-                href={`/view/${formId}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:from-green-600 hover:to-emerald-700 hover:shadow-lg transform hover:-translate-y-0.5"
-                title="View all steps in one page (print-friendly)"
-              >
-                <FileText className="w-4 h-4" />
-                View All Steps
-              </Link>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-sky-600 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:from-blue-600 hover:to-sky-700 hover:shadow-lg transform hover:-translate-y-0.5"
-              >
-                <Home className="w-4 h-4" />
-                Back to Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Progress Bar */}
-      <div className="bg-white border-b-2 border-sky-200 py-6 shadow-md">
-        <div className="max-w-8xl mx-auto px-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-600 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-gray-700">Form Progress</span>
-          </div>
-          
-          <div className="bg-gradient-to-r from-gray-100 to-gray-200 h-3 rounded-full overflow-hidden shadow-inner border border-gray-200">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-sky-600 h-full transition-all duration-500 ease-out rounded-full shadow-sm"
-              style={{ width: `${(currentStep / FORM_STEPS.length) * 100}%` }}
-            ></div>
-          </div>
-          
-          {/* Button Instructions */}
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4 mt-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <FileText className="w-4 h-4 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-blue-900 mb-2">Save & Submit Options:</h3>
-                <div className="space-y-2 text-xs text-blue-800">
-                  <div className="flex items-start gap-2">
-                    <span className="font-semibold text-blue-900">💾 Save Draft:</span>
-                    <span>Saves your current work and keeps you on the form so you can continue editing. Use this to save your progress without leaving.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="font-semibold text-blue-900">💼 Save Now:</span>
-                    <span>Saves your current work and redirects you back to the dashboard. Use this when you're done working for now.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="font-semibold text-blue-900">📤 Submit for Review:</span>
-                    <span>Submits your completed form for administrative review. Only available on the final step. You can still edit after submission if needed.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-3">
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-2 sm:mb-0">
-              <Target className="w-4 h-4 text-blue-600" />
-              <span>Progress: {currentStep} of {FORM_STEPS.length} steps completed</span>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Auto-save indicator */}
-              {autoSaving && (
-                <div className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300 rounded-lg text-xs shadow-sm">
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
-                  <span className="text-amber-800 font-medium">Auto-saving...</span>
-                </div>
-              )}
-              
-              {/* Save reminder indicator */}
-              {showSaveReminder && !autoSaving && (
-                <div className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-100 to-pink-100 border border-red-300 rounded-lg text-xs shadow-sm">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span className="text-red-800 font-medium">Consider saving your work</span>
-                  <button
-                    onClick={() => setShowSaveReminder(false)}
-                    className="ml-2 p-1 bg-red-500 text-white rounded-md text-xs hover:bg-red-600 transition-all duration-200 hover:scale-110"
-                    title="Dismiss reminder"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-              
-              {/* Save Error Indicator */}
-              {saveError && (
-                <div className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-100 to-pink-100 border border-red-300 rounded-lg text-xs shadow-sm">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span className="text-red-800 font-medium">{saveError}</span>
-                  <button
-                    onClick={() => setSaveError(null)}
-                    className="ml-2 p-1 bg-red-500 text-white rounded-md text-xs hover:bg-red-600 transition-all duration-200 hover:scale-110"
-                    title="Dismiss error"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-              
-              {/* Last saved indicator */}
-              {lastSaved && !autoSaving && !showSaveReminder && !saveError && (
-                <div className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-lg text-xs shadow-sm">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-green-800 font-medium">
-                    Last saved: {lastSaved.toLocaleTimeString()}
-                  </span>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-lg text-xs shadow-sm">
-                <Award className="w-4 h-4 text-green-600" />
-                <span className="text-green-700 font-semibold">
-                  {getCompletionStatus().completed}/{getCompletionStatus().total} steps completed ({getCompletionStatus().percentage}%)
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Redirecting Indicator */}
-          {redirecting && (
-            <div className="flex justify-center items-center gap-3 mt-3 p-3 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300 rounded-xl shadow-lg">
-              <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
-              <span className="text-sm text-amber-800 font-medium">
-                <RefreshCw className="w-4 h-4 inline mr-2" />
-                Redirecting to Dashboard in {redirectCountdown} seconds...
-              </span>
-              <button
-                onClick={cancelRedirect}
-                className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-orange-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-              >
-                <X className="w-4 h-4 inline mr-1" />
-                Cancel
-              </button>
-            </div>
+    <FormWorkspace
+      session={session}
+      isPrintView={isPrintView}
+      formData={formData}
+      currentStep={currentStep}
+      formSteps={FORM_STEPS.map((step) => ({
+        ...step,
+        completed: getStepCompletionDetails(step.key).isComplete,
+      }))}
+      completion={getCompletionStatus()}
+      userPermissions={userPermissions}
+      autoSaving={autoSaving}
+      lastSaved={lastSaved}
+      saveError={saveError}
+      showSaveReminder={showSaveReminder}
+      redirecting={redirecting}
+      redirectCountdown={redirectCountdown}
+      onCancelRedirect={cancelRedirect}
+      onDismissReminder={() => setShowSaveReminder(false)}
+      onDismissError={() => setSaveError(null)}
+      onNavigateStep={navigateToStep}
+      headerActions={
+        <Row gap="8" wrap>
+          <Button size="s" variant="tertiary" href={`/form/${formId}/compare`}>
+            Compare years
+          </Button>
+          {session?.user?.level >= 4 && (
+            <Button size="s" variant="tertiary" onClick={() => setShowDuplicateModal(true)}>
+              Duplicate
+            </Button>
           )}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <main className="max-w-8xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-10">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-sky-600 rounded-xl flex items-center justify-center shadow-lg">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-800">
-                {FORM_STEPS[currentStep - 1]?.title}
-              </h2>
-              <p className="text-gray-600 text-sm">
-                Step {currentStep} of {FORM_STEPS.length} • {getCompletionStatus().completed}/{getCompletionStatus().total} completed
-              </p>
-            </div>
-          </div>
-
-          {/* Step Comments Section - Show for principals */}
-          {session?.user?.level === 4 && getCurrentStepComments().length > 0 && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <MessageSquare className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Review Comments for This Step</h3>
-              </div>
-              <div className="space-y-3">
-                {getCurrentStepComments().map((comment) => (
-                  <div key={comment._id} className={`bg-white rounded-lg p-4 border-2 ${
-                    comment.isFixed ? 'border-green-300 bg-green-50' : 'border-blue-200'
-                  }`}>
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-semibold text-gray-700">
-                            {comment.reviewedBy?.name || comment.reviewedByName}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(comment.reviewedAt).toLocaleDateString()}
-                          </span>
-                          {comment.status === 'rejected' && (
-                            <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-medium rounded">
-                              Rejected
-                            </span>
-                          )}
-                          {comment.status === 'approved' && (
-                            <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded">
-                              Approved
-                            </span>
-                          )}
-                          {comment.isFixed && (
-                            <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded flex items-center gap-1">
-                              <Check className="w-3 h-3" />
-                              Fixed
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-800 whitespace-pre-wrap">{comment.comment}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      {!comment.readBy && (
-                        <button
-                          onClick={() => handleMarkComment(comment._id, 'read')}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors"
-                        >
-                          <Eye className="w-3 h-3" />
-                          Mark as Read
-                        </button>
-                      )}
-                      {comment.readBy && !comment.isFixed && (
-                        <button
-                          onClick={() => handleMarkComment(comment._id, 'fixed')}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded transition-colors"
-                        >
-                          <Check className="w-3 h-3" />
-                          Mark as Fixed
-                        </button>
-                      )}
-                      {comment.readBy && (
-                        <span className="text-xs text-gray-500">
-                          Read {new Date(comment.readAt).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {canManageSharing && (
+            <Button size="s" variant="tertiary" onClick={() => setShowShareModal(true)}>
+              Share
+            </Button>
           )}
-
-          {/* Active Editors Indicator */}
-          {activeEditors.length > 0 && (
-            <div className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-800">
-                      {activeEditors.length} {activeEditors.length === 1 ? 'person' : 'people'} working on this form
-                    </h4>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {activeEditors.map((editor, idx) => {
-                        const stepNumber = FORM_STEPS.find(s => getStepKey(s.id) === editor.stepKey)?.id || 0;
-                        // Compare userId - need to handle both string and ObjectId formats
-                        const editorUserId = typeof editor.userId === 'string' ? editor.userId : editor.userId?.toString();
-                        const currentUserId = session?.user?.id || session?.user?._id;
-                        const isCurrentUser = editorUserId === currentUserId || editor.email?.toLowerCase() === session?.user?.email?.toLowerCase();
-                        return (
-                          <div
-                            key={idx}
-                            className={`inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs ${
-                              isCurrentUser
-                                ? 'bg-blue-500 text-white font-medium'
-                                : 'bg-white border border-blue-300 text-gray-700'
-                            }`}
-                          >
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="font-medium">{editor.userName || editor.email}</span>
-                            <span className="text-gray-500">•</span>
-                            <span>Step {stepNumber}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {session?.user?.level === 5 && (
+            <Button size="s" variant="tertiary" onClick={() => setShowCommentModal(true)}>
+              Comment
+            </Button>
           )}
+          <Button size="s" variant="tertiary" href={`/view/${formId}`}>
+            View all
+          </Button>
+          <Button size="s" variant="secondary" onClick={handleSubmit} disabled={saving || redirecting || formLocked}>
+            {formLocked ? 'Read-only' : saving ? 'Submitting…' : 'Submit'}
+          </Button>
+        </Row>
+      }
+      locked={formLocked}
+      yearArchived={yearArchived}
+      allowEditsWhenArchived={allowEditsWhenArchived}
+      deadlineLabel={(() => {
+        const stepKey = FORM_STEPS[currentStep - 1]?.key;
+        const due = formDeadlines.find((item) => item.stepKey === stepKey)?.dueDate;
+        return due ? `Due ${new Date(due).toLocaleDateString()}` : '';
+      })()}
+      footer={
+        <Row fillWidth horizontal="between" vertical="center" wrap gap="8">
+          <Button size="s" variant="secondary" onClick={handlePrevious} disabled={currentStep === 1 || saving || redirecting}>
+            Previous
+          </Button>
+          <Row gap="8" vertical="center" wrap>
+            {(() => {
+              const lock = activeLocks[getStepKey(currentStep)];
+              if (lock && !lock.isCurrentUser) {
+                return (
+                  <Text variant="label-default-s" onBackground="danger-strong">
+                    Being edited by {lock.lockedBy.userName || lock.lockedBy.email}
+                  </Text>
+                );
+              }
+              return null;
+            })()}
+            <Button size="s" onClick={handleNext} disabled={formLocked || saving || redirecting || currentStep === FORM_STEPS.length}>
+              Next
+            </Button>
+          </Row>
+        </Row>
+      }
+    >
+      <FormStepMeta
+        comments={getCurrentStepComments()}
+        onMarkRead={(id) => handleMarkComment(id, 'read')}
+        onMarkFixed={(id) => handleMarkComment(id, 'fixed')}
+        activeEditors={activeEditors}
+        currentUser={session?.user}
+        formSteps={FORM_STEPS}
+        sharedWith={sharedWithEmails}
+        onRemoveShare={handleRemoveSharedEmail}
+        canManageSharing={canManageSharing}
+      />
 
-          {/* Share and Comment Buttons - Show for Super Admins or authorized email */}
-          {(session?.user?.level === 5 || session?.user?.email?.toLowerCase() === 'jjaramillo7@gmail.com') && (
-            <div className="mb-6 flex gap-3 flex-wrap">
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-md hover:shadow-lg"
-              >
-                <Share2 className="w-4 h-4" />
-                Share Form
-              </button>
-              {session?.user?.level === 5 && (
-                <button
-                  onClick={() => setShowCommentModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium rounded-lg transition-colors shadow-md hover:shadow-lg"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Add Comment for Step {currentStep}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Shared Emails List - Show for Super Admins or authorized email */}
-          {(session?.user?.level === 5 || session?.user?.email?.toLowerCase() === 'jjaramillo7@gmail.com') && sharedWithEmails.length > 0 && (
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Mail className="w-4 h-4 text-blue-600" />
-                <h4 className="text-sm font-semibold text-blue-900">Shared With:</h4>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {sharedWithEmails.map((share, index) => (
-                  <div
-                    key={index}
-                    className="inline-flex items-center gap-2 bg-white border border-blue-300 rounded-md px-3 py-1 text-sm"
-                  >
-                    <span className="text-gray-700">{share.email}</span>
-                    <span className="text-xs text-gray-500">({share.permissions})</span>
-                    <button
-                      onClick={() => handleRemoveSharedEmail(share.email)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
-                      title="Remove"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Dynamic Form Content */}
           {renderFormStep()}
 
-           {/* Enhanced Form Completion Summary */}
-           {currentStep === FORM_STEPS.length && (
-             <div className="bg-white border-2 border-blue-300 rounded-xl p-6 mb-8 shadow-lg">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Target className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    Form Completion Summary
-                  </h3>
-                  <p className="text-gray-600">
-                    Review your progress and complete any missing steps before submission
-                  </p>
-                </div>
-                
-                {/* Progress Overview - Enhanced with Question-Level Details */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                        <BarChart3 className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-xl font-bold text-gray-700">
-                        Overall Progress
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-green-600">
-                        {getCompletionStatus().completed}/{getCompletionStatus().total}
-                      </div>
-                      <div className="text-gray-600 font-medium">
-                        Steps Completed
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Question-Level Progress */}
-                  <div className="bg-white rounded-lg p-3 mb-3 border border-gray-300">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-gray-700">Required Questions Progress:</span>
-                      <span className="text-sm font-bold text-blue-600">
-                        {getCompletionStatus().questionCompletion.answered}/{getCompletionStatus().questionCompletion.total} answered
-                      </span>
-                    </div>
-                    <div className="bg-gray-200 h-2 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-blue-500 h-full transition-all duration-1000 ease-in-out rounded-full"
-                        style={{ width: `${getCompletionStatus().questionCompletion.percentage}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {getCompletionStatus().questionCompletion.percentage}% of required questions answered
-                    </div>
-                  </div>
-                  
-                  {/* Overall Progress Bar */}
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-gray-700">Overall Completion:</span>
-                      <span className="text-lg font-bold text-green-600">
-                        {getCompletionStatus().percentage}%
-                      </span>
-                    </div>
-                    <div className="bg-gray-200 h-4 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-green-500 h-full transition-all duration-1000 ease-in-out rounded-full"
-                        style={{ width: `${getCompletionStatus().percentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                      <span className="text-green-600 font-medium">
-                        Complete Steps: {getCompletionStatus().completed}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
-                      <span className="text-gray-600 font-medium">
-                        Remaining: {getCompletionStatus().total - getCompletionStatus().completed}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+      {currentStep === FORM_STEPS.length && (
+        <FormSubmitSummary
+          steps={FORM_STEPS}
+          completion={getCompletionStatus()}
+          getStepDetails={getStepCompletionDetails}
+          onGoToStep={navigateToStep}
+        />
+      )}
 
-                {/* All Steps Status - Detailed Question-Level Completion */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-                  {FORM_STEPS.map((step, index) => {
-                    const stepKey = getStepKey(step.id);
-                    const stepInfo = stepData[stepKey];
-                    const completionDetails = getStepCompletionDetails(stepKey);
-                    const isCompleted = completionDetails.isComplete;
-                    
-                    return (
-                      <div key={stepKey} className={`border-2 rounded-lg p-4 transition-all duration-200 ${
-                        isCompleted 
-                          ? 'border-green-300 bg-green-50' 
-                          : completionDetails.answeredRequired > 0
-                          ? 'border-yellow-300 bg-yellow-50'
-                          : 'border-red-300 bg-red-50'
-                      }`}>
-                        {/* Status Badge */}
-                        <div className={`inline-block px-2 py-1 rounded text-xs font-medium text-white mb-3 ${
-                          isCompleted ? 'bg-green-500' : completionDetails.answeredRequired > 0 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}>
-                          {isCompleted ? '✓ Complete' : completionDetails.answeredRequired > 0 ? '⚠️ Partial' : '❌ Incomplete'}
-                        </div>
-                        
-                        {/* Step Header */}
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${
-                            isCompleted ? 'bg-green-500' : completionDetails.answeredRequired > 0 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}>
-                            {isCompleted ? (
-                              <CheckCircle className="w-5 h-5" />
-                            ) : (
-                              <AlertCircle className="w-5 h-5" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-bold text-gray-800 mb-1">
-                              Step {step.id}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {step.title}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Step Details - Question-Level Completion */}
-                        <div className={`rounded p-3 mb-3 border ${
-                          isCompleted 
-                            ? 'bg-green-100 border-green-200' 
-                            : completionDetails.answeredRequired > 0
-                            ? 'bg-yellow-100 border-yellow-200'
-                            : 'bg-red-100 border-red-200'
-                        }`}>
-                          <div className="text-sm mb-2">
-                            <span className="font-medium">Required Questions: </span>
-                            <span className={isCompleted ? 'text-green-700' : completionDetails.requiredQuestions === 0 ? 'text-gray-600' : 'text-red-700'}>
-                              {completionDetails.requiredQuestions === 0 
-                                ? 'No required questions (optional step)' 
-                                : `${completionDetails.answeredRequired}/${completionDetails.requiredQuestions} answered`}
-                            </span>
-                          </div>
-                          
-                          {completionDetails.requiredQuestions > 0 && (
-                            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                              <div 
-                                className={`h-2 rounded-full transition-all ${
-                                  isCompleted ? 'bg-green-500' : 'bg-yellow-500'
-                                }`}
-                                style={{ 
-                                  width: `${Math.round((completionDetails.answeredRequired / completionDetails.requiredQuestions) * 100)}%` 
-                                }}
-                              ></div>
-                            </div>
-                          )}
-                          
-                          {completionDetails.requiredQuestions === 0 && (
-                            <div className="text-xs text-gray-600 mt-2 italic">
-                              This step has no required questions. It will be marked complete once you enter any data.
-                            </div>
-                          )}
-                          
-                          {completionDetails.missingRequired.length > 0 && (
-                            <div className="text-xs text-red-700 mt-2">
-                              <div className="font-semibold mb-1">Missing Required:</div>
-                              <ul className="list-disc list-inside space-y-1">
-                                {completionDetails.missingRequired.slice(0, 3).map((q, idx) => (
-                                  <li key={idx} className="truncate" title={q.title}>
-                                    Q{q.number}: {q.title.substring(0, 40)}...
-                                  </li>
-                                ))}
-                                {completionDetails.missingRequired.length > 3 && (
-                                  <li className="font-semibold">
-                                    +{completionDetails.missingRequired.length - 3} more
-                                  </li>
-                                )}
-                              </ul>
-                            </div>
-                          )}
-                          
-                          {isCompleted && (
-                            <div className="flex items-center gap-2 text-xs text-green-600 mt-2">
-                              <Clock className="w-3 h-3" />
-                              <span>Last updated: {stepInfo?.lastUpdated ? new Date(stepInfo.lastUpdated).toLocaleDateString() : 'Recently'}</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Action Button */}
-                        {!isCompleted && (
-                          <button
-                            onClick={() => navigateToStep(step.id)}
-                            className="w-full px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                            title={`Go to Step ${step.id} to complete ${completionDetails.missingRequired.length} required question(s)`}
-                          >
-                            🎯 Complete Step {step.id} ({completionDetails.missingRequired.length} required missing)
-                          </button>
-                        )}
-                        
-                        {isCompleted && (
-                          <div className="text-center p-2 bg-green-100 rounded border border-green-200">
-                            <span className="text-sm font-medium text-green-700">
-                              🎉 All Required Questions Answered!
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
 
-                {/* Missing Steps/Questions Warning */}
-                {(() => {
-                  const status = getCompletionStatus();
-                  const incompleteSteps = FORM_STEPS.filter((step, index) => {
-                    const stepKey = getStepKey(step.id);
-                    const details = getStepCompletionDetails(stepKey);
-                    return !details.isComplete;
-                  });
-                  
-                  if (incompleteSteps.length > 0 || status.questionCompletion.answered < status.questionCompletion.total) {
-                    const totalMissingRequired = FORM_STEPS.reduce((total, step) => {
-                      const stepKey = getStepKey(step.id);
-                      const details = getStepCompletionDetails(stepKey);
-                      return total + details.missingRequired.length;
-                    }, 0);
-                    
-                    return (
-                      <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 mb-6">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white">
-                            <AlertTriangle className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="text-xl font-bold text-red-700 mb-1">
-                              Incomplete Steps Detected
-                            </div>
-                            <div className="text-red-600 font-medium">
-                              {incompleteSteps.length} step(s) with missing required questions
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-white rounded-lg p-3 border border-red-200 mb-3">
-                          <div className="text-sm text-red-700 mb-2">
-                            <strong>Summary:</strong>
-                          </div>
-                          <ul className="list-disc list-inside space-y-1 text-sm text-red-600">
-                            <li>{incompleteSteps.length} step(s) are not fully completed</li>
-                            <li>{totalMissingRequired} required question(s) still need answers</li>
-                            <li>{status.questionCompletion.answered}/{status.questionCompletion.total} required questions answered ({status.questionCompletion.percentage}%)</li>
-                          </ul>
-                        </div>
-                        <p className="text-red-600 px-3 py-2 bg-white rounded border border-red-200">
-                          <strong>Action Required:</strong> Please answer all required questions before submitting your form. 
-                          Use the "Complete Step" buttons above to navigate to and complete the missing required questions. 
-                          This ensures your School Plan Form is comprehensive and ready for administrative review.
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                {/* Submission Instructions */}
-                <div className={`rounded-lg p-4 border-2 ${
-                  getCompletionStatus().completed === getCompletionStatus().total 
-                    ? 'bg-green-50 border-green-300' 
-                    : 'bg-yellow-50 border-yellow-300'
-                }`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${
-                      getCompletionStatus().completed === getCompletionStatus().total 
-                        ? 'bg-green-500' 
-                        : 'bg-yellow-500'
-                    }`}>
-                      {getCompletionStatus().completed === getCompletionStatus().total ? (
-                        <Trophy className="w-5 h-5" />
-                      ) : (
-                        <ClipboardList className="w-5 h-5" />
-                      )}
-                    </div>
-                    <div>
-                      <div className={`text-xl font-bold mb-1 ${
-                        getCompletionStatus().completed === getCompletionStatus().total ? 'text-green-700' : 'text-yellow-700'
-                      }`}>
-                        {getCompletionStatus().completed === getCompletionStatus().total 
-                          ? 'Ready to Submit!' 
-                          : 'Complete Missing Steps First'
-                        }
-                      </div>
-                      <div className={`font-medium ${
-                        getCompletionStatus().completed === getCompletionStatus().total ? 'text-green-600' : 'text-yellow-600'
-                      }`}>
-                        {getCompletionStatus().completed === getCompletionStatus().total 
-                          ? 'All steps are completed and ready for review'
-                          : `${getCompletionStatus().total - getCompletionStatus().completed} steps remaining`
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-white rounded border">
-                    <p className={`font-medium ${
-                      getCompletionStatus().completed === getCompletionStatus().total ? 'text-green-600' : 'text-yellow-600'
-                    }`}>
-                      {getCompletionStatus().completed === getCompletionStatus().total 
-                        ? 'Your School Plan Form is complete and ready for administrative review! Click the "Submit for Review" button below to send your completed form for evaluation. You can still edit the form later if needed.'
-                        : 'Please complete all missing steps before submitting. Use the "Go to Step" buttons above to navigate to incomplete sections. Once all steps are completed, you\'ll be able to submit your form for review.'
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-           {/* Navigation Buttons */}
-          <div className={`flex justify-between items-center border-t border-gray-200 pt-6 ${isPrintView ? 'no-print' : ''}`}>
-            <button
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-              className={`px-6 py-3 rounded-lg text-base font-medium transition-all duration-200 flex items-center gap-2 ${
-                currentStep === 1 
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700 cursor-pointer shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
-              }`}
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </button>
-
-            <div className="flex gap-3">
-              {/* Lock indicator - show if current step is locked by another user */}
-              {(() => {
-                const stepKey = getStepKey(currentStep);
-                const lock = activeLocks[stepKey];
-                if (lock && !lock.isCurrentUser) {
-                  return (
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-100 to-pink-100 border border-red-300 rounded-lg text-base text-red-800 shadow-sm">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="font-medium">
-                        Being edited by {lock.lockedBy.userName || lock.lockedBy.email}
-                      </span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-              
-              {/* Unsaved changes indicator */}
-              {hasUnsavedChanges() && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300 rounded-lg text-base text-amber-800 shadow-sm">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="font-medium">Unsaved changes</span>
-                </div>
-              )}
-              
-              {/* Manual Save Button - Always visible when there are changes */}
-              {hasUnsavedChanges() && (
-                <button
-                  onClick={handleSave}
-                  disabled={saving || redirecting}
-                  className={`px-6 py-3 rounded-lg text-base font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
-                    saving || redirecting 
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                      : 'bg-gradient-to-r from-blue-500 to-sky-600 text-white hover:from-blue-600 hover:to-sky-700 cursor-pointer'
-                  }`}
-                  title="Save your current work"
-                >
-                  <Save className="w-4 h-4" />
-                  {redirecting ? 'Redirecting...' : saving ? 'Saving...' : 'Save Now'}
-                </button>
-              )}
-              
-              <button
-                onClick={handleSaveDraft}
-                disabled={saving || redirecting}
-                className={`px-6 py-3 rounded-lg text-base font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
-                  saving || redirecting 
-                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 cursor-pointer'
-                }`}
-                title="Save your work and continue editing (stays on form)"
-              >
-                <Save className="w-4 h-4" />
-                {saving ? 'Saving...' : 'Save Draft'}
-              </button>
-
-              {currentStep === FORM_STEPS.length ? (
-                <button
-                  onClick={handleSubmit}
-                  disabled={saving || redirecting}
-                  className={`px-6 py-3 rounded-lg text-base font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
-                    saving || redirecting 
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                      : 'bg-gradient-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700 cursor-pointer'
-                  }`}
-                >
-                  <Send className="w-4 h-4" />
-                  {redirecting ? 'Redirecting...' : saving ? 'Submitting...' : 'Submit for Review'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-sky-600 text-white rounded-lg text-base font-medium cursor-pointer transition-all duration-200 hover:from-blue-600 hover:to-sky-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-2"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
-      
       {/* Scroll to Top Button */}
       {!isPrintView && <ScrollToTop />}
 
-      {/* Share Form Modal */}
-      {showShareModal && session?.user?.level === 5 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-gray-800">Share Form</h3>
-              <button
-                onClick={() => {
-                  setShowShareModal(false);
-                  setShareEmails('');
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Addresses
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Enter email addresses separated by commas or new lines
-                </p>
-                <textarea
-                  value={shareEmails}
-                  onChange={(e) => setShareEmails(e.target.value)}
-                  placeholder="horsford2@schools.nyc.gov, kames4@schools.nyc.gov, cmcleod2@schools.nyc.gov"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={4}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Permissions
-                </label>
-                <select
-                  value={sharePermissions}
-                  onChange={(e) => setSharePermissions(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="view">View Only</option>
-                  <option value="edit">Edit</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {sharePermissions === 'view' 
-                    ? 'Users can view the form but cannot make changes'
-                    : 'Users can view and edit the form'}
-                </p>
-              </div>
-
-              {sharedWithEmails.length > 0 && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Currently Shared With:</h4>
-                  <div className="space-y-1">
-                    {sharedWithEmails.map((share, index) => (
-                      <div key={index} className="text-sm text-gray-600">
-                        • {share.email} ({share.permissions})
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowShareModal(false);
-                  setShareEmails('');
-                }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                disabled={sharing}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleShareForm}
-                disabled={sharing || !shareEmails.trim()}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {sharing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Sharing...
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-4 h-4" />
-                    Share Form
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showAttestModal && (
+        <FormAttestModal
+          schoolYear={formData.schoolYear}
+          name={attestName}
+          onChangeName={setAttestName}
+          onClose={() => setShowAttestModal(false)}
+          onConfirm={handleAttestConfirm}
+        />
       )}
 
-      {/* Comment Modal for Super Admins */}
+      {showDuplicateModal && (
+        <DuplicateFormModal
+          form={{
+            _id: formId,
+            schoolName: formData.schoolName,
+            schoolYear: formData.schoolYear,
+            createdAt: formData.createdAt,
+          }}
+          onClose={() => setShowDuplicateModal(false)}
+        />
+      )}
+
+      {showShareModal && canManageSharing && (
+        <FormShareModal
+          emails={shareEmails}
+          onChangeEmails={setShareEmails}
+          permissions={sharePermissions}
+          onChangePermissions={setSharePermissions}
+          sharedWith={sharedWithEmails}
+          sharing={sharing}
+          onClose={() => {
+            setShowShareModal(false);
+            setShareEmails('');
+          }}
+          onShare={handleShareForm}
+        />
+      )}
+
       {showCommentModal && session?.user?.level === 5 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-800">
-                Add Comment for Step {currentStep}: {FORM_STEPS[currentStep - 1]?.title}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowCommentModal(false);
-                  setCommentText('');
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status:
-              </label>
-              <select
-                value={commentStatus}
-                onChange={(e) => setCommentStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="under_review">Under Review</option>
-                <option value="rejected">Rejected</option>
-                <option value="approved">Approved</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Comment:
-              </label>
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Enter your comment for this step..."
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
-              />
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowCommentModal(false);
-                  setCommentText('');
-                }}
-                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddComment}
-                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
-              >
-                Add Comment
-              </button>
-            </div>
-          </div>
-        </div>
+        <FormCommentModal
+          stepNumber={currentStep}
+          stepTitle={FORM_STEPS[currentStep - 1]?.title}
+          status={commentStatus}
+          onChangeStatus={setCommentStatus}
+          comment={commentText}
+          onChangeComment={setCommentText}
+          onClose={() => {
+            setShowCommentModal(false);
+            setCommentText('');
+          }}
+          onSubmit={handleAddComment}
+        />
       )}
-    </div>
+
+      {submitConfirm && (
+        <FormConfirmModal
+          title="Submit this plan?"
+          description={`${formData.schoolName} · ${submitConfirm.completion.completed}/${submitConfirm.completion.total} sections complete. It will go to district review. You can still edit afterward if needed.`}
+          warnings={submitConfirm.warnings}
+          confirmLabel="Submit"
+          onClose={() => setSubmitConfirm(null)}
+          onConfirm={continueAfterSubmitConfirm}
+          busy={saving}
+        />
+      )}
+
+      {unshareEmail && (
+        <FormConfirmModal
+          title="Remove access?"
+          description={`${unshareEmail} will no longer be able to open this plan.`}
+          confirmLabel="Remove"
+          onClose={() => setUnshareEmail('')}
+          onConfirm={confirmRemoveSharedEmail}
+        />
+      )}
+    </FormWorkspace>
+  );
+}
+
+export default function FormPage() {
+  return (
+    <Suspense fallback={
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading form...</Text>
+      </Column>
+    }>
+      <FormPageContent />
+    </Suspense>
   );
 }

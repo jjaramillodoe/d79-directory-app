@@ -1,0 +1,74 @@
+---
+title: System health
+description: Super Admin API, MongoDB, and Redis health tools at /admin/system.
+icon: heart-pulse
+---
+
+Super Admins (level 5) can open **System** from the Admin sidebar (`/admin/system`). The page is an operations snapshot of this app’s runtime: whether the API process is up, how large MongoDB is, whether Redis is healthy, and which environment variables are set (values are never shown).
+
+![System health](https://placehold.co/600x400)
+*Caption: Add screenshot showing /admin/system with API, MongoDB, and Redis cards, overall health tag, and Flush caches.*
+
+## What it reports
+
+| Panel | Source | What you see |
+| --- | --- | --- |
+| API | This Node process | Environment, Node version, Vercel region (if any), uptime, heap / RSS |
+| MongoDB | `db.stats()` + collection `collStats` | Ping, data / storage / index size, document counts, plans by year and status |
+| Redis | `PING`, `INFO`, `DBSIZE` | Memory, key count, cache vs lock vs editor keys — or “not configured” / backing off |
+| Environment | `process.env` **presence** only | `MONGODB_URI`, NextAuth, Google OAuth, `REDIS_URL`, `SENTRY_DSN` |
+| Unique index | `formsubmissions` indexes | Whether `schoolName_schoolYear_unique` exists |
+| Recent activity | `AuditLog` | Last eight events |
+
+Overall status:
+
+- **Healthy** — API and MongoDB are up; required env vars are set; Redis is up if configured; unique index is present
+- **Degraded** — Mongo is up but Redis is configured and down, a required env var is missing, or the unique plan index is missing
+- **Down** — API or MongoDB health check failed
+
+<Callout type="warning">
+  The health API never returns connection strings, Redis passwords, or OAuth secrets. Treat `/api/admin/health` as Super Admin only.
+</Callout>
+
+## Routes
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/api/admin/health` | JSON snapshot used by `/admin/system` |
+| `POST` | `/api/admin/health` | `{ "action": "flush-cache" }` or `{ "action": "retry-redis" }` |
+
+### Flush caches
+
+Deletes app cache keys only:
+
+- `qb:published:*` (question bank)
+- `year:*` (school-year settings)
+- `public:overview:*` (public homepage snapshot)
+
+It does **not** `FLUSHALL`, and it does not drop step locks (`form:{id}:step:{key}`) or save rate-limit keys (`rl:*`).
+
+Writes `AuditLog` action `settings_changed`.
+
+### Retry Redis
+
+Clears the 60-second “Redis unreachable” backoff so the next request tries `REDIS_URL` again. Use this after Redis comes back without waiting for the timer.
+
+## Related admin tools
+
+| UI | Purpose |
+| --- | --- |
+| `/admin/logs` | Full audit log (also linked from System) |
+| `/admin/questions` | Draft / publish the question bank |
+| `/admin/users` | District users and bulk import |
+| `/dashboard?view=bulk-create` | Year setup, deadlines, rollover |
+| Submissions **Make live** | Reopen one archived-year plan so a late principal can finish |
+
+## Useful later (not built)
+
+These belong in Atlas, Vercel, or a later Super Admin tool — not on the current System page:
+
+- Atlas backup / snapshot status
+- Vercel deployment and function duration
+- Browse and release a stuck step lock after a crash
+- Duplicate-plan detector if the unique index was missing
+- Slow request / 5xx log beyond optional Sentry (`SENTRY_DSN`)

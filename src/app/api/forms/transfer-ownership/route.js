@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectDB from '@/lib/mongodb';
-import FormSubmission from '@/models/FormSubmission';
-import User from '@/models/User';
+import { authOptions } from '../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import FormSubmission from '../../../../models/FormSubmission';
+import User from '../../../../models/User';
 import mongoose from 'mongoose';
 
 export async function POST(request) {

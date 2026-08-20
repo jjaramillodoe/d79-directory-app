@@ -21,6 +21,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import Link from 'next/link';
+import AppFooter from '../../../components/AppFooter';
 
 function AdminLogsPageContent() {
   const router = useRouter();
@@ -221,7 +222,8 @@ function AdminLogsPageContent() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-1 p-4">
       <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -303,6 +305,7 @@ function AdminLogsPageContent() {
                     <option value="user_updated">User Updated</option>
                     <option value="user_deleted">User Deleted</option>
                     <option value="form_created">Form Created</option>
+                    <option value="form_duplicated">Form Duplicated</option>
                     <option value="form_edited">Form Edited</option>
                     <option value="form_submitted">Form Submitted</option>
                     <option value="form_approved">Form Approved</option>
@@ -466,6 +469,8 @@ function AdminLogsPageContent() {
           )}
         </div>
       </div>
+      </div>
+      <AppFooter />
     </div>
   );
 }

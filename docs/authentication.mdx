@@ -1,0 +1,92 @@
+---
+title: Authentication
+description: Google OAuth, JWT sessions, domain allowlist, impersonation, and logout revoke.
+icon: shield-check
+---
+
+Auth lives in `src/lib/auth.js` and is mounted at `/api/auth/[...nextauth]`. The [edge proxy](/architecture/security) (`src/proxy.js`) enforces a session on `/dashboard`, `/form`, `/view`, `/admin`, and `/api` (except `/api/public` and NextAuth).
+
+<CardGroup cols={2}>
+  <Card title="Roles and access" icon="user-shield" href="/features/roles">
+    What each level can view and edit on a plan.
+  </Card>
+  <Card title="Role preview" icon="user-secret" href="/features/role-preview">
+    Super Admin JWT impersonation of demo Principal and AP accounts.
+  </Card>
+</CardGroup>
+
+## Sign-in rules
+
+A Google account can enter the app only when **all** of the following are true:
+
+1. Email ends with `@schools.nyc.gov` (Google `hd` is set to that domain; the callback still checks the suffix).
+2. A matching `User` document exists (`email` lowercase, unique).
+3. `isActive` is not `false`.
+4. NextAuth `signIn` callback returns `true`.
+
+Otherwise the user is sent back to `/login`. Inactive accounts cannot sign in even if the Google mailbox is valid.
+
+![Sign-in rejection](https://placehold.co/600x400)
+*Caption: Add screenshot showing the login error when the Google account is not pre-registered or is not a DOE email.*
+
+```js theme={null}
+async signIn({ user }) {
+  if (!user.email?.endsWith('@schools.nyc.gov')) return false;
+  const dbUser = await User.findOne({ email: user.email.toLowerCase() });
+  if (!dbUser || dbUser.isActive === false) return false;
+  dbUser.lastLogin = new Date();
+  await dbUser.save();
+  return true;
+}
+```
+
+Provider checks: **PKCE**, **state**, and **nonce**. `prompt` is `select_account`. Cookies are `Secure` when `NEXTAUTH_URL` starts with `https://`.
+
+<Callout type="warning">
+  Level is **not** self-service. Only Super Admin (5) can create level 4–5 users. Principals (4) may create levels 1–3 for their school. Demo `d79.demo.*` users cannot Google-sign-in.
+</Callout>
+
+## Session
+
+| Setting | Value |
+| --- | --- |
+| Strategy | JWT (`session.strategy: 'jwt'`) |
+| Max age | **8 hours** (`8 * 60 * 60`) |
+| Update age | 15 minutes |
+| User reload | JWT re-reads MongoDB at least every 15 minutes (`token.lastSynced`) |
+| Custom pages | `signIn` and `error` → `/login` |
+| Secret | `NEXTAUTH_SECRET` (required; process throws if missing) |
+
+JWT callback copies from MongoDB onto the token. Session callback exposes:
+
+```json
+{
+  "user": {
+    "id": "<User._id>",
+    "email": "principal@schools.nyc.gov",
+    "name": "Jane Principal",
+    "level": 4,
+    "schoolName": "Passages Academy",
+    "isActive": true
+  },
+  "impersonating": false,
+  "actorEmail": null,
+  "actorName": null
+}
+```
+
+API routes call `getServerSession(authOptions)` and then re-load `User` by **session email** for authorization. During [role preview](/features/role-preview), that email is the demo user.
+
+Each token has a `jti`. On `signOut`, Redis stores `sess:deny:{jti}` until expiry so the cookie cannot be reused. Proxy rejects denied tokens with `401`.
+
+## Client usage
+
+```js
+'use client';
+import { useSession, signIn, signOut } from 'next-auth/react';
+
+const { data: session, status } = useSession();
+// status: 'loading' | 'authenticated' | 'unauthenticated'
+```
+
+Public pages (`/`, `/about`) still fetch `/api/public/overview` without a session. If `status === 'authenticated'`, the portal CTA becomes **Open dashboard**.

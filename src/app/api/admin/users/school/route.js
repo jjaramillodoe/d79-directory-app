@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import User from '../../../../../models/User';
 
-// GET: Get all users from the principal's school
+// GET: school users for collaboration (relative imports — Turbopack does not resolve @/)
 export async function GET(request) {
   try {
     const session = await getServerSession(authOptions);
@@ -31,9 +31,10 @@ export async function GET(request) {
       }).sort({ schoolName: 1, name: 1 });
     } else {
       // Level 4 users see only their school
-      users = await User.findBySchool(session.user.schoolName, {
-        includeInactive: true // Include inactive users for management
-      });
+      users = await User.find({
+        schoolName: session.user.schoolName,
+        level: { $lte: 3 },
+      }).sort({ name: 1 });
     }
 
     // Format user data for the frontend
@@ -49,7 +50,7 @@ export async function GET(request) {
       collaborationLevel: user.collaborationLevel,
       lastLogin: user.lastLogin,
       lastActivity: user.lastActivity,
-      assignedFormsCount: user.assignedForms.length,
+      assignedFormsCount: user.assignedForms?.length || 0,
       createdAt: user.createdAt
     }));
 

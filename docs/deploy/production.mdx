@@ -1,0 +1,49 @@
+---
+title: Production deployment
+description: Vercel build, OAuth production clients, and post-deploy checks.
+icon: cloud-arrow-up
+---
+
+## Vercel
+
+The app is a standard Next.js project (`package.json` name `d79-directory`).
+
+<Steps>
+  <Step title="Connect the Git repository">
+    Import the project in Vercel. Framework preset: Next.js. Build command is `next build --webpack` via `npm run build`.
+  </Step>
+  <Step title="Set environment variables">
+    See [Environment variables](/deploy/environment). Production `NEXTAUTH_URL` must match the live origin (for example `https://district79.school`).
+  </Step>
+  <Step title="OAuth production client">
+    Add the production authorized redirect URI in Google Cloud. Preview deployments need either a wildcard-unfriendly extra client or a fixed preview URL.
+  </Step>
+  <Step title="MongoDB Atlas network">
+    Allow Vercel egress. Prefer Atlas Network Access `0.0.0.0/0` only if IP lists are impractical; otherwise allow Vercel’s published IP ranges.
+  </Step>
+  <Step title="Redis">
+    Point `REDIS_URL` at a production Redis (TLS URL if required) so step locks, caches, and save rate limits work across serverless instances.
+  </Step>
+</Steps>
+
+![Vercel deployment](https://placehold.co/600x400)
+*Caption: Add screenshot showing a successful Vercel production deployment for d79-directory-app.*
+
+## Build notes
+
+- `typescript.ignoreBuildErrors` is **false**. Extra named exports on `page.js` files fail the build.
+- `pdfkit`, `fontkit`, and `iconv-lite` are server externals (`serverExternalPackages` plus webpack). PDF export uses the pdfkit CJS build.
+- `outputFileTracingRoot` is pinned to the repo so a stray home-directory lockfile is ignored.
+
+## Post-deploy checklist
+
+1. `GET https://<host>/api/public/overview` returns the current school year.
+2. Sign in with a seeded `@schools.nyc.gov` user.
+3. Open `/dashboard` and a form.
+4. Super Admin: `/admin/questions` shows published or JSON fallback.
+5. Super Admin: `/admin/system` shows MongoDB connected; Redis healthy or explicitly not configured.
+6. Confirm archived years are read-only after rollover.
+
+## Domains
+
+Set the canonical URL in `src/app/layout.js` `metadataBase` via `NEXTAUTH_URL`. Open Graph copy currently describes the 2026-2027 academic year.

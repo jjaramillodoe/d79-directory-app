@@ -1,0 +1,58 @@
+---
+title: Admin API
+description: Super Admin question bank, rollover, exports, goals, and sharing.
+icon: screwdriver-wrench
+---
+
+Unless noted, these routes require **level 5**. Status codes and limits: [Errors and rate limits](/api/errors).
+
+## School year
+
+| Method | Path | Body / query |
+| --- | --- | --- |
+| `GET` | `/api/school-year?schoolYear=2026-2027` | Any authenticated user. Also returns `cycle` (latest/next year, term dates, carry-over preview) |
+| `POST` | `/api/school-year` | Super Admin. `{ fromYear? }` creates the next July–June cycle. `409` if it already exists |
+| `PUT` | `/api/school-year` | Super Admin. `{ schoolYear, archived?, questionBankVersion?, deadlines?, districtGoals? }` |
+| `POST` | `/api/admin/forms/rollover` | `{ sourceYear, targetYear, force? }` |
+| `GET` | `/api/admin/forms/export?schoolYear=2026-2027&format=csv` | `format`: `csv` \| `html` |
+
+## Question bank
+
+See [Question bank](/features/question-bank) for payloads. Seed:
+
+```json
+POST /api/admin/questions/seed
+{ "force": false }
+```
+
+Publish:
+
+```json
+POST /api/admin/questions/publish
+{ "confirm": true, "schoolYear": "2026-2027" }
+```
+
+## Users and principals (admin)
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/api/admin/principals` | Level 4 list for assignment UIs |
+| `GET` `POST` | `/api/admin/users/school` | School-scoped user listing / create helpers |
+| `POST` `GET` `DELETE` | `/api/admin/forms/share` | Collaboration assignments |
+
+## Analytics and health
+
+| Method | Path |
+| --- | --- |
+| `GET` | `/api/admin/goals` |
+| `GET` | `/api/admin/reports` |
+| `GET` | `/api/admin/timeline` |
+| `GET` | `/api/notifications` |
+| `GET` `POST` | `/api/admin/health` |
+
+`GET /api/admin/health` returns API / MongoDB / Redis sizes and pings. `POST` body `{ "action": "flush-cache" }` or `{ "action": "retry-redis" }`. See [System health](/features/system).
+
+`POST /api/admin/forms/live` `{ formId, live }` reopens one archived-year plan (or returns it to read-only). Year-wide unlock is `PUT /api/school-year` with `{ schoolYear, archived: false }`. See [School year](/features/school-year).
+
+![Admin submissions](https://placehold.co/600x400)
+*Caption: Add screenshot showing /admin/submissions with school-year filter and CSV export control.*

@@ -1,0 +1,83 @@
+---
+title: Errors, status codes, and rate limits
+description: JSON error envelope, HTTP statuses, and Redis-backed request limits.
+icon: triangle-exclamation
+---
+
+There is no API key. Callers send the NextAuth session cookie. The [edge proxy](/architecture/security) may reject a request **before** the route handler runs.
+
+Typical JSON body:
+
+```json
+{ "error": "Access denied" }
+```
+
+Some form routes add `message` and a `details` object for debugging (never secrets). Rate-limited responses include `Retry-After`.
+
+## Status codes
+
+<ResponseField name="200" type="success">
+  Handler succeeded. Body is JSON unless the route streams PDF, DOCX, CSV, or HTML.
+</ResponseField>
+
+<ResponseField name="400" type="client error">
+  Invalid JSON, missing `stepKey`, bad `schoolYear`, or a validation failure on create/update.
+</ResponseField>
+
+<ResponseField name="401" type="auth">
+  No session, inactive user, denied `jti` after logout, or JWT failed `getToken` in the proxy.
+</ResponseField>
+
+<ResponseField name="403" type="authz">
+  Authenticated but not allowed: wrong level, Super Admin-only route, or form RBAC (not owner, not same-school principal, not assigned).
+</ResponseField>
+
+<ResponseField name="404" type="client error">
+  Unknown `User`, `FormSubmission`, or step number with no matching bank key.
+</ResponseField>
+
+<ResponseField name="409" type="conflict">
+  School already has a plan for that year; step save revision conflict; next-year settings already exist.
+</ResponseField>
+
+<ResponseField name="429" type="rate limit">
+  Too many requests. Respect `Retry-After` (seconds). In production, some limits **fail closed** if Redis is down.
+</ResponseField>
+
+<ResponseField name="500" type="server error">
+  Uncaught exception. Logged with `console.error`; optionally `SENTRY_DSN` via `src/lib/reportError.js`. Do not send form answers to Sentry.
+</ResponseField>
+
+## Rate limits
+
+Counters live in Redis as `rl:*` keys (60-second windows unless noted). The proxy applies the auth limit by client IP (`x-forwarded-for`). Application limits use `session.user.id`.
+
+| Key pattern | Limit | Window | Fail-closed in production? |
+| --- | --- | --- | --- |
+| `rl:auth:{ip}` | 20 POSTs | 60s | Yes (`src/proxy.js`) |
+| `rl:save:{userId}:{formId}` | 30 | 60s | No (save still proceeds) |
+| `rl:forms-create:{userId}` | 20 | 60s | Yes |
+| `rl:users:{userId}` | 60 | 60s | Yes |
+| `rl:users-write:{userId}` | 30 | 60s | Yes |
+| `rl:users-create:{userId}` | 20 | 60s | Yes |
+| `rl:users-bulk:{userId}` | 10 | 60s | Yes |
+| `rl:users-import:{userId}` | 5 | 60s | Yes |
+
+<Tabs>
+  <Tab title="429 body">
+```json
+{ "error": "Too many requests" }
+```
+
+Header: `Retry-After: 60`
+  </Tab>
+  <Tab title="Redis down">
+    Production mutating user/auth/create routes return `429` with `unavailable` semantics rather than skipping the limit.
+
+    Local `next dev` without Redis **allows** the request (fail-open) except where a route uses the same helper with `failClosed`.
+  </Tab>
+</Tabs>
+
+<Callout type="note">
+  Hitting a 403 on `/api/forms/:id/editors` while the form page itself loads usually means the route’s RBAC is stricter than `GET /api/forms/:id`. Principals need **same-school level 4** (or matching `principalEmail`). Assistant Principals need assignment or share. See [Troubleshooting](/guides/troubleshooting).
+</Callout>

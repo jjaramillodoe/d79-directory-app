@@ -1,0 +1,70 @@
+---
+title: Environment variables
+description: Required and optional secrets for local and Vercel environments.
+icon: key
+---
+
+Copy the sample file at the repo root:
+
+```bash
+cp .env.example .env.local
+```
+
+<Callout type="danger">
+  Never commit `.env.local` or paste production secrets into docs, tickets, or chat. Rotate any credential that has been exposed.
+</Callout>
+
+## Required
+
+```bash theme={null}
+# MongoDB (Atlas recommended)
+MONGODB_URI=mongodb+srv://USER:PASSWORD@CLUSTER/d79-directory?retryWrites=true&w=majority
+
+# NextAuth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=generate-a-long-random-string
+
+# Google OAuth Web client
+GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
+```
+
+Generate `NEXTAUTH_SECRET`:
+
+```bash
+openssl rand -base64 32
+```
+
+## Optional
+
+```bash theme={null}
+# Required in production (locks, cache, save rate limits, logout revoke, admin rate limits)
+REDIS_URL=redis://default:PASSWORD@HOST:PORT
+
+# Optional API error reporting (do not send form answers to Sentry)
+SENTRY_DSN=
+```
+
+Without `REDIS_URL`, locks and caches are in-memory per serverless isolate and will not coordinate across instances.
+
+Super Admins can confirm whether these variables are **set** (not their values) on [System health](/features/system).
+
+## Google redirect URIs
+
+<Tabs>
+  <Tab title="Local">
+    `http://localhost:3000/api/auth/callback/google`
+  </Tab>
+  <Tab title="Production">
+    `https://<your-domain>/api/auth/callback/google`
+
+    Set `NEXTAUTH_URL` to the same origin, including `https://`, with no path (trailing slash is tolerated but avoid duplicates in Google Console).
+  </Tab>
+</Tabs>
+
+## Vercel
+
+Add the same keys in **Project → Settings → Environment Variables** for Production, Preview, and Development as needed. Redeploy after changing `NEXTAUTH_URL` or OAuth clients.
+
+![Vercel env UI](https://placehold.co/600x400)
+*Caption: Add screenshot showing Vercel environment variables for MONGODB_URI, NEXTAUTH_URL, NEXTAUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIS_URL, SENTRY_DSN.*

@@ -1,0 +1,62 @@
+---
+title: Operations
+description: Seeding, year rollover runbook, audits, and support contacts.
+icon: screwdriver-wrench
+---
+
+## Seed users
+
+```bash
+npm run seed-users
+```
+
+Edit `src/scripts/seed-users.js` before running against Atlas. Sign-in will fail for any DOE Google account that is not in `users`.
+
+Additional scripts:
+
+- `npm run assign-principals` — `src/scripts/assign-principals-to-forms.js`
+- `npm run fix-form` — `src/scripts/fix-form-permissions.js`
+
+## Annual rollover runbook
+
+<Steps>
+  <Step title="Publish the question bank">
+    Super Admin → `/admin/questions` → publish with `{ confirm: true }` and pin `schoolYear` to the **new** year.
+  </Step>
+  <Step title="Set deadlines and district goals">
+    Year setup (`/dashboard?view=bulk-create`) or `PUT /api/school-year`.
+  </Step>
+  <Step title="Duplicate plans">
+    `POST /api/admin/forms/rollover` with `sourceYear` / `targetYear`. Confirm `created` vs `skipped`.
+  </Step>
+  <Step title="Verify archive">
+    Source year `archived: true`. Opens of last year’s forms are read-only.
+  </Step>
+  <Step title="Tell principals">
+    They update copied answers, compare attendance/housing/counseling, attest, and submit.
+  </Step>
+</Steps>
+
+![Rollover confirmation](https://placehold.co/600x400)
+*Caption: Add screenshot showing rollover result counts (created, skipped, errors) and the archived-year tag on 2025-2026 forms.*
+
+## System health
+
+Super Admin → `/admin/system` (also **System** in the Admin sidebar).
+
+Confirms API uptime, MongoDB data size, Redis memory/keys, env var presence, and the unique `schoolName` + `schoolYear` index. Flush app caches or retry Redis from that page. Details: [System health](/features/system).
+
+## Auditing
+
+UI: `/admin/logs`. Writes go through `src/lib/auditLogger.js` into `AuditLog`. Logins are recorded in the NextAuth `signIn` callback (fire-and-forget).
+
+## Support
+
+| Role | Contact |
+| --- | --- |
+| Data Systems Administrator | Javier Jaramillo · jjaramillo7@schools.nyc.gov |
+| Executive Director, School Support and Operations | Veronica Pichardo · VPichardo@schools.nyc.gov |
+
+Access requests: the account must exist in MongoDB **before** the person uses Google sign-in.
+
+Runtime incidents (403, 429, OAuth bounce): [Troubleshooting](/guides/troubleshooting).

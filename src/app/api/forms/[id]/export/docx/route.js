@@ -4,51 +4,39 @@ const { authOptions } = require('../../../../../../lib/auth');
 const connectDB = require('../../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
+const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
 const path = require('path');
 const fs = require('fs');
 
 // Helper function to load form questions
-function loadFormQuestions() {
-  let formQuestionsData = { steps: [] };
+async function loadFormQuestions(form) {
   try {
-    // Try multiple possible paths for the JSON file
+    const { inferSchoolYear } = require('../../../../../../lib/schoolYear');
+    const bank = await getPublishedOrJson({
+      schoolYear: form ? inferSchoolYear(form) : undefined,
+      version: form?.questionBankVersion,
+    });
+    if (bank?.steps?.length) return bank;
+  } catch (error) {
+    console.warn('Could not load published question bank, falling back to JSON:', error.message);
+  }
+
+  try {
     const possiblePaths = [
       path.join(process.cwd(), 'src', 'data', 'formQuestions.json'),
       path.join(process.cwd(), 'data', 'formQuestions.json'),
-      path.join(__dirname, '..', '..', '..', '..', '..', '..', '..', '..', 'data', 'formQuestions.json'),
-      path.join(__dirname, '..', '..', '..', '..', '..', '..', '..', '..', '..', '..', 'data', 'formQuestions.json'),
     ];
-    
-    let loaded = false;
     for (const formQuestionsPath of possiblePaths) {
-      try {
-        if (fs.existsSync(formQuestionsPath)) {
-          const fileContent = fs.readFileSync(formQuestionsPath, 'utf8');
-          formQuestionsData = JSON.parse(fileContent);
-          console.log('Successfully loaded form questions from:', formQuestionsPath);
-          loaded = true;
-          break;
-        } else {
-          console.log('Path does not exist:', formQuestionsPath);
-        }
-      } catch (pathError) {
-        console.error(`Error trying path ${formQuestionsPath}:`, pathError.message);
-        // Try next path
-        continue;
+      if (fs.existsSync(formQuestionsPath)) {
+        return JSON.parse(fs.readFileSync(formQuestionsPath, 'utf8'));
       }
     }
-    
-    if (!loaded) {
-      console.warn('Could not load formQuestions.json from any path, will use field IDs as labels');
-      console.log('Current working directory:', process.cwd());
-      console.log('__dirname:', __dirname);
-    }
   } catch (error) {
-    console.error('Error loading form questions:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error loading form questions JSON fallback:', error);
   }
-  return formQuestionsData;
+
+  return { steps: [] };
 }
 
 // Helper function to get question title by field ID
@@ -113,7 +101,7 @@ async function GET(request, { params }) {
     }
 
     // Load form questions
-    const formQuestionsData = loadFormQuestions();
+    const formQuestionsData = await loadFormQuestions(form);
 
     // Create document sections
     const children = [];
@@ -150,22 +138,10 @@ async function GET(request, { params }) {
     );
 
     // Form steps data
-    const stepNames = [
-      { key: 'tableOfContents', title: 'Step 1: Table of Contents' },
-      { key: 'childAbuseIntervention', title: 'Step 2: Child Abuse and Neglect Intervention' },
-      { key: 'sexualHarassment', title: 'Step 3: Student to Student Sexual Harassment' },
-      { key: 'respectForAll', title: 'Step 4: Respect For All Plan' },
-      { key: 'suicidePrevention', title: 'Step 5: Suicide Prevention and Crisis Intervention' },
-      { key: 'attendancePlan', title: 'Step 6: School Attendance Plan' },
-      { key: 'temporaryHousing', title: 'Step 7: Students in Temporary Housing Program' },
-      { key: 'serviceInSchools', title: 'Step 8: Service In Schools Plan' },
-      { key: 'planningInterviews', title: 'Step 9: Planning Interviews' },
-      { key: 'militaryRecruitment', title: 'Step 10: Military Recruitment Opt-Out' },
-      { key: 'schoolCulture', title: 'Step 11: School Culture Plan' },
-      { key: 'afterSchoolPrograms', title: 'Step 12: After School Programs' },
-      { key: 'cellPhonePolicy', title: 'Step 13: Cell Phone Policy' },
-      { key: 'counselingPlan', title: 'Step 14: School Counseling Plan' }
-    ];
+    const stepNames = (formQuestionsData.steps || []).map((step, index) => ({
+      key: step.key,
+      title: `Step ${index + 1}: ${step.title}`,
+    }));
 
     stepNames.forEach((step) => {
       const stepData = form.formData?.[step.key]?.data || {};

@@ -2,47 +2,51 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import DashboardShell from '../../../components/dashboard/DashboardShell';
+import DashboardSidebar from '../../../components/dashboard/DashboardSidebar';
+import DashboardHeader from '../../../components/dashboard/DashboardHeader';
+import UsersWorkspace from '../../../components/admin/UsersWorkspace';
+import { Spinner, Column, Row, Text, Button } from '@once-ui-system/core';
 import { 
   Users, 
   UserPlus, 
   ArrowLeft, 
-  Edit, 
-  Trash2, 
   Shield, 
   Building2, 
-  Calendar,
-  CheckCircle,
-  XCircle,
   AlertCircle,
   Loader2,
-  BarChart3,
   Info,
-  User,
   Download,
   RefreshCw,
   Share2,
   BookOpen,
-  Clock
 } from 'lucide-react';
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import CollaborationDashboard from '../../../components/CollaborationDashboard';
 import UserAnalytics from '../../../components/UserAnalytics';
 import SmartFilters from '../../../components/SmartFilters';
 import UserRoleTemplates from '../../../components/UserRoleTemplates';
 import SCHOOL_NAMES from '../../../constants/schools';
+import useAppToast from '../../../hooks/useAppToast';
+import { downloadUsersCsv } from '../../../components/admin/UsersTable';
 
-// Register AG Grid modules
-ModuleRegistry.registerModules([AllCommunityModule]);
+function canManageUser(actor, target) {
+  if (!actor || !target) return false;
+  const actorId = String(actor.id || actor._id || '');
+  const targetId = String(target._id || target.id || '');
+  if (actorId && targetId && actorId === targetId) return false;
+  if (actor.email && target.email && actor.email.toLowerCase() === target.email.toLowerCase()) return false;
+  if (Number(target.level) >= Number(actor.level)) return false;
+  if (Number(actor.level) < 5 && target.schoolName !== actor.schoolName) return false;
+  if (Number(actor.level) < 5 && Number(target.level) > 3) return false;
+  return true;
+}
 
 function AdminUsersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const toast = useAppToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -77,20 +81,31 @@ function AdminUsersPageContent() {
   });
 
   // Collaboration Dashboard State
-  const [activeTab, setActiveTab] = useState('users');
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    initialTab === 'collaboration' || initialTab === 'analytics' || initialTab === 'templates'
+      ? initialTab
+      : 'users'
+  );
   const [filteredUsers, setFilteredUsers] = useState([]);
 
-  // Check for tab parameter in URL
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'collaboration') {
-      setActiveTab('collaboration');
+    if (tab === 'collaboration' || tab === 'analytics' || tab === 'templates') {
+      setActiveTab(tab);
+    } else {
+      setActiveTab('users');
     }
   }, [searchParams]);
 
-  // AG Grid configuration
-  const [gridApi, setGridApi] = useState(null);
-  const [gridColumnApi, setGridColumnApi] = useState(null);
+  const selectTab = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'users') {
+      router.replace('/admin/users');
+    } else {
+      router.replace(`/admin/users?tab=${tab}`);
+    }
+  };
 
   // Handle authentication
   useEffect(() => {
@@ -158,7 +173,7 @@ function AdminUsersPageContent() {
       name: '',
       email: '',
       level: 1,
-      schoolName: '',
+      schoolName: session?.user?.level < 5 ? (session?.user?.schoolName || '') : '',
       title: '',
       isActive: true
     });
@@ -166,6 +181,7 @@ function AdminUsersPageContent() {
   };
 
   const handleEditUser = (user) => {
+    if (!canManageUser(session?.user, user)) return;
     setEditingUser(user);
     setFormData({
       name: user.name,
@@ -179,6 +195,7 @@ function AdminUsersPageContent() {
   };
 
   const handleDeleteUser = async (user) => {
+    if (!canManageUser(session?.user, user)) return;
     if (!confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
       return;
     }
@@ -198,10 +215,10 @@ function AdminUsersPageContent() {
 
       // Refresh the users list
       fetchUsers();
-      alert('User deleted successfully!');
+      toast.success('User deleted');
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Error deleting user. Please try again.');
+      toast.error('Error deleting user. Please try again.');
     }
   };
 
@@ -209,7 +226,7 @@ function AdminUsersPageContent() {
     e.preventDefault();
     
     if (!formData.name.trim() || !formData.email.trim()) {
-      alert('Name and email are required');
+      toast.error('Name and email are required');
       return;
     }
 
@@ -235,17 +252,17 @@ function AdminUsersPageContent() {
       // Refresh the users list
       fetchUsers();
       setShowModal(false);
-      alert(editingUser ? 'User updated successfully!' : 'User updated successfully!');
+      toast.success(editingUser ? 'User updated' : 'User created');
     } catch (error) {
       console.error('Error saving user:', error);
-      alert('Error saving user. Please try again.');
+      toast.error('Error saving user. Please try again.');
     }
   };
 
   // Advanced User Management Functions
   const handleBulkAction = async () => {
     if (selectedUsers.length === 0 || !bulkAction) {
-      alert('Please select users and choose an action');
+      toast.error('Select users and choose an action');
       return;
     }
 
@@ -266,11 +283,11 @@ function AdminUsersPageContent() {
         setShowBulkModal(false);
         setSelectedUsers([]);
         setBulkAction('');
-        alert('Bulk action completed successfully!');
+        toast.success('Bulk action completed');
       }
     } catch (error) {
       console.error('Error performing bulk action:', error);
-      alert('Error performing bulk action. Please try again.');
+      toast.error('Error performing bulk action. Please try again.');
     }
   };
 
@@ -286,11 +303,11 @@ function AdminUsersPageContent() {
 
       if (response.ok) {
         await fetchUsers();
-        alert('User permissions updated successfully!');
+        toast.success('Permissions updated');
       }
     } catch (error) {
       console.error('Error updating permissions:', error);
-      alert('Error updating permissions. Please try again.');
+      toast.error('Error updating permissions. Please try again.');
     }
   };
 
@@ -368,14 +385,16 @@ function AdminUsersPageContent() {
         const result = await response.json();
         setImportResults(result);
         await fetchUsers(); // Refresh user list
-        alert(`Import completed! ${result.successCount} users created, ${result.errorCount} errors.`);
+        toast.success(
+          `Import completed: ${result.successCount} created${result.errorCount ? `, ${result.errorCount} errors` : ''}`
+        );
       } else {
         const errorData = await response.json();
-        alert(`Import failed: ${errorData.error}`);
+        toast.error(errorData.error || 'Import failed');
       }
     } catch (error) {
       console.error('Error importing users:', error);
-      alert('Error importing users. Please try again.');
+      toast.error('Error importing users. Please try again.');
     } finally {
       setImporting(false);
     }
@@ -395,12 +414,10 @@ function AdminUsersPageContent() {
 
   // Handle export filtered users
   const handleExportFiltered = () => {
-    if (gridApi && filteredUsers.length > 0) {
-      gridApi.exportDataAsCsv({
-        fileName: `filtered-users-${new Date().toISOString().split('T')[0]}.csv`
-      });
+    if (filteredUsers.length > 0) {
+      downloadUsersCsv(filteredUsers);
     } else {
-      alert('No filtered users to export');
+      toast.error('No filtered users to export');
     }
   };
 
@@ -417,694 +434,96 @@ function AdminUsersPageContent() {
     );
   };
 
-  // AG Grid event handlers
-  const onGridReady = (params) => {
-    setGridApi(params.api);
-    setGridColumnApi(params.columnApi);
-  };
-
-  // AG Grid column definitions
-  const columnDefs = [
-         {
-       headerName: '',
-       field: 'select',
-       width: 50,
-       pinned: 'left',
-       sortable: false,
-       filter: false,
-       resizable: false
-     },
-    {
-      headerName: 'Name',
-      field: 'name',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 200,
-      cellRenderer: (params) => (
-        <div className="font-medium text-gray-900">{params.value}</div>
-      )
-    },
-    {
-      headerName: 'Email',
-      field: 'email',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 250,
-      cellRenderer: (params) => (
-        <div className="text-sm text-gray-700">{params.value}</div>
-      )
-    },
-    {
-      headerName: 'Level',
-      field: 'level',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 180,
-      cellRenderer: (params) => getLevelBadge(params.value)
-    },
-    {
-      headerName: 'School',
-      field: 'schoolName',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 200,
-      cellRenderer: (params) => (
-        <div className="flex items-center text-sm text-gray-700">
-          <Building2 className="w-4 h-4 mr-2 text-gray-400" />
-          {params.value || '-'}
-        </div>
-      )
-    },
-    {
-      headerName: 'Title',
-      field: 'title',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 180,
-      cellRenderer: (params) => (
-        <div className="flex items-center text-sm text-gray-700">
-          <User className="w-4 h-4 mr-2 text-gray-400" />
-          {params.value || '-'}
-        </div>
-      )
-    },
-    {
-      headerName: 'Status',
-      field: 'isActive',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 120,
-      cellRenderer: (params) => getStatusBadge(params.value)
-    },
-    {
-      headerName: 'Created',
-      field: 'createdAt',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 150,
-      cellRenderer: (params) => (
-        <div className="flex items-center text-sm text-gray-700">
-          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-          {new Date(params.value).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          })}
-        </div>
-      )
-    },
-    {
-      headerName: 'Last Login',
-      field: 'lastLogin',
-      sortable: true,
-      filter: true,
-      resizable: true,
-      width: 180,
-      cellRenderer: (params) => {
-        if (!params.value) {
-          return (
-            <div className="flex items-center text-sm text-gray-400 italic">
-              <Clock className="w-4 h-4 mr-2" />
-              Never
-            </div>
-          );
-        }
-        const lastLogin = new Date(params.value);
-        const now = new Date();
-        const diffMs = now - lastLogin;
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        
-        let timeAgo = '';
-        let colorClass = 'text-gray-700';
-        
-        if (diffDays > 30) {
-          timeAgo = `${diffDays} days ago`;
-          colorClass = 'text-red-600';
-        } else if (diffDays > 7) {
-          timeAgo = `${diffDays} days ago`;
-          colorClass = 'text-orange-600';
-        } else if (diffDays > 0) {
-          timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-          colorClass = 'text-yellow-600';
-        } else if (diffHours > 0) {
-          timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-          colorClass = 'text-green-600';
-        } else if (diffMinutes > 0) {
-          timeAgo = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
-          colorClass = 'text-green-600';
-        } else {
-          timeAgo = 'Just now';
-          colorClass = 'text-green-600';
-        }
-        
-        return (
-          <div className="flex items-center text-sm">
-            <Clock className={`w-4 h-4 mr-2 ${colorClass}`} />
-            <div>
-              <div className={colorClass}>{timeAgo}</div>
-              <div className="text-xs text-gray-500">
-                {lastLogin.toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })} {lastLogin.toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-            </div>
-          </div>
-        );
-      }
-    },
-    {
-      headerName: 'Actions',
-      field: 'actions',
-      sortable: false,
-      filter: false,
-      resizable: false,
-      width: 150,
-      cellRenderer: (params) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleEditUser(params.data)}
-            className="inline-flex items-center px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-md transition-colors duration-200"
-          >
-            <Edit className="w-3 h-3 mr-1" />
-            Edit
-          </button>
-          <button
-            onClick={() => handleDeleteUser(params.data)}
-            className="inline-flex items-center px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md transition-colors duration-200"
-          >
-            <Trash2 className="w-3 h-3 mr-1" />
-            Delete
-          </button>
-        </div>
-      )
-    }
-  ];
-
-  // AG Grid default column properties
-  const defaultColDef = {
-    sortable: true,
-    filter: true,
-    resizable: true,
-    minWidth: 100,
-    flex: 1
-  };
-
-     // AG Grid row selection
-   const onSelectionChanged = () => {
-     const selectedRows = gridApi?.getSelectedRows() || [];
-     setSelectedUsers(selectedRows);
-   };
-
-   // AG Grid options with modern configuration
-   const gridOptions = {
-     rowSelection: {
-       type: 'multiple',
-       headerCheckbox: true,
-       checkboxes: true,
-       enableClickSelection: false
-     },
-     pagination: true,
-     paginationPageSize: 20,
-     paginationPageSizeSelector: [20, 50, 100]
-   };
-
-  const getLevelBadge = (level) => {
-    const levelConfig = {
-      1: { color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'Viewer' },
-      2: { color: 'bg-blue-100 text-blue-800 border-blue-200', label: 'Other Titles' },
-      3: { color: 'bg-indigo-100 text-indigo-800 border-indigo-200', label: 'Assistant Principal' },
-      4: { color: 'bg-amber-100 text-amber-800 border-amber-200', label: 'Admin Principal' },
-      5: { color: 'bg-red-100 text-red-800 border-red-200', label: 'Super Admin' }
-    };
-    
-    const config = levelConfig[level] || levelConfig[1];
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border ${config.color}`}>
-        <Shield className="w-3 h-3" />
-        Level {level} ({config.label})
-      </span>
-    );
-  };
-
-  const getStatusBadge = (isActive) => {
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border ${
-        isActive 
-          ? 'bg-green-100 text-green-800 border-green-200' 
-          : 'bg-red-100 text-red-800 border-red-200'
-      }`}>
-        {isActive ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-        {isActive ? 'Active' : 'Inactive'}
-      </span>
-    );
-  };
-
   // Don't render until session is loaded
   if (status === 'loading' || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading...</Text>
+      </Column>
     );
   }
 
-     return (
-     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-8xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4">
-            <div className="mb-4 lg:mb-0">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {session?.user?.level === 4 ? 'School User Management' : 'All Users Management'}
-              </h1>
-              <p className="text-gray-600">
-                {session?.user?.level === 4 
-                  ? 'Manage user accounts and permissions for your school' 
-                  : 'Manage all user accounts and permissions across all schools'
-                }
-              </p>
-              <div className="flex items-center mt-2">
-                <span className="text-sm text-gray-500">Logged in as: </span>
-                <span className="ml-2 inline-flex items-center px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-md border border-amber-200">
-                  <Shield className="w-3 h-3 mr-1" />
-                  {session?.user?.name} (Level {session?.user?.level})
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleCreateUser}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add User
-              </button>
-              
-              {/* Advanced User Management Actions */}
-              <button
-                onClick={() => setShowAdvancedModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                title="Advanced User Management"
-              >
-                <Shield className="w-4 h-4 mr-2" />
+  return (
+    <DashboardShell
+      sidebar={<DashboardSidebar session={session} userLevel={session.user.level} />}
+      header={
+        <DashboardHeader
+          title={
+            activeTab === 'collaboration'
+              ? 'Collaboration'
+              : activeTab === 'analytics'
+                ? 'User analytics'
+                : activeTab === 'templates'
+                  ? 'Role templates'
+                  : session.user.level === 4
+                    ? 'School users'
+                    : 'Users'
+          }
+          description={
+            activeTab === 'collaboration'
+              ? 'Share school plans with Level 3 staff'
+              : session.user.level === 4
+                ? 'Manage accounts and permissions for your school'
+                : 'Manage accounts and permissions across all schools'
+          }
+          session={session}
+          userLevel={session.user.level}
+          actions={
+            <Row gap="8" wrap>
+              <Button size="s" onClick={handleCreateUser}>
+                Add user
+              </Button>
+              <Button size="s" variant="secondary" onClick={() => setShowAdvancedModal(true)}>
                 Advanced
-              </button>
-              
-              <button
-                onClick={() => setShowBulkModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                title="Bulk User Management"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Bulk Actions
-              </button>
-              
-              {session?.user?.level === 5 && (
-                <Link href="/admin/logs">
-                  <button
-                    className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                    title="System Audit Logs (Super Admin Only)"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    System Logs
-                  </button>
-                </Link>
+              </Button>
+              <Button size="s" variant="secondary" onClick={() => setShowBulkModal(true)}>
+                Bulk actions
+              </Button>
+              {session.user.level === 5 && (
+                <Button size="s" variant="secondary" href="/admin/logs">
+                  System logs
+                </Button>
               )}
-              <button
-                onClick={() => setShowAuditModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                title="User Activity Audit"
-              >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Audit Log
-              </button>
-               
-               <button
-                 onClick={() => setShowCsvImportModal(true)}
-                 className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                 title="Bulk Import Users from CSV"
-               >
-                 <Download className="w-4 h-4 mr-2" />
-                 Import CSV
-               </button>
-              
-              <button
-                onClick={() => setActiveTab('collaboration')}
-                className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                title="Collaboration Dashboard"
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Collaboration
-              </button>
-              
-              <Link href="/dashboard">
-                <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors duration-200">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Dashboard
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
+              <Button size="s" variant="secondary" onClick={() => setShowAuditModal(true)}>
+                Audit log
+              </Button>
+              <Button size="s" variant="secondary" onClick={() => setShowCsvImportModal(true)}>
+                Import CSV
+              </Button>
+            </Row>
+          }
+        />
+      }
+    >
+      <UsersWorkspace
+        userLevel={session.user.level}
+        actor={session.user}
+        activeTab={activeTab}
+        onTabChange={selectTab}
+        users={users}
+        filteredUsers={filteredUsers}
+        loading={loading}
+        selectedUsers={selectedUsers}
+        onToggleSelect={toggleUserSelection}
+        onEdit={handleEditUser}
+        onDelete={handleDeleteUser}
+        filters={
+          <SmartFilters
+            users={users}
+            onFilteredUsers={handleFilteredUsers}
+            onExportFiltered={handleExportFiltered}
+          />
+        }
+        analytics={<UserAnalytics users={users} />}
+        templates={<UserRoleTemplates onCreateUsers={handleUsersCreated} />}
+        collaboration={<CollaborationDashboard user={session.user} />}
+      />
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <nav className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'users'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Users className="w-4 h-4 inline mr-2" />
-              {session?.user?.level === 4 ? 'School Users' : 'All Users'}
-            </button>
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'analytics'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4 inline mr-2" />
-              Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'templates'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <BookOpen className="w-4 h-4 inline mr-2" />
-              Role Templates
-            </button>
-            <button
-              onClick={() => setActiveTab('collaboration')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'collaboration'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Share2 className="w-4 h-4 inline mr-2" />
-              Collaboration Dashboard
-            </button>
-          </nav>
-        </div>
-
-        {/* User Analytics Dashboard */}
-        {activeTab === 'analytics' && (
-          <UserAnalytics users={users} />
-        )}
-
-        {/* User Role Templates */}
-        {activeTab === 'templates' && (
-          <UserRoleTemplates onCreateUsers={handleUsersCreated} />
-        )}
-
-        {/* Collaboration Dashboard */}
-        {activeTab === 'collaboration' && (
-          <CollaborationDashboard user={session.user} />
-        )}
-
-        {/* User Management Content */}
-        {activeTab === 'users' && (
-          <>
-            {/* Smart Filters */}
-            <SmartFilters 
-              users={users} 
-              onFilteredUsers={handleFilteredUsers}
-              onExportFiltered={handleExportFiltered}
-            />
-
-            {/* User Statistics */}
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.isActive).length}</p>
-              </div>
-            </div>
-          </div>
-          
-                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-             <div className="flex items-center">
-               <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
-                 <Shield className="w-5 h-5 text-indigo-600" />
-               </div>
-               <div>
-                 <p className="text-sm font-medium text-gray-600">Principals</p>
-                 <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.level === 3).length}</p>
-               </div>
-             </div>
-           </div>
-           
-           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-             <div className="flex items-center">
-               <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                 <User className="w-5 h-5 text-purple-600" />
-               </div>
-               <div>
-                 <p className="text-sm font-medium text-gray-600">Staff with Titles</p>
-                 <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.title && u.title.trim() !== '').length}</p>
-               </div>
-             </div>
-           </div>
-          
-                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-             <div className="flex items-center">
-               <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-3">
-                 <Shield className="w-5 h-5 text-amber-600" />
-               </div>
-               <div>
-                 <p className="text-sm font-medium text-gray-600">Admin Principals</p>
-                 <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.level === 4).length}</p>
-               </div>
-             </div>
-           </div>
-           
-           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-             <div className="flex items-center">
-               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                 <Shield className="w-5 h-5 text-red-600" />
-               </div>
-               <div>
-                 <p className="text-sm font-medium text-gray-600">Super Admins</p>
-                 <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.level === 5).length}</p>
-               </div>
-             </div>
-           </div>
-        </div>
-
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-blue-600" />
-              District 79 Users ({filteredUsers.length} of {users.length})
-            </h2>
-            <div className="flex gap-2 mt-2 lg:mt-0">
-              <button
-                onClick={() => gridApi?.exportDataAsCsv()}
-                className="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </button>
-              <button
-                onClick={() => gridApi?.setFilterModel(null)}
-                className="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Clear Filters
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading users...</p>
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-12 text-gray-600">
-              <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <p>No users match your filters.</p>
-            </div>
-          ) : (
-                                      <div className="ag-theme-alpine w-full" style={{ height: '600px' }}>
-               <AgGridReact
-                 columnDefs={columnDefs}
-                 rowData={filteredUsers}
-                 defaultColDef={defaultColDef}
-                 onGridReady={onGridReady}
-                 onSelectionChanged={onSelectionChanged}
-                 gridOptions={gridOptions}
-                 domLayout="normal"
-                 suppressCellFocus={true}
-                 className="w-full"
-                 rowHeight={60}
-                 headerHeight={50}
-                 theme="legacy"
-               />
-             </div>
-          )}
-        </div>
-
-
-
-                 {/* Enhanced User Management Features Section */}
-         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 mt-6">
-           <div className="flex items-start justify-between">
-             <div className="flex-1">
-               <h3 className="text-green-800 font-bold text-lg mb-3 flex items-center">
-                 <CheckCircle className="w-5 h-5 mr-2" />
-                 User Management Features (Now Available!)
-               </h3>
-               <p className="text-green-700 text-sm mb-4">
-                 Advanced user management capabilities are now fully implemented and ready to use. Take advantage of these powerful tools to manage your user base effectively.
-               </p>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                 <div className="flex items-center text-green-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                   ✅ Edit user levels and permissions
-                 </div>
-                 <div className="flex items-center text-green-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                   ✅ Activate/deactivate user accounts
-                 </div>
-                 <div className="flex items-center text-green-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                   ✅ Bulk user management tools
-                 </div>
-                 <div className="flex items-center text-green-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                   ✅ User activity audit logs
-                 </div>
-                 <div className="flex items-center text-green-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                   ✅ CSV bulk import for multiple users
-                 </div>
-               </div>
-             </div>
-             <div className="ml-4 flex-shrink-0">
-               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                 <CheckCircle className="w-8 h-8 text-green-600" />
-               </div>
-             </div>
-           </div>
-           
-           {/* How to Use Section */}
-           <div className="mt-6 pt-4 border-t border-green-200">
-             <h4 className="text-green-800 font-semibold text-sm mb-2 flex items-center">
-               <Info className="w-4 h-4 mr-2" />
-               How to Use These Features
-             </h4>
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs text-green-600">
-               <span>• Click "Advanced" for permissions & status</span>
-               <span>• Use "Bulk Actions" for multiple users</span>
-               <span>• View "Audit Log" for activity tracking</span>
-               <span>• Use "Import CSV" for bulk user creation</span>
-             </div>
-           </div>
-         </div>
-
-         {/* CSV Import Information Section */}
-         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mt-6">
-           <div className="flex items-start justify-between">
-             <div className="flex-1">
-               <h3 className="text-blue-800 font-bold text-lg mb-3 flex items-center">
-                 <Download className="w-5 h-5 mr-2" />
-                 CSV Bulk Import - Perfect for Onboarding Multiple Principals!
-               </h3>
-               <p className="text-blue-700 text-sm mb-4">
-                 Need to add 24 principals and assistant principals quickly? Use our CSV import feature to create multiple users at once with proper validation and error handling.
-               </p>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                 <div className="flex items-center text-blue-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-blue-600" />
-                   ✅ Download CSV template with correct format
-                 </div>
-                 <div className="flex items-center text-blue-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-blue-600" />
-                   ✅ Preview data before importing
-                 </div>
-                 <div className="flex items-center text-blue-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-blue-600" />
-                   ✅ Automatic validation and error reporting
-                 </div>
-                 <div className="flex items-center text-blue-700 text-sm">
-                   <CheckCircle className="w-4 h-4 mr-2 text-blue-600" />
-                   ✅ Batch processing for large imports
-                 </div>
-               </div>
-             </div>
-             <div className="ml-4 flex-shrink-0">
-               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                 <Download className="w-8 h-8 text-blue-600" />
-               </div>
-             </div>
-           </div>
-           
-           {/* CSV Format Section */}
-           <div className="mt-6 pt-4 border-t border-blue-200">
-             <h4 className="text-blue-800 font-semibold text-sm mb-2 flex items-center">
-               <Info className="w-4 h-4 mr-2" />
-               CSV Format Requirements
-             </h4>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-blue-600">
-               <span>• Required columns: name, email, level, schoolName</span>
-               <span>• Optional columns: title</span>
-               <span>• Level values: 1=Viewer, 2=Other, 3=Assistant Principal, 4=Admin Principal, 5=Super Admin</span>
-               <span>• Email must be valid format (e.g., john.doe@schools.nyc.gov)</span>
-             </div>
-           </div>
-         </div>
-          </>
-        )}
-
+      <div className="legacy-ui">
         {/* Modal for Create/Edit User */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-8 w-full max-w-lg max-h-90vh overflow-y-auto">
               <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
                 <UserPlus className="w-6 h-6 mr-2 text-blue-600" />
@@ -1170,7 +589,10 @@ function AdminUsersPageContent() {
                     value={formData.schoolName}
                     onChange={(e) => setFormData({...formData, schoolName: e.target.value})}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={session?.user?.level < 5}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      session?.user?.level < 5 ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
                   >
                     <option value="">Select a school...</option>
                     {SCHOOL_NAMES.map((schoolName) => (
@@ -1228,7 +650,7 @@ function AdminUsersPageContent() {
 
         {/* Advanced User Management Modal */}
         {showAdvancedModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl my-8 max-h-[95vh] flex flex-col">
               <div className="p-6 border-b border-gray-200 flex-shrink-0">
                 <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
@@ -1360,7 +782,7 @@ function AdminUsersPageContent() {
 
         {/* Bulk Actions Modal */}
         {showBulkModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-8 w-full max-w-2xl max-h-90vh overflow-y-auto">
               <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
                 <Users className="w-6 h-6 mr-2 text-purple-600" />
@@ -1449,7 +871,7 @@ function AdminUsersPageContent() {
 
         {/* Audit Log Modal */}
         {showAuditModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl my-8 max-h-[95vh] flex flex-col">
               <div className="p-6 border-b border-gray-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
@@ -1519,7 +941,7 @@ function AdminUsersPageContent() {
 
          {/* CSV Import Modal */}
          {showCsvImportModal && (
-           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
              <div className="bg-white rounded-lg p-8 w-full max-w-4xl max-h-90vh overflow-y-auto">
                <div className="flex items-center justify-between mb-6">
                  <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
@@ -1687,21 +1109,18 @@ function AdminUsersPageContent() {
              </div>
            </div>
          )}
-       </div>
-     </div>
-   );
- }
+      </div>
+    </DashboardShell>
+  );
+}
 
-// Wrap the component that uses useSearchParams in Suspense
 export default function AdminUsersPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading...</Text>
+      </Column>
     }>
       <AdminUsersPageContent />
     </Suspense>

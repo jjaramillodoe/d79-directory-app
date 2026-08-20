@@ -4,6 +4,8 @@ const { authOptions } = require('../../../../../../../lib/auth');
 const connectDB = require('../../../../../../../lib/mongodb');
 const User = require('../../../../../../../models/User');
 const { releaseLock } = require('../../../../../../../lib/locking');
+const { getPublishedOrJson } = require('../../../../../../../lib/questionBank');
+const { getStepKeyByNumber } = require('../../../../../../../lib/formSteps');
 
 // POST /api/forms/[id]/step/[stepNumber]/unlock - Release lock for a step
 async function POST(request, { params }) {
@@ -21,26 +23,8 @@ async function POST(request, { params }) {
 
     const { id, stepNumber } = await params;
     const stepNum = parseInt(stepNumber);
-    
-    // Step key mapping
-    const stepKeyMap = {
-      1: 'tableOfContents',
-      2: 'childAbuseIntervention',
-      3: 'sexualHarassment',
-      4: 'respectForAll',
-      5: 'suicidePrevention',
-      6: 'attendancePlan',
-      7: 'temporaryHousing',
-      8: 'serviceInSchools',
-      9: 'planningInterviews',
-      10: 'militaryRecruitment',
-      11: 'schoolCulture',
-      12: 'afterSchoolPrograms',
-      13: 'cellPhonePolicy',
-      14: 'counselingPlan'
-    };
-
-    const stepKey = stepKeyMap[stepNum];
+    const bank = await getPublishedOrJson();
+    const stepKey = getStepKeyByNumber(bank.steps, stepNum);
     if (!stepKey) {
       return NextResponse.json({ error: 'Invalid step number' }, { status: 400 });
     }

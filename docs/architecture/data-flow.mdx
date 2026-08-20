@@ -1,0 +1,85 @@
+---
+title: Data flow
+description: How a plan is created, answered, duplicated, attested, and submitted.
+icon: arrows-spin
+---
+
+## Answer storage
+
+Every field value is keyed by **question id**, not by title:
+
+```json
+{
+  "formData": {
+    "attendancePlan": {
+      "completed": true,
+      "data": {
+        "screen7question1": "Chronic absenteeism goal: 18%"
+      },
+      "startedAt": "2026-08-01T14:02:00.000Z",
+      "lastUpdated": "2026-08-12T09:41:00.000Z",
+      "timeSpent": 420,
+      "revisionCount": 3
+    }
+  }
+}
+```
+
+The editor loads questions from the published bank **pinned** by `form.questionBankVersion` (or the year pin on `SchoolYearSettings`). Titles can change; ids cannot.
+
+## Create → edit → submit
+
+```mermaid
+sequenceDiagram
+  participant P as Principal
+  participant UI as Form page
+  participant API as /api/forms
+  participant DB as MongoDB
+  participant R as Redis lock
+
+  P->>API: POST /api/forms { schoolName, schoolYear }
+  API->>DB: Insert FormSubmission draft
+  P->>UI: Open /form/:id
+  UI->>API: GET /api/forms/:id
+  P->>API: PUT /api/forms/:id/step/:n
+  API->>R: acquireLock(formId, stepKey)
+  Note over UI: Autosave ~3s; no Save draft
+  API->>DB: dirty $set on formData[stepKey]
+  P->>API: POST /api/forms/:id/attest { name }
+  P->>API: PUT /api/forms/:id { status: "submitted" }
+```
+
+![Form workspace](https://placehold.co/600x400)
+*Caption: Add screenshot showing FormWorkspace with section nav, autosave (“Editing · Saved 2:14 PM”), lock indicator, and attestation on a copied 2026-2027 plan.*
+
+## Duplicate / rollover
+
+1. **Single school:** `POST /api/forms/[id]/duplicate` with `{ schoolYear, force? }`.
+2. **District:** Super Admin `POST /api/admin/forms/rollover` with `{ sourceYear, targetYear, force? }`.
+
+`duplicateForm()`:
+
+- Deep-clones `formData` (all `data` objects).
+- Sets `completed` when a step already has answers.
+- Creates a **draft** owned by the same principal.
+- Sets `duplicatedFrom`, `schoolYear`, `needsUpdate` flags for new/changed/revisit questions.
+- Does **not** copy comments, reviews, shares, or attestation.
+- After a successful bulk rollover, the source year is **archived** (`SchoolYearSettings.archived = true`). Archived years reject writes.
+
+<Callout type="tip">
+  If a dashboard shows 0% on a copied plan, completions are derived from whether `formData[stepKey].data` has keys (`deriveCompletedSteps`). New copies keep `completed: true` when answers exist.
+</Callout>
+
+## Compare years
+
+`GET /api/forms/[id]/compare?compareYear=2025-2026` diffs these step keys only:
+
+- `attendancePlan`
+- `temporaryHousing`
+- `counselingPlan`
+
+UI: `/form/[id]/compare`.
+
+## Public snapshot
+
+Unauthenticated `GET /api/public/overview` aggregates school count, section count, and submitted/under_review/approved totals for `currentSchoolYear()`.

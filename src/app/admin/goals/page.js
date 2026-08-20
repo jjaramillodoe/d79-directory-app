@@ -2,26 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
-  Target,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
   AlertCircle,
   CheckCircle,
   XCircle,
-  FileText,
-  ArrowLeft,
-  RefreshCw,
-  Download,
-  Filter,
-  Search,
-  Loader2,
-  Brain,
-  Activity,
-  Info
 } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
@@ -45,6 +30,24 @@ import {
   Scatter,
   ZAxis
 } from 'recharts';
+import {
+  Spinner,
+  Column,
+  Row,
+  Text,
+  Heading,
+  Button,
+  Card,
+  Grid,
+  SegmentedControl,
+  Tag,
+} from '@once-ui-system/core';
+import DashboardShell from '../../../components/dashboard/DashboardShell';
+import DashboardSidebar from '../../../components/dashboard/DashboardSidebar';
+import DashboardHeader from '../../../components/dashboard/DashboardHeader';
+import StatCard from '../../../components/dashboard/StatCard';
+import DashboardSection from '../../../components/dashboard/DashboardSection';
+import { currentSchoolYear } from '../../../lib/schoolYear';
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -60,6 +63,7 @@ function AdminGoalsPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRequired, setFilterRequired] = useState('all'); // all, required, optional
   const [gridApi, setGridApi] = useState(null);
+  const [schoolYear, setSchoolYear] = useState(currentSchoolYear());
 
   // Handle authentication
   useEffect(() => {
@@ -84,11 +88,17 @@ function AdminGoalsPageContent() {
     }
   }, [session]);
 
+  useEffect(() => {
+    if (session?.user?.level === 5) {
+      fetchAnalysis();
+    }
+  }, [schoolYear]);
+
   const fetchAnalysis = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/admin/goals');
+      const response = await fetch(`/api/admin/goals?schoolYear=${encodeURIComponent(schoolYear)}`);
       if (!response.ok) {
         throw new Error('Failed to fetch analysis data');
       }
@@ -281,633 +291,441 @@ function AdminGoalsPageContent() {
     }
   };
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading analysis...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading...</Text>
+      </Column>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <AlertCircle className="w-6 h-6 text-red-600 mr-3" />
-              <div>
-                <h3 className="text-lg font-semibold text-red-900">Error Loading Analysis</h3>
-                <p className="text-red-700 mt-1">{error}</p>
-                <button
-                  onClick={fetchAnalysis}
-                  className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  if (!session || session.user.level !== 5) {
+    return null;
   }
 
   const filteredQuestions = getFilteredQuestions();
   const topNA = data?.topNAQuestions || [];
   const highestNA = data?.highestNAPercentage || [];
+  const stats = data?.overallStats || {};
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4">
-            <div className="mb-4 lg:mb-0">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-                <Brain className="w-8 h-8 mr-3 text-purple-600" />
-                Form Goals & NLP Analysis
-              </h1>
-              <p className="text-gray-600">
-                Machine learning analysis of form submissions to identify N/A questions and quantify completion rates
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleAnalyze}
-                disabled={analyzing}
-                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+    <DashboardShell
+      sidebar={<DashboardSidebar session={session} userLevel={session.user.level} />}
+      header={
+        <DashboardHeader
+          title="Goals"
+          description={`N/A patterns and completion for ${schoolYear === 'all' ? 'all years' : schoolYear}`}
+          session={session}
+          userLevel={session.user.level}
+          actions={
+            <Row gap="8" wrap>
+              <select
+                className="app-field"
+                value={schoolYear}
+                onChange={(e) => setSchoolYear(e.target.value)}
               >
-                {analyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Re-analyze
-                  </>
-                )}
-              </button>
+                <option value={currentSchoolYear()}>{currentSchoolYear()}</option>
+                <option value="2025-2026">2025-2026</option>
+                <option value="all">All years</option>
+              </select>
+              <Button size="s" variant="secondary" onClick={handleAnalyze} disabled={analyzing || loading}>
+                {analyzing ? 'Analyzing…' : 'Re-analyze'}
+              </Button>
               {filteredQuestions.length > 0 && (
-                <button
-                  onClick={exportToCSV}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  <Download className="w-4 h-4 mr-2" />
+                <Button size="s" variant="tertiary" onClick={exportToCSV}>
                   Export CSV
-                </button>
+                </Button>
               )}
-              <Link href="/admin/submissions">
-                <button className="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
+            </Row>
+          }
+        />
+      }
+    >
+      {loading && !data && (
+        <Column fillWidth horizontal="center" paddingY="40" gap="12">
+          <Spinner size="l" />
+          <Text onBackground="neutral-weak">Loading analysis...</Text>
+        </Column>
+      )}
 
-        {/* Overall Statistics */}
-        {data?.overallStats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Forms</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{data.overallStats.totalForms}</p>
-                </div>
-                <FileText className="w-12 h-12 text-blue-600 opacity-50" />
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-                  <p className="text-3xl font-bold text-green-600 mt-2">
-                    {data.overallStats.averageCompletionRate}%
-                  </p>
-                </div>
-                <CheckCircle className="w-12 h-12 text-green-600 opacity-50" />
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">N/A Rate</p>
-                  <p className="text-3xl font-bold text-orange-600 mt-2">
-                    {data.overallStats.averageNARate}%
-                  </p>
-                </div>
-                <XCircle className="w-12 h-12 text-orange-600 opacity-50" />
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Empty Rate</p>
-                  <p className="text-3xl font-bold text-gray-600 mt-2">
-                    {data.overallStats.averageEmptyRate}%
-                  </p>
-                </div>
-                <AlertCircle className="w-12 h-12 text-gray-600 opacity-50" />
-              </div>
-            </div>
-          </div>
-        )}
+      {error && (
+        <Card padding="20" radius="l" fillWidth direction="column">
+          <Column gap="12">
+            <Heading variant="heading-strong-s">Could not load analysis</Heading>
+            <Text onBackground="neutral-weak">{error}</Text>
+            <Button size="s" onClick={fetchAnalysis}>Retry</Button>
+          </Column>
+        </Card>
+      )}
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <nav className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'overview'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4 inline mr-2" />
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('questions')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'questions'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Target className="w-4 h-4 inline mr-2" />
-              All Questions
-            </button>
-            <button
-              onClick={() => setActiveTab('topna')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'topna'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4 inline mr-2" />
-              Top N/A Questions
-            </button>
-            <button
-              onClick={() => setActiveTab('graphs')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'graphs'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4 inline mr-2" />
-              Graphs & Charts
-            </button>
-            <button
-              onClick={() => setActiveTab('clustering')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'clustering'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Brain className="w-4 h-4 inline mr-2" />
-              Clustering Analysis
-            </button>
-          </nav>
-        </div>
+      {data?.overallStats && (
+        <Grid columns="4" gap="16" fillWidth s={{ columns: '2' }}>
+          <StatCard accentKey="total" label="Total forms" value={stats.totalForms || 0} />
+          <StatCard accentKey="approved" label="Completion rate" value={stats.averageCompletionRate || 0} suffix="%" />
+          <StatCard accentKey="underReview" label="N/A rate" value={stats.averageNARate || 0} suffix="%" />
+          <StatCard accentKey="draft" label="Empty rate" value={stats.averageEmptyRate || 0} suffix="%" />
+        </Grid>
+      )}
 
-        {/* Tab Content */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <div className="flex items-start">
-                <Info className="w-6 h-6 text-blue-600 mr-3 mt-1" />
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-900 mb-2">NLP Analysis Methodology</h3>
-                  <p className="text-blue-800 text-sm mb-2">
-                    This analysis uses natural language processing to identify questions marked as "Not Applicable" (N/A) across all form submissions.
-                  </p>
-                  <ul className="text-blue-700 text-sm list-disc list-inside space-y-1">
-                    <li>Detects common N/A patterns: "N/A", "not applicable", "does not apply", etc.</li>
-                    <li>Quantifies completion rates for each question</li>
-                    <li>Identifies questions that are frequently marked as N/A</li>
-                    <li>Helps identify which questions may need to be optional or removed</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+      {data && (
+      <>
+      <SegmentedControl
+        buttons={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'questions', label: 'Questions' },
+          { value: 'topna', label: 'Top N/A' },
+          { value: 'graphs', label: 'Charts' },
+          { value: 'clustering', label: 'Clusters' },
+        ]}
+        selected={activeTab}
+        onToggle={setActiveTab}
+        fillWidth
+      />
 
-            {/* Top N/A Questions Summary */}
-            {topNA.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2 text-orange-600" />
-                  Top Questions Marked as N/A
-                </h2>
-                <div className="space-y-3">
-                  {topNA.slice(0, 10).map((q, idx) => (
-                    <div key={q.questionId} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center mb-2">
-                            <span className="text-sm font-medium text-gray-500 mr-2">
-                              #{idx + 1} - Step {q.stepId}: {q.stepTitle}
-                            </span>
-                            <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-800">
-                              Q{q.questionNumber}
-                            </span>
-                            {q.required && (
-                              <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-800 ml-2">
-                                Required
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-900 font-medium mb-2">{q.title}</p>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-orange-600 font-semibold">
-                              {q.naCount} forms marked as N/A ({q.naPercentage}%)
-                            </span>
-                            <span className="text-gray-600">
-                              {q.answeredCount} answered ({q.answerPercentage}%)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      {activeTab === 'overview' && (
+        <Column gap="24" fillWidth>
+          <Card padding="24" radius="l" fillWidth direction="column">
+            <Column gap="8">
+              <Heading variant="heading-strong-s">How N/A is detected</Heading>
+              <Text variant="body-default-s" onBackground="neutral-weak">
+                Answers matching “N/A”, “not applicable”, “does not apply”, and similar phrases are counted across all submissions so you can see which questions are often skipped.
+              </Text>
+              <Text variant="body-default-s" onBackground="neutral-weak">
+                Use the rates below to decide which questions should stay required, become optional, or be removed from the bank.
+              </Text>
+            </Column>
+          </Card>
+
+          <DashboardSection title="Top questions marked N/A" description="Highest N/A counts across current forms">
+            {topNA.length === 0 ? (
+              <Text onBackground="neutral-weak">No N/A answers found yet.</Text>
+            ) : (
+              <Column gap="12" fillWidth>
+                {topNA.slice(0, 10).map((q, idx) => (
+                  <Row
+                    key={q.questionId}
+                    fillWidth
+                    gap="16"
+                    padding="16"
+                    border="neutral-medium"
+                    radius="m"
+                    vertical="center"
+                    wrap
+                  >
+                    <Text variant="label-strong-s" style={{ width: 28 }}>{idx + 1}</Text>
+                    <Column gap="4" style={{ flex: 1, minWidth: 200 }}>
+                      <Row gap="8" wrap vertical="center">
+                        <Text variant="label-default-s" onBackground="neutral-weak">
+                          {q.stepTitle} · Q{q.questionNumber}
+                        </Text>
+                        {q.required && <Tag size="s" variant="danger" label="Required" />}
+                      </Row>
+                      <Text weight="strong">{q.title}</Text>
+                      <Text variant="body-default-s" onBackground="neutral-weak">
+                        {q.naCount} N/A ({q.naPercentage}%) · {q.answeredCount} answered ({q.answerPercentage}%)
+                      </Text>
+                    </Column>
+                  </Row>
+                ))}
+              </Column>
             )}
+          </DashboardSection>
+        </Column>
+      )}
+
+      {activeTab === 'questions' && (
+        <DashboardSection
+          title={`All questions (${filteredQuestions.length})`}
+          actions={
+            <Row gap="8" wrap>
+              <input
+                className="app-field"
+                type="search"
+                placeholder="Search questions"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ minWidth: 200 }}
+              />
+              <select
+                className="app-field"
+                value={filterRequired}
+                onChange={(e) => setFilterRequired(e.target.value)}
+              >
+                <option value="all">All questions</option>
+                <option value="required">Required</option>
+                <option value="optional">Optional</option>
+              </select>
+            </Row>
+          }
+        >
+          <div className="legacy-ui ag-theme-alpine w-full" style={{ height: 600 }}>
+            <AgGridReact
+              columnDefs={questionColumnDefs}
+              rowData={filteredQuestions}
+              onGridReady={onGridReady}
+              pagination={true}
+              paginationPageSize={50}
+              defaultColDef={{ sortable: true, filter: true, resizable: true }}
+            />
           </div>
-        )}
+        </DashboardSection>
+      )}
 
-        {activeTab === 'questions' && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 lg:mb-0">
-                All Questions Analysis ({filteredQuestions.length})
-              </h2>
-              <div className="flex gap-3">
-                <div className="relative">
-                  <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search questions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
-                </div>
-                <select
-                  value={filterRequired}
-                  onChange={(e) => setFilterRequired(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="all">All Questions</option>
-                  <option value="required">Required Only</option>
-                  <option value="optional">Optional Only</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="ag-theme-alpine w-full" style={{ height: '600px' }}>
+      {activeTab === 'topna' && (
+        <Column gap="24" fillWidth>
+          <DashboardSection title="Top N/A by count">
+            <div className="legacy-ui ag-theme-alpine w-full" style={{ height: 400 }}>
               <AgGridReact
                 columnDefs={questionColumnDefs}
-                rowData={filteredQuestions}
-                onGridReady={onGridReady}
+                rowData={topNA}
                 pagination={true}
-                paginationPageSize={50}
-                defaultColDef={{
-                  sortable: true,
-                  filter: true,
-                  resizable: true
-                }}
+                paginationPageSize={25}
               />
             </div>
-          </div>
-        )}
-
-        {activeTab === 'topna' && (
-          <div className="space-y-6">
-            {/* By Count */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Top N/A Questions by Count
-              </h2>
-              <div className="ag-theme-alpine w-full" style={{ height: '400px' }}>
-                <AgGridReact
-                  columnDefs={questionColumnDefs}
-                  rowData={topNA}
-                  pagination={true}
-                  paginationPageSize={25}
-                />
-              </div>
+          </DashboardSection>
+          <DashboardSection title="Top N/A by percentage" description="At least 3 responses">
+            <div className="legacy-ui ag-theme-alpine w-full" style={{ height: 400 }}>
+              <AgGridReact
+                columnDefs={questionColumnDefs}
+                rowData={highestNA}
+                pagination={true}
+                paginationPageSize={25}
+              />
             </div>
+          </DashboardSection>
+        </Column>
+      )}
 
-            {/* By Percentage */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Top N/A Questions by Percentage (min 3 responses)
-              </h2>
-              <div className="ag-theme-alpine w-full" style={{ height: '400px' }}>
-                <AgGridReact
-                  columnDefs={questionColumnDefs}
-                  rowData={highestNA}
-                  pagination={true}
-                  paginationPageSize={25}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'graphs' && data?.chartData && (
-          <div className="space-y-6">
-            {/* Status Distribution Pie Chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Form Status Distribution</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.chartData.statusDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {data.chartData.statusDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Question Status Distribution</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Answered', value: data.chartData.questionStatusDistribution.answered },
-                        { name: 'N/A', value: data.chartData.questionStatusDistribution.na },
-                        { name: 'Empty', value: data.chartData.questionStatusDistribution.empty }
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      <Cell fill="#10b981" />
-                      <Cell fill="#f59e0b" />
-                      <Cell fill="#6b7280" />
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Step Completion Rates */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Step Completion Rates</h2>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={data.chartData.stepCompletion} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 100]} />
-                  <YAxis dataKey="step" type="category" width={100} />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Completion Rate']} />
-                  <Bar dataKey="percentage" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* N/A by Step */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">N/A Questions by Step</h2>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={data.chartData.naByStep}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="step" angle={-45} textAnchor="end" height={100} />
-                  <YAxis />
+      {activeTab === 'graphs' && data?.chartData && (
+        <Column gap="24" fillWidth>
+          <Grid columns="2" gap="16" fillWidth s={{ columns: '1' }}>
+            <DashboardSection title="Form status">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={data.chartData.statusDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={88}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}
+                  >
+                    {data.chartData.statusDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
+                    ))}
+                  </Pie>
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="naCount" fill="#f59e0b" name="N/A Count" />
-                  <Bar dataKey="totalCount" fill="#e5e7eb" name="Total Responses" />
-                </BarChart>
+                </PieChart>
               </ResponsiveContainer>
-            </div>
-
-            {/* Trends Over Time */}
-            {data.chartData.trends && data.chartData.trends.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Completion Trends Over Time</h2>
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={data.chartData.trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="avgCompletion" stroke="#3b82f6" strokeWidth={2} name="Avg Completion %" />
-                    <Line type="monotone" dataKey="forms" stroke="#10b981" strokeWidth={2} name="Forms Updated" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'clustering' && data?.clustering && (
-          <div className="space-y-6">
-            {/* Form Clusters */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <Brain className="w-5 h-5 mr-2 text-purple-600" />
-                Form Clusters (K-means: {data.clustering.forms.optimalK} clusters)
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Forms grouped by similarity in completion patterns, N/A rates, and step progress
-              </p>
-              <div className="space-y-4">
-                {data.clustering.forms.clusters.map((cluster, idx) => (
-                  <div key={idx} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Cluster {idx + 1} ({cluster.formCount} forms)
-                      </h3>
-                      <div className="flex gap-4 text-sm">
-                        <span className="text-green-600">Avg Completion: {cluster.avgCompletionRate}%</span>
-                        <span className="text-orange-600">Avg N/A Rate: {cluster.avgNARate}%</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {cluster.forms.slice(0, 9).map((form, fIdx) => (
-                        <div key={fIdx} className="text-sm p-2 bg-gray-50 rounded">
-                          <div className="font-medium">{form.schoolName}</div>
-                          <div className="text-xs text-gray-600">
-                            Completion: {form.completionRate}% | N/A: {form.naRate}%
-                          </div>
-                        </div>
-                      ))}
-                      {cluster.forms.length > 9 && (
-                        <div className="text-sm p-2 bg-gray-50 rounded flex items-center justify-center">
-                          +{cluster.forms.length - 9} more
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Question Clusters */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <Brain className="w-5 h-5 mr-2 text-purple-600" />
-                Question Clusters (K-means: {data.clustering.questions.optimalK} clusters)
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Questions grouped by similarity in response patterns (N/A, answered, empty percentages)
-              </p>
-              <div className="space-y-4">
-                {data.clustering.questions.clusters.map((cluster, idx) => (
-                  <div key={idx} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Cluster {idx + 1} ({cluster.questionCount} questions)
-                      </h3>
-                      <div className="flex gap-4 text-sm">
-                        <span className="text-orange-600">Avg N/A: {cluster.avgNAPercentage}%</span>
-                        <span className="text-green-600">Avg Answered: {cluster.avgAnswerPercentage}%</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      {cluster.questions.slice(0, 5).map((q, qIdx) => (
-                        <div key={qIdx} className="text-sm p-2 bg-gray-50 rounded">
-                          <div className="font-medium">{q.stepTitle}: {q.title.substring(0, 80)}...</div>
-                          <div className="text-xs text-gray-600">
-                            N/A: {q.naPercentage}% | Answered: {q.answerPercentage}%
-                          </div>
-                        </div>
-                      ))}
-                      {cluster.questions.length > 5 && (
-                        <div className="text-sm text-gray-600 italic">
-                          +{cluster.questions.length - 5} more questions in this cluster
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* School Clusters */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                <Brain className="w-5 h-5 mr-2 text-purple-600" />
-                School Clusters (K-means: {data.clustering.schools.optimalK} clusters)
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Schools grouped by similarity in form completion patterns and N/A rates
-              </p>
-              <div className="space-y-4">
-                {data.clustering.schools.clusters.map((cluster, idx) => (
-                  <div key={idx} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Cluster {idx + 1} ({cluster.schoolCount} schools)
-                      </h3>
-                      <div className="flex gap-4 text-sm">
-                        <span className="text-green-600">Avg Completion: {cluster.avgCompletion}%</span>
-                        <span className="text-orange-600">Avg N/A Rate: {cluster.avgNARate}%</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {cluster.schools.map((school, sIdx) => (
-                        <div key={sIdx} className="text-sm p-2 bg-gray-50 rounded">
-                          <div className="font-medium">{school.schoolName}</div>
-                          <div className="text-xs text-gray-600">
-                            {school.formCount} form(s) | Completion: {school.avgCompletion}% | N/A: {school.avgNARate}%
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Clustering Visualization */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Form Clustering Visualization</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Scatter plot showing forms grouped by completion rate vs N/A rate
-              </p>
-              <ResponsiveContainer width="100%" height={500}>
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="completionRate" name="Completion Rate" unit="%" domain={[0, 100]} />
-                  <YAxis type="number" dataKey="naRate" name="N/A Rate" unit="%" domain={[0, 100]} />
-                  <ZAxis type="number" dataKey="stepProgress" name="Step Progress" range={[50, 400]} />
-                  <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+            </DashboardSection>
+            <DashboardSection title="Answer mix">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Answered', value: data.chartData.questionStatusDistribution.answered },
+                      { name: 'N/A', value: data.chartData.questionStatusDistribution.na },
+                      { name: 'Empty', value: data.chartData.questionStatusDistribution.empty },
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={88}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}
+                  >
+                    <Cell fill="#10b981" />
+                    <Cell fill="#f59e0b" />
+                    <Cell fill="#6b7280" />
+                  </Pie>
+                  <Tooltip />
                   <Legend />
-                  {data.clustering.forms.clusters.map((cluster, idx) => {
-                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                    return (
-                      <Scatter
-                        key={idx}
-                        name={`Cluster ${idx + 1}`}
-                        data={cluster.forms.map(f => ({
-                          completionRate: parseFloat(f.completionRate),
-                          naRate: parseFloat(f.naRate),
-                          stepProgress: parseFloat(f.stepProgress)
-                        }))}
-                        fill={colors[idx % colors.length]}
-                      />
-                    );
-                  })}
-                </ScatterChart>
+                </PieChart>
               </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+            </DashboardSection>
+          </Grid>
+          <DashboardSection title="Step completion">
+            <ResponsiveContainer width="100%" height={360}>
+              <BarChart data={data.chartData.stepCompletion} layout="vertical" margin={{ left: 16 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
+                <XAxis type="number" domain={[0, 100]} />
+                <YAxis dataKey="step" type="category" width={110} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value) => [`${value}%`, 'Completion']} />
+                <Bar dataKey="percentage" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </DashboardSection>
+          <DashboardSection title="N/A by step">
+            <ResponsiveContainer width="100%" height={360}>
+              <BarChart data={data.chartData.naByStep}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
+                <XAxis dataKey="step" angle={-35} textAnchor="end" height={90} tick={{ fontSize: 11 }} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="naCount" fill="#f59e0b" name="N/A" />
+                <Bar dataKey="totalCount" fill="#cbd5e1" name="Total" />
+              </BarChart>
+            </ResponsiveContainer>
+          </DashboardSection>
+          {data.chartData.trends?.length > 0 && (
+            <DashboardSection title="Completion over time">
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={data.chartData.trends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
+                  <XAxis dataKey="date" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="avgCompletion" stroke="#3b82f6" strokeWidth={2} name="Avg completion %" />
+                  <Line type="monotone" dataKey="forms" stroke="#10b981" strokeWidth={2} name="Forms updated" />
+                </LineChart>
+              </ResponsiveContainer>
+            </DashboardSection>
+          )}
+        </Column>
+      )}
+
+      {activeTab === 'clustering' && data?.clustering && (
+        <Column gap="24" fillWidth>
+          <DashboardSection
+            title={`Form clusters (${data.clustering.forms.optimalK})`}
+            description="Forms grouped by completion, N/A rate, and step progress"
+          >
+            <Column gap="12" fillWidth>
+              {data.clustering.forms.clusters.map((cluster, idx) => (
+                <Column key={idx} gap="8" padding="16" border="neutral-medium" radius="m">
+                  <Row fillWidth horizontal="between" wrap gap="8">
+                    <Text weight="strong">Cluster {idx + 1} · {cluster.formCount} forms</Text>
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      Completion {cluster.avgCompletionRate}% · N/A {cluster.avgNARate}%
+                    </Text>
+                  </Row>
+                  <Grid columns="3" gap="8" fillWidth s={{ columns: '1' }} m={{ columns: '2' }}>
+                    {cluster.forms.slice(0, 9).map((form, fIdx) => (
+                      <Column key={fIdx} gap="4" padding="8" background="neutral-weak" radius="m">
+                        <Text variant="label-strong-s">{form.schoolName}</Text>
+                        <Text variant="label-default-s" onBackground="neutral-weak">
+                          {form.completionRate}% complete · {form.naRate}% N/A
+                        </Text>
+                      </Column>
+                    ))}
+                  </Grid>
+                  {cluster.forms.length > 9 && (
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      +{cluster.forms.length - 9} more
+                    </Text>
+                  )}
+                </Column>
+              ))}
+            </Column>
+          </DashboardSection>
+
+          <DashboardSection
+            title={`Question clusters (${data.clustering.questions.optimalK})`}
+            description="Questions grouped by N/A, answered, and empty rates"
+          >
+            <Column gap="12" fillWidth>
+              {data.clustering.questions.clusters.map((cluster, idx) => (
+                <Column key={idx} gap="8" padding="16" border="neutral-medium" radius="m">
+                  <Row fillWidth horizontal="between" wrap gap="8">
+                    <Text weight="strong">Cluster {idx + 1} · {cluster.questionCount} questions</Text>
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      N/A {cluster.avgNAPercentage}% · answered {cluster.avgAnswerPercentage}%
+                    </Text>
+                  </Row>
+                  {cluster.questions.slice(0, 5).map((q, qIdx) => (
+                    <Column key={qIdx} gap="4" padding="8" background="neutral-weak" radius="m">
+                      <Text variant="label-strong-s">
+                        {q.stepTitle}: {q.title.substring(0, 90)}{q.title.length > 90 ? '…' : ''}
+                      </Text>
+                      <Text variant="label-default-s" onBackground="neutral-weak">
+                        N/A {q.naPercentage}% · answered {q.answerPercentage}%
+                      </Text>
+                    </Column>
+                  ))}
+                  {cluster.questions.length > 5 && (
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      +{cluster.questions.length - 5} more
+                    </Text>
+                  )}
+                </Column>
+              ))}
+            </Column>
+          </DashboardSection>
+
+          <DashboardSection
+            title={`School clusters (${data.clustering.schools.optimalK})`}
+            description="Schools grouped by completion and N/A patterns"
+          >
+            <Column gap="12" fillWidth>
+              {data.clustering.schools.clusters.map((cluster, idx) => (
+                <Column key={idx} gap="8" padding="16" border="neutral-medium" radius="m">
+                  <Row fillWidth horizontal="between" wrap gap="8">
+                    <Text weight="strong">Cluster {idx + 1} · {cluster.schoolCount} schools</Text>
+                    <Text variant="label-default-s" onBackground="neutral-weak">
+                      Completion {cluster.avgCompletion}% · N/A {cluster.avgNARate}%
+                    </Text>
+                  </Row>
+                  <Grid columns="3" gap="8" fillWidth s={{ columns: '1' }} m={{ columns: '2' }}>
+                    {cluster.schools.map((school, sIdx) => (
+                      <Column key={sIdx} gap="4" padding="8" background="neutral-weak" radius="m">
+                        <Text variant="label-strong-s">{school.schoolName}</Text>
+                        <Text variant="label-default-s" onBackground="neutral-weak">
+                          {school.formCount} form(s) · {school.avgCompletion}% · N/A {school.avgNARate}%
+                        </Text>
+                      </Column>
+                    ))}
+                  </Grid>
+                </Column>
+              ))}
+            </Column>
+          </DashboardSection>
+
+          <DashboardSection title="Cluster scatter" description="Completion vs N/A rate">
+            <ResponsiveContainer width="100%" height={420}>
+              <ScatterChart>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
+                <XAxis type="number" dataKey="completionRate" name="Completion" unit="%" domain={[0, 100]} />
+                <YAxis type="number" dataKey="naRate" name="N/A" unit="%" domain={[0, 100]} />
+                <ZAxis type="number" dataKey="stepProgress" range={[50, 400]} />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                <Legend />
+                {data.clustering.forms.clusters.map((cluster, idx) => (
+                  <Scatter
+                    key={idx}
+                    name={`Cluster ${idx + 1}`}
+                    data={cluster.forms.map((f) => ({
+                      completionRate: parseFloat(f.completionRate),
+                      naRate: parseFloat(f.naRate),
+                      stepProgress: parseFloat(f.stepProgress),
+                    }))}
+                    fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][idx % 5]}
+                  />
+                ))}
+              </ScatterChart>
+            </ResponsiveContainer>
+          </DashboardSection>
+        </Column>
+      )}
+      </>
+      )}
+    </DashboardShell>
   );
 }
 
 export default function AdminGoalsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading...</Text>
+      </Column>
     }>
       <AdminGoalsPageContent />
     </Suspense>
   );
 }
-

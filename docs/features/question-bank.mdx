@@ -1,0 +1,48 @@
+---
+title: Question bank
+description: Draft vs published FormTemplate, seeding, and publish rules.
+icon: clipboard-list
+---
+
+The live form UI reads questions from a published `FormTemplate`. If Mongo has no published bank, `getPublishedOrJson()` loads `src/data/formQuestions.json`.
+
+![Question bank admin](https://placehold.co/600x400)
+*Caption: Add screenshot showing /admin/questions with draft vs published, add step, reorder, and Publish.*
+
+## Template statuses
+
+`draft` | `published` | `archived`
+
+`version` is unique. Publishing clones the draft into a new published version; existing forms keep `questionBankVersion`.
+
+## Super Admin routes
+
+| Method | Path | Body |
+| --- | --- | --- |
+| `GET` | `/api/admin/questions` | — |
+| `PATCH` | `/api/admin/questions` | `{ stepKey, questionId, updates }` |
+| `POST` | `/api/admin/questions/add` | new question on a step |
+| `POST` | `/api/admin/questions/add-step` | new step |
+| `POST` | `/api/admin/questions/reorder` | step/question order |
+| `POST` | `/api/admin/questions/seed` | seed from JSON |
+| `POST` | `/api/admin/questions/publish` | `{ confirm: true, schoolYear? }` |
+| `POST` | `/api/admin/questions/discard` | drop unpublished draft changes |
+
+Authenticated users load the bank they should render:
+
+`GET /api/question-bank?schoolYear=2026-2027&version=3`
+
+## Safe edits vs breaking edits
+
+<AccordionGroup>
+  <Accordion title="Safe">
+    Change `title`, `placeholder`, `description`, `required`, `active`, `order`. Keep `question.id` unchanged.
+  </Accordion>
+  <Accordion title="Unsafe">
+    Renaming `id`, deleting a question that already has answers, or reshuffling ids. Old `formData[stepKey].data[oldId]` would orphan.
+  </Accordion>
+</AccordionGroup>
+
+<Callout type="warning">
+  Publish requires `{ "confirm": true }`. Optionally pass `schoolYear` to pin that version on `SchoolYearSettings.questionBankVersion`.
+</Callout>

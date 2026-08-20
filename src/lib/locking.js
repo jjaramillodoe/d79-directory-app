@@ -4,66 +4,23 @@
  * Uses Redis if available, falls back to in-memory Map for single-server deployments
  */
 
-let redisClient = null;
+const { getRedis, scanKeys } = require('./redis');
+
 let inMemoryLocks = new Map(); // Fallback: { lockKey: { userId, userName, email, lockedAt, expiresAt } }
 
-// Initialize Redis connection (optional)
 async function initRedis() {
-  if (redisClient) return redisClient;
-  
-  const REDIS_URL = process.env.REDIS_URL;
-  if (!REDIS_URL) {
-    console.log('Redis not configured, using in-memory locking');
-    return null;
-  }
-
-  try {
-    const Redis = require('ioredis');
-    redisClient = new Redis(REDIS_URL, {
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-      reconnectOnError: (err) => {
-        const targetError = 'READONLY';
-        if (err.message.includes(targetError)) {
-          return true; // Reconnect on this error
-        }
-        return false;
-      },
-    });
-
-    redisClient.on('error', (err) => {
-      console.error('Redis connection error:', err);
-      // Fallback to in-memory on Redis errors
-      redisClient = null;
-    });
-
-    redisClient.on('connect', () => {
-      console.log('Redis connected successfully');
-    });
-
-    // Test connection
-    await redisClient.ping();
-    return redisClient;
-  } catch (error) {
-    console.error('Failed to connect to Redis, using in-memory locking:', error.message);
-    redisClient = null;
-    return null;
-  }
+  return getRedis();
 }
-
-// Initialize on module load
-initRedis().catch(err => {
-  console.error('Redis initialization error:', err);
-});
 
 /**
  * Generate lock key for a form step
  */
 function getLockKey(formId, stepKey) {
   return `form:${formId}:step:${stepKey}`;
+}
+
+function sameUser(left, right) {
+  return String(left || '') === String(right || '');
 }
 
 /**
@@ -80,6 +37,7 @@ async function acquireLock(formId, stepKey, userId, userName, userEmail, ttlSeco
   const lockKey = getLockKey(formId, stepKey);
   const lockedAt = new Date();
   const expiresAt = new Date(lockedAt.getTime() + ttlSeconds * 1000);
+  const redisClient = await getRedis();
 
   try {
     // Try Redis first
@@ -119,6 +77,22 @@ async function acquireLock(formId, stepKey, userId, userName, userEmail, ttlSeco
             }
           }
           
+          if (sameUser(lockInfo.userId, userId)) {
+            lockInfo.expiresAt = expiresAt.toISOString();
+            await redisClient.set(lockKey, JSON.stringify({
+              ...lockInfo,
+              userId,
+              userName,
+              email: userEmail,
+              lockedAt: lockInfo.lockedAt,
+              expiresAt: expiresAt.toISOString(),
+            }), 'EX', ttlSeconds);
+            return {
+              success: true,
+              lockedBy: { userId, userName, email: userEmail, lockedAt: new Date(lockInfo.lockedAt), expiresAt },
+            };
+          }
+
           return {
             success: false,
             lockedBy: {
@@ -144,6 +118,13 @@ async function acquireLock(formId, stepKey, userId, userName, userEmail, ttlSeco
         inMemoryLocks.delete(lockKey);
       } else {
         // Lock is still valid
+        if (sameUser(existingLock.userId, userId)) {
+          existingLock.expiresAt = expiresAt;
+          existingLock.userName = userName;
+          existingLock.email = userEmail;
+          inMemoryLocks.set(lockKey, existingLock);
+          return { success: true, lockedBy: existingLock };
+        }
         return {
           success: false,
           lockedBy: existingLock,
@@ -195,6 +176,7 @@ async function acquireLock(formId, stepKey, userId, userName, userEmail, ttlSeco
  */
 async function releaseLock(formId, stepKey, userId) {
   const lockKey = getLockKey(formId, stepKey);
+  const redisClient = await getRedis();
 
   try {
     if (redisClient) {
@@ -202,7 +184,7 @@ async function releaseLock(formId, stepKey, userId) {
       const currentLock = await redisClient.get(lockKey);
       if (currentLock) {
         const lockInfo = JSON.parse(currentLock);
-        if (lockInfo.userId === userId) {
+        if (sameUser(lockInfo.userId, userId)) {
           await redisClient.del(lockKey);
           return true;
         }
@@ -212,7 +194,7 @@ async function releaseLock(formId, stepKey, userId) {
 
     // In-memory fallback
     const existingLock = inMemoryLocks.get(lockKey);
-    if (existingLock && existingLock.userId === userId) {
+    if (existingLock && sameUser(existingLock.userId, userId)) {
       inMemoryLocks.delete(lockKey);
       return true;
     }
@@ -234,6 +216,7 @@ async function releaseLock(formId, stepKey, userId) {
 async function refreshLock(formId, stepKey, userId, ttlSeconds = 300) {
   const lockKey = getLockKey(formId, stepKey);
   const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+  const redisClient = await getRedis();
 
   try {
     if (redisClient) {
@@ -271,6 +254,7 @@ async function refreshLock(formId, stepKey, userId, ttlSeconds = 300) {
  */
 async function getLockInfo(formId, stepKey) {
   const lockKey = getLockKey(formId, stepKey);
+  const redisClient = await getRedis();
 
   try {
     if (redisClient) {
@@ -318,10 +302,11 @@ async function getLockInfo(formId, stepKey) {
 async function getFormLocks(formId) {
   const prefix = `form:${formId}:step:`;
   const locks = [];
+  const redisClient = await getRedis();
 
   try {
     if (redisClient) {
-      const keys = await redisClient.keys(`${prefix}*`);
+      const keys = await scanKeys(`${prefix}*`);
       for (const key of keys) {
         const lockData = await redisClient.get(key);
         if (lockData) {
@@ -372,25 +357,11 @@ async function getFormLocks(formId) {
  */
 async function cleanupExpiredLocks() {
   try {
-    if (redisClient) {
-      // Redis handles expiration automatically, but we can clean up manually if needed
-      const keys = await redisClient.keys('form:*:step:*');
-      for (const key of keys) {
-        const lockData = await redisClient.get(key);
-        if (lockData) {
-          const lockInfo = JSON.parse(lockData);
-          if (new Date(lockInfo.expiresAt) < new Date()) {
-            await redisClient.del(key);
-          }
-        }
-      }
-    } else {
-      // In-memory cleanup
-      const now = new Date();
-      for (const [key, lockInfo] of inMemoryLocks.entries()) {
-        if (lockInfo.expiresAt < now) {
-          inMemoryLocks.delete(key);
-        }
+    // Redis TTL expires locks; only sweep the in-memory fallback.
+    const now = new Date();
+    for (const [key, lockInfo] of inMemoryLocks.entries()) {
+      if (lockInfo.expiresAt < now) {
+        inMemoryLocks.delete(key);
       }
     }
   } catch (error) {

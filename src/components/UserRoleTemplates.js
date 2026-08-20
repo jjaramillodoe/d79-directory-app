@@ -16,8 +16,10 @@ import {
   Trash2,
   Edit
 } from 'lucide-react';
+import useAppToast from '../hooks/useAppToast';
 
 const UserRoleTemplates = ({ onCreateUsers }) => {
+  const toast = useAppToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [customTemplate, setCustomTemplate] = useState({
@@ -123,7 +125,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
       );
 
       if (validUsers.length === 0) {
-        alert('Please add at least one user with name and email');
+        toast.error('Please add at least one user with name and email');
         return;
       }
 
@@ -155,7 +157,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
       const successCount = results.filter(r => r.success).length;
       const errorCount = results.filter(r => !r.success).length;
 
-      alert(`Template applied successfully!\n\n✅ ${successCount} users created\n❌ ${errorCount} errors`);
+      toast.success(`${successCount} users created${errorCount ? `, ${errorCount} errors` : ''}`);
       
       setShowModal(false);
       setSelectedTemplate(null);
@@ -167,7 +169,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
       }
     } catch (error) {
       console.error('Error creating users:', error);
-      alert('Error creating users. Please try again.');
+      toast.error('Error creating users. Please try again.');
     } finally {
       setIsCreating(false);
     }

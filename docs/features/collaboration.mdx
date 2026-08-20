@@ -1,0 +1,65 @@
+---
+title: Collaboration and locking
+description: Sharing, ownership transfer, active editors, and Redis step locks.
+icon: users
+---
+
+## Share a plan
+
+Level 4 (same school) or Super Admin:
+
+`POST /api/admin/forms/share`
+
+```json
+{
+  "formId": "66f0...",
+  "userIds": ["66ee..."],
+  "permissions": "edit",
+  "sections": []
+}
+```
+
+Empty `sections` = all steps. Also supports `GET` (list shares) and `DELETE` (unshare). Super Admin can additionally share by email on the form document (`sharedWithEmails`).
+
+Assistant Principals (level 3) **do not** inherit edit access from `schoolName` alone. They must appear in `assignedForms` (this route) or `sharedWithEmails`.
+
+![Share modal](https://placehold.co/600x400)
+*Caption: Add screenshot showing the collaboration share UI with view/edit permissions and optional section assignment.*
+
+## Transfer ownership
+
+Super Admin:
+
+`POST /api/forms/transfer-ownership`
+
+```json
+{
+  "formId": "66f0...",
+  "newOwnerEmail": "new.principal@schools.nyc.gov"
+}
+```
+
+Appends `transferHistory[]` and retargets `userId` / principal fields. `GET` lists transfer-capable principals.
+
+## Step locks
+
+`src/lib/locking.js` keys:
+
+```text
+form:{formId}:step:{stepKey}
+```
+
+- TTL **300 seconds**, refreshable while the editor is open.
+- Redis when `REDIS_URL` is set; otherwise an in-process `Map` (not shared across Vercel instances).
+- The same Redis client caches the published question bank, year settings, and public overview, and rate-limits step saves.
+- Fail-open: if lock infrastructure errors, the write still proceeds and may include `warning`.
+
+Related:
+
+- `GET /api/forms/[id]/locks`
+- `GET /api/forms/[id]/editors` and `POST .../editors/register` (presence)
+- `POST /api/forms/[id]/step/[stepNumber]/unlock`
+
+<Callout type="info">
+  Use Redis in production so two serverless instances cannot edit the same step without seeing each other’s lock.
+</Callout>

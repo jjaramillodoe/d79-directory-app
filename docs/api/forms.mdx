@@ -1,0 +1,139 @@
+---
+title: Forms API
+description: Create, read, update, duplicate, attest, compare, comment, and export plans.
+icon: file-code
+---
+
+Session required on every route in this page.
+
+## Collection
+
+### `GET /api/forms`
+
+Query `?schoolYear=2026-2027` to scope the list. Returns `{ forms: FormSubmission[] }` scoped by role:
+
+- Level 5: all forms
+- Level 4: school + assigned
+- Lower: owned, assigned, or shared
+
+Each form is stamped with `schoolYear`, `locked` (year archived), and `completedSteps` (derived if empty). List payloads **omit** `formData` answers; open `GET /api/forms/[id]` for the full plan.
+
+### `POST /api/forms`
+
+Level ≥ 4. Cannot create into an archived year.
+
+```json
+{
+  "schoolName": "Passages Academy",
+  "schoolYear": "2026-2027",
+  "initialOwnerEmail": "principal@schools.nyc.gov"
+}
+```
+
+`initialOwnerEmail` is Super Admin only and must be a level-4 user.
+
+```json
+{ "success": true, "formId": "66f0...", "message": "Form created successfully" }
+```
+
+## Single form
+
+### `GET /api/forms/[id]`
+
+Full form plus `userPermission`, `collaborationInfo`, and active comments.
+
+<ParamField path="id" type="string" required>
+  `FormSubmission` ObjectId.
+</ParamField>
+
+### `PUT /api/forms/[id]`
+
+Update metadata/status (submit, admin review). Rejected when the year is archived.
+
+### `DELETE /api/forms/[id]`
+
+Admin delete (level-gated in the route).
+
+## Steps
+
+### `GET /api/forms/[id]/step/[stepNumber]`
+
+```json
+{
+  "success": true,
+  "stepKey": "attendancePlan",
+  "stepNumber": 6,
+  "stepData": { "completed": false, "data": {} },
+  "lastUpdated": null,
+  "revisionCount": 0
+}
+```
+
+### `PUT /api/forms/[id]/step/[stepNumber]`
+
+See [School plans](/features/school-plans). Acquires a step lock.
+
+### `POST /api/forms/[id]/step/[stepNumber]/unlock`
+
+Release the caller’s lock.
+
+## Year-over-year
+
+### `POST /api/forms/[id]/duplicate`
+
+```json
+{ "schoolYear": "2026-2027", "force": false }
+```
+
+Level ≥ 4. `409` + `existingFormId` if a target-year plan already exists.
+
+### `GET /api/forms/[id]/compare?compareYear=2025-2026`
+
+Returns row diffs for attendance, temporary housing, and counseling.
+
+### `POST /api/forms/[id]/attest`
+
+```json
+{ "name": "Jane Principal" }
+```
+
+### `POST /api/forms/[id]/review-flag`
+
+```json
+{ "questionId": "screen7question1" }
+```
+
+Removes that id from `needsUpdate`.
+
+## Collaboration and review
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/api/forms/[id]/locks` | Active step locks |
+| `GET` | `/api/forms/[id]/editors` | Presence (one person per email) |
+| `POST` | `/api/forms/[id]/editors/register` | Heartbeat |
+| `POST` | `/api/forms/[id]/comments` | Super Admin create |
+| `PUT` | `/api/forms/[id]/comments/[commentId]` | `{ "action": "read" \| "fixed" }` |
+| `POST` | `/api/forms/transfer-ownership` | Super Admin `{ formId, newOwnerEmail }` |
+| `GET` | `/api/forms/[id]/export/pdf` | Binary |
+| `GET` | `/api/forms/[id]/export/docx` | Binary |
+| `POST` | `/api/forms/[id]/share` | Super Admin email share (`sharedWithEmails`) |
+
+<Tabs>
+  <Tab title="Duplicate">
+```bash
+curl -X POST "$BASE/api/forms/$ID/duplicate" \
+  -H "Cookie: next-auth.session-token=..." \
+  -H "Content-Type: application/json" \
+  -d '{"schoolYear":"2026-2027"}'
+```
+  </Tab>
+  <Tab title="Save step">
+```bash
+curl -X PUT "$BASE/api/forms/$ID/step/6" \
+  -H "Cookie: next-auth.session-token=..." \
+  -H "Content-Type: application/json" \
+  -d '{"stepData":{"data":{"screen7question1":"..."},"completed":false}}'
+```
+  </Tab>
+</Tabs>

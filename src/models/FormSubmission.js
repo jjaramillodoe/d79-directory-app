@@ -26,7 +26,7 @@ const FormSubmissionSchema = new mongoose.Schema({
   currentStep: {
     type: Number,
     min: 1,
-    max: 15,
+    max: 99,
     default: 1,
   },
   completedSteps: {
@@ -34,6 +34,8 @@ const FormSubmissionSchema = new mongoose.Schema({
     default: [],
   },
   formData: {
+    type: new mongoose.Schema(
+      {
     // Step 1: Table of Contents
     tableOfContents: {
       completed: { type: Boolean, default: false },
@@ -169,6 +171,10 @@ const FormSubmissionSchema = new mongoose.Schema({
       timeSpent: { type: Number, default: 0 }, // seconds
       revisionCount: { type: Number, default: 0 },
     },
+    },
+      { _id: false, strict: false }
+    ),
+    default: () => ({}),
   },
   submittedAt: {
     type: Date,
@@ -190,6 +196,37 @@ const FormSubmissionSchema = new mongoose.Schema({
   },
   notificationSentAt: {
     type: Date,
+  },
+  // Published question bank version used when this form was created.
+  // Existing answers stay keyed by question.id and are never rewritten.
+  questionBankVersion: {
+    type: Number,
+    default: null,
+  },
+  schoolYear: {
+    type: String,
+    default: '',
+  },
+  allowEditsWhenArchived: {
+    type: Boolean,
+    default: false,
+  },
+  duplicatedFrom: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FormSubmission',
+  },
+  needsUpdate: [{
+    questionId: { type: String, required: true },
+    stepKey: { type: String, default: '' },
+    reason: { type: String, enum: ['new', 'changed', 'revisit'], default: 'revisit' },
+    label: { type: String, default: '' },
+    reviewedAt: { type: Date },
+  }],
+  attestation: {
+    confirmed: { type: Boolean, default: false },
+    name: { type: String, default: '' },
+    signedAt: { type: Date },
+    signedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   createdAt: {
     type: Date,
@@ -274,12 +311,43 @@ FormSubmissionSchema.pre('save', function (next) {
     'cellPhonePolicy': 14,
     'counselingPlan': 15
   };
-  
-  const formSteps = Object.keys(this.formData);
+
+  const rawFormData = typeof this.formData?.toObject === 'function'
+    ? this.formData.toObject({ depopulate: true, flattenMaps: true })
+    : (this.formData || {});
+  const formSteps = Object.keys(rawFormData).filter((key) => key !== '_id' && key !== 'id');
+  const extraKeys = formSteps.filter((key) => stepNumberMap[key] === undefined);
+
+  formSteps.forEach((stepKey) => {
+    const step = this.formData?.[stepKey];
+    if (!step || typeof step !== 'object') return;
+    const answers = step.data && typeof step.data === 'object' && !Array.isArray(step.data)
+      ? step.data
+      : {};
+    const answerKeys = typeof answers.toObject === 'function'
+      ? Object.keys(answers.toObject())
+      : Object.keys(answers);
+    if (answerKeys.length > 0) {
+      step.completed = true;
+    }
+  });
+
   this.completedSteps = formSteps
-    .filter(step => this.formData[step]?.completed)
-    .map(step => stepNumberMap[step])
-    .filter(stepNumber => stepNumber !== undefined)
+    .filter((step) => {
+      const nested = this.formData?.[step];
+      const answers = nested?.data && typeof nested.data === 'object' && !Array.isArray(nested.data)
+        ? nested.data
+        : {};
+      const answerKeys = typeof answers.toObject === 'function'
+        ? Object.keys(answers.toObject())
+        : Object.keys(answers);
+      return Boolean(nested?.completed) || answerKeys.length > 0;
+    })
+    .map((step) => {
+      if (stepNumberMap[step] !== undefined) return stepNumberMap[step];
+      return 15 + extraKeys.indexOf(step) + 1;
+    })
+    .filter((stepNumber) => typeof stepNumber === 'number')
     .sort((a, b) => a - b);
   
   // Update metadata for steps that have data
@@ -309,5 +377,13 @@ FormSubmissionSchema.index({ userId: 1, status: 1 });
 FormSubmissionSchema.index({ principalEmail: 1 });
 FormSubmissionSchema.index({ status: 1, createdAt: -1 });
 FormSubmissionSchema.index({ notificationSent: 1, reviewedAt: 1 });
+FormSubmissionSchema.index(
+  { schoolName: 1, schoolYear: 1 },
+  {
+    unique: true,
+    name: 'schoolName_schoolYear_unique',
+    partialFilterExpression: { schoolYear: { $type: 'string', $gt: '' } },
+  }
+);
 
 module.exports = mongoose.models.FormSubmission || mongoose.model('FormSubmission', FormSubmissionSchema);

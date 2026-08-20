@@ -1,0 +1,66 @@
+---
+title: Introduction
+description: District 79 Directory is the Consolidated School Plan system for NYC District 79 alternative schools.
+icon: book-open
+---
+
+The **District 79 Directory** is a Next.js App Router application that principals and authorized district staff use to write, copy, compare, review, and submit Consolidated School Plans for each academic year.
+
+![District 79 Directory homepage](https://placehold.co/600x400)
+*Caption: Add screenshot showing the public portal homepage with year tags, Sign in, and the live district snapshot.*
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Run the app locally with MongoDB, Google OAuth, and a seeded user.
+  </Card>
+  <Card title="School-year workflow" icon="calendar" href="/features/school-year">
+    Copy 2025-2026 answers into a 2026-2027 draft, then archive last year.
+  </Card>
+  <Card title="API reference" icon="code" href="/api/overview">
+    Session-authenticated REST routes for forms, users, and Super Admin tools.
+  </Card>
+  <Card title="System health" icon="heart-pulse" href="/features/system">
+    Super Admin snapshot of API, MongoDB size, Redis, and env checklist.
+  </Card>
+  <Card title="Data models" icon="database" href="/database/models">
+    Mongoose schemas for users, plans, question bank, comments, and audit logs.
+  </Card>
+  <Card title="Troubleshooting" icon="life-ring" href="/guides/troubleshooting">
+    401/403/429, OAuth bounce, Redis, and role-preview FAQ.
+  </Card>
+</CardGroup>
+
+## What this system does
+
+- Stores one school plan per school per academic year (`YYYY-YYYY`).
+- Renders plan sections from a **published question bank** (`FormTemplate`), with `src/data/formQuestions.json` as fallback.
+- Copies **all answers** when duplicating a plan into the next year. Reviews, comments, and sharing are not copied.
+- Locks archived years as read-only after district rollover.
+- Restricts sign-in to pre-registered `@schools.nyc.gov` accounts via Google OAuth.
+- Gives Super Admins a **System** page (`/admin/system`) for API, MongoDB, and Redis health.
+
+## Stack
+
+| Layer | Choice |
+| --- | --- |
+| App | Next.js 16 App Router (`src/app`) |
+| UI | Once UI (`.once-ui-root`) + Tailwind islands |
+| Auth | NextAuth.js v4, Google provider, JWT sessions (8h) |
+| Database | MongoDB + Mongoose 8 |
+| Locks | Redis (`REDIS_URL`) with in-memory fallback |
+| Hosting | Vercel |
+| Errors | Optional Sentry (`SENTRY_DSN`) |
+
+## Non-negotiable data contract
+
+Answers are always stored at:
+
+```text
+formData[stepKey].data[question.id]
+```
+
+Do **not** rename question IDs, delete questions that already have answers, or rewrite `formData` during question-bank edits. Existing plans keep the `questionBankVersion` they were created with.
+
+<Callout type="warning">
+  Super Admin (level 5) is the only role that can publish the question bank, run year rollover, manage district-wide submissions/goals, add review comments, and open System health.
+</Callout>

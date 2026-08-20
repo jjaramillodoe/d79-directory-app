@@ -1,0 +1,84 @@
+---
+title: Users API
+description: List, create, update, bulk-import, and collaboration permission routes.
+icon: id-card
+---
+
+All routes on this page require a session. Listing and mutations use `requireAdminActor` (level ≥ 4) except where noted. Limits: [Errors and rate limits](/api/errors).
+
+## `GET /api/users`
+
+Level ≥ 4. Super Admin sees every user. Principals see the same school with `level: { $lt: 5 }` (Super Admins at that school are omitted).
+
+```json
+{ "users": [{ "name": "...", "email": "...", "level": 3, "schoolName": "...", "title": "...", "isActive": true }] }
+```
+
+## `PUT /api/users`
+
+Level ≥ 4. Body: `{ "userId", "level?", "schoolName?", "title?", "isActive?" }`.
+
+`canManageTarget` must pass: no self-edit, actor level strictly above target, principals only levels 1–3 at their school.
+
+## `DELETE /api/users`
+
+Level ≥ 4. JSON body `{ "userId": "..." }`. Same `canManageTarget` rules; cannot delete yourself.
+
+## `POST /api/users/create`
+
+Level ≥ 4. Limit 20 / 60s.
+
+<ParamField body="name" type="string" required>
+  Display name.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Stored lowercase. Sign-in still requires `@schools.nyc.gov`.
+</ParamField>
+
+<ParamField body="level" type="number" required>
+  1–5. Level 4 callers cannot create 4 or 5.
+</ParamField>
+
+<ParamField body="schoolName" type="string" required>
+  Principals cannot set a different school than their own.
+</ParamField>
+
+<ParamField body="title" type="string">
+  Optional job title.
+</ParamField>
+
+<ParamField body="isActive" type="boolean">
+  Default `true`. Inactive users fail the NextAuth `signIn` callback.
+</ParamField>
+
+Duplicate email → error.
+
+## `POST /api/users/bulk-import`
+
+Super Admin. `{ "users": [ { "name", "email", "level", "schoolName" } ] }`. Limit 5 / 60s.
+
+## `POST /api/users/bulk`
+
+Level ≥ 4. `{ "userIds": [], "action": "..." }`. Limit 10 / 60s. Only ids that pass `bulkTargetFilter` (not self, lower level, same school for principals).
+
+| `action` | Effect |
+| --- | --- |
+| `activate` / `deactivate` | `isActive` |
+| `delete` | `deleteMany` |
+| `level_up` / `level_down` | Increment/decrement with caps (principals cannot promote to 4) |
+
+## `PUT /api/users/[id]/permissions`
+
+Level ≥ 4. `{ "permissions": { ... } }` is `$set` onto the user document (collaboration flags). Prefer the share UI (`POST /api/admin/forms/share`) for plan assignment.
+
+## `GET /api/users/audit-logs`
+
+Filtered `AuditLog` query (admin). Prefer `/admin/logs` in the UI.
+
+## `GET` `POST` `/api/notifications`
+
+Plan **owner** review pings (`notificationSent` on `FormSubmission`). POST marks a notification read. Not a general inbox.
+
+![User admin](https://placehold.co/600x400)
+*Caption: Add screenshot showing /admin/users with sortable Once UI table, level filter, school column, and bulk import.*

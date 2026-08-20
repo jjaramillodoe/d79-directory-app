@@ -3,30 +3,7 @@ import { getServerSession } from 'next-auth';
 const { authOptions } = require('../../../../lib/auth');
 const connectDB = require('../../../../lib/mongodb');
 const FormSubmission = require('../../../../models/FormSubmission');
-const path = require('path');
-const fs = require('fs');
-
-// Load form questions
-function loadFormQuestions() {
-  try {
-    const formQuestionsPath = path.join(process.cwd(), 'src', 'data', 'formQuestions.json');
-    if (fs.existsSync(formQuestionsPath)) {
-      const fileContent = fs.readFileSync(formQuestionsPath, 'utf8');
-      return JSON.parse(fileContent);
-    }
-    // Fallback path
-    const fallbackPath = path.join(process.cwd(), 'data', 'formQuestions.json');
-    if (fs.existsSync(fallbackPath)) {
-      const fileContent = fs.readFileSync(fallbackPath, 'utf8');
-      return JSON.parse(fileContent);
-    }
-    console.warn('Could not load formQuestions.json');
-    return { steps: [] };
-  } catch (error) {
-    console.error('Error loading form questions:', error);
-    return { steps: [] };
-  }
-}
+const { getPublishedOrJson } = require('../../../../lib/questionBank');
 
 // NLP patterns to detect N/A responses
 const NA_PATTERNS = [
@@ -503,13 +480,20 @@ export async function GET(request) {
 
     await connectDB();
 
+    const { searchParams } = new URL(request.url);
+    const schoolYearFilter = searchParams.get('schoolYear') || '';
+
     // Load form questions
-    const formQuestions = loadFormQuestions();
+    const formQuestions = await getPublishedOrJson({ schoolYear: schoolYearFilter || undefined });
 
     // Get all forms
-    const forms = await FormSubmission.find({})
+    let forms = await FormSubmission.find({})
       .populate('userId', 'name email schoolName')
       .lean();
+    if (schoolYearFilter && schoolYearFilter !== 'all') {
+      const { inferSchoolYear } = require('../../../../lib/schoolYear');
+      forms = forms.filter((form) => inferSchoolYear(form) === schoolYearFilter);
+    }
 
     const questions = getAllQuestions(formQuestions);
     
@@ -626,7 +610,8 @@ export async function GET(request) {
       clustering: clusteringResults,
       chartData: chartData,
       formAnalyses: formAnalyses.slice(0, 100), // Limit to first 100 for response size
-      totalFormsAnalyzed: formAnalyses.length
+      totalFormsAnalyzed: formAnalyses.length,
+      schoolYear: schoolYearFilter || 'all',
     });
 
   } catch (error) {

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
-import FormSubmission from '@/models/FormSubmission';
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import User from '../../../../../models/User';
+import FormSubmission from '../../../../../models/FormSubmission';
 
 // POST: Share a form with users for collaboration
 export async function POST(request) {

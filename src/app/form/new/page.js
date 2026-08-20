@@ -3,54 +3,46 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { 
-  ArrowLeft, 
-  Building2, 
-  User, 
-  Mail, 
-  FileText, 
-  CheckCircle, 
-  AlertCircle,
-  Loader2,
-  Info
-} from 'lucide-react';
-import PrincipalEmailAutocomplete from '@/components/PrincipalEmailAutocomplete';
-import SCHOOL_NAMES from '@/constants/schools';
+import { Column, Row, Text, Heading, Button, Card, Spinner, Grid, Tag } from '@once-ui-system/core';
+import PrincipalEmailAutocomplete from '../../../components/PrincipalEmailAutocomplete';
+import SCHOOL_NAMES from '../../../constants/schools';
+import DashboardShell from '../../../components/dashboard/DashboardShell';
+import DashboardSidebar from '../../../components/dashboard/DashboardSidebar';
+import DashboardHeader from '../../../components/dashboard/DashboardHeader';
+import DashboardSection from '../../../components/dashboard/DashboardSection';
+import { currentSchoolYear, previousSchoolYear } from '../../../lib/schoolYear';
 
 export default function NewFormPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [schoolName, setSchoolName] = useState('');
   const [initialOwnerEmail, setInitialOwnerEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [existingFormId, setExistingFormId] = useState('');
+  const thisYear = currentSchoolYear();
+  const lastYear = previousSchoolYear(thisYear);
 
-  // Set default school name from session
   useEffect(() => {
     if (session?.user?.schoolName) {
       setSchoolName(session.user.schoolName);
     }
   }, [session]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
-  // Handle authentication
   useEffect(() => {
-    if (status === 'loading') return; // Still loading
-    
+    if (status === 'loading') return;
     if (!session) {
       router.push('/login');
       return;
     }
-
-    // Check if user has permission (Level 3 or 4)
     if (session.user.level < 3) {
       router.push('/dashboard');
-      return;
     }
   }, [session, status, router]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (event) => {
+    event?.preventDefault?.();
+    if (isSubmitting) return;
     if (!schoolName.trim()) {
       setError('School name is required');
       return;
@@ -58,245 +50,215 @@ export default function NewFormPage() {
 
     setIsSubmitting(true);
     setError('');
+    setExistingFormId('');
 
     try {
-      // Create new form submission in MongoDB
       const response = await fetch('/api/forms', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           schoolName: schoolName.trim(),
           initialOwnerEmail: initialOwnerEmail.trim() || undefined,
         }),
       });
-
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        setExistingFormId(data.existingFormId || '');
+        setError(data.error || 'Failed to create form. Please try again.');
+        setIsSubmitting(false);
+        return;
       }
-
-      const data = await response.json();
-
-      
-      // Redirect to the new form
       router.push(`/form/${data.formId}`);
-    } catch (error) {
-      console.error('Error creating form:', error);
+    } catch (err) {
+      console.error('Error creating form:', err);
       setError('Failed to create form. Please try again.');
       setIsSubmitting(false);
     }
   };
 
-  // Don't render until session is loaded
   if (status === 'loading' || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-transparent border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
+        <Spinner size="l" />
+        <Text onBackground="neutral-weak">Loading…</Text>
+      </Column>
     );
   }
 
-  // Check if user has permission to create forms (Level 3+)
   if (session.user.level < 3) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md mx-4">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">
-            Access Denied
-          </h1>
-          <p className="text-gray-600 mb-6">
-            You need Level 3 (Principal) access or higher to create forms.
-          </p>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
+      <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page" padding="24">
+        <Heading variant="heading-strong-m">You don’t have access to create a plan</Heading>
+        <Text onBackground="neutral-weak">Principal access or higher is required.</Text>
+        <Button href="/dashboard">Back to dashboard</Button>
+      </Column>
     );
   }
 
+  const isSuperAdmin = session.user.level === 5;
+  const lockedSchool = session.user.schoolName || '';
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-6">
-            <div className="mb-4 lg:mb-0">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                Create New Consolidated Plan Submission
-              </h1>
-              <p className="text-gray-600">
-                Start a new comprehensive school plan submission
-              </p>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="inline-flex items-center px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition-colors duration-200"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </header>
+    <DashboardShell
+      sidebar={<DashboardSidebar session={session} userLevel={session.user.level} />}
+      header={
+        <DashboardHeader
+          title="New school plan"
+          description={`Start a ${thisYear} Consolidated School Plan`}
+          session={session}
+          userLevel={session.user.level}
+          actions={
+            <Button size="s" variant="secondary" href="/dashboard">
+              Cancel
+            </Button>
+          }
+        />
+      }
+    >
+      <Grid columns="2" gap="24" fillWidth s={{ columns: '1' }} style={{ alignItems: 'stretch' }}>
+        <DashboardSection
+          fillHeight
+          title="School information"
+          description={
+            isSuperAdmin
+              ? `Choose the school for this ${thisYear} plan. Last year’s answers are not copied here — duplicate the ${lastYear} plan when you need them.`
+              : `This ${thisYear} plan is for ${lockedSchool || 'your school'}. Last year’s answers are not copied here — duplicate the ${lastYear} plan when you need them.`
+          }
+        >
+          <form onSubmit={handleSubmit} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Column gap="24" style={{ flex: 1 }}>
+              {error && (
+                <Column gap="12" padding="16" background="danger-alpha-weak" radius="m">
+                  <Column gap="4">
+                    <Text variant="label-strong-s" onBackground="danger-strong">
+                      {error}
+                    </Text>
+                    {existingFormId && (
+                      <Text variant="body-default-s">
+                        Open that plan instead of starting a second {thisYear} copy. If you wanted last year’s answers, go back to Overview, open the {lastYear} plan, and choose Duplicate.
+                      </Text>
+                    )}
+                  </Column>
+                  {existingFormId && (
+                    <Button variant="danger" href={`/form/${existingFormId}`}>
+                      Open the existing plan
+                    </Button>
+                  )}
+                </Column>
+              )}
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              School Information
-            </h2>
-            <p className="text-sm text-gray-600">
-              Please provide basic information about your school to begin the plan submission process.
-            </p>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-sm text-red-600">
-                  <AlertCircle className="w-4 h-4" />
-                  {error}
-                </div>
-              </div>
-            )}
+              <Column gap="4">
+                <Text variant="label-default-s">Signed in as</Text>
+                <Text variant="body-default-s">
+                  {session.user.name} · {session.user.email}
+                </Text>
+              </Column>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Mail className="w-4 h-4 inline mr-2 text-gray-500" />
-                Principal Email
-              </label>
-              <input
-                type="email"
-                value={session.user.email}
-                disabled
-                className="block w-full px-3 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                This is your authenticated email address and cannot be changed.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <User className="w-4 h-4 inline mr-2 text-gray-500" />
-                Principal Name
-              </label>
-              <input
-                type="text"
-                value={session.user.name}
-                disabled
-                className="block w-full px-3 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Building2 className="w-4 h-4 inline mr-2 text-gray-500" />
-                School Name <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={schoolName}
-                onChange={(e) => setSchoolName(e.target.value)}
-                className="block w-full px-3 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
-                required
-              >
-                <option value="">Select your school...</option>
-                {SCHOOL_NAMES.map((schoolNameOption) => (
-                  <option key={schoolNameOption} value={schoolNameOption}>
-                    {schoolNameOption}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                Please select the official name of your school from the list above.
-              </p>
-            </div>
-
-            {/* Initial Ownership Assignment - Only for Super Admins */}
-            {session?.user?.level === 5 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <User className="w-4 h-4 inline mr-2 text-gray-500" />
-                  Assign to Principal (Optional)
-                </label>
-                <PrincipalEmailAutocomplete
-                  value={initialOwnerEmail}
-                  onChange={setInitialOwnerEmail}
-                  placeholder="Enter principal email to assign ownership (must be Level 4)"
-                  className="block w-full"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Leave blank to create the form for yourself, or enter a Level 4 principal's email to assign ownership immediately.
-                </p>
-              </div>
-            )}
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-blue-800 mb-3 flex items-center">
-                <Info className="w-4 h-4 mr-2" />
-                What happens next?
-              </h3>
-              <ul className="text-xs text-blue-700 space-y-1 pl-4">
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-blue-600" />
-                  You'll complete a 15-step comprehensive school plan
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-blue-600" />
-                  Your progress will be automatically saved
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-blue-600" />
-                  You can return to edit your plan at any time before submission
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-blue-600" />
-                  Once submitted, the plan will be reviewed by district administrators
-                </li>
-              </ul>
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard')}
-                className="px-6 py-3 bg-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-400 transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || !schoolName.trim()}
-                className={`px-6 py-3 font-medium rounded-lg transition-all duration-200 ${
-                  isSubmitting || !schoolName.trim()
-                    ? 'bg-blue-300 text-white cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
-                }`}
-              >
-                {isSubmitting ? (
-                  <span className="inline-flex items-center">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </span>
+              <Column gap="8">
+                <Text variant="label-default-s">School</Text>
+                {isSuperAdmin ? (
+                  <select
+                    className="app-field"
+                    value={schoolName}
+                    onChange={(event) => {
+                      setSchoolName(event.target.value);
+                      setError('');
+                      setExistingFormId('');
+                    }}
+                    required
+                  >
+                    <option value="">Select your school…</option>
+                    {SCHOOL_NAMES.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
-                  <span className="inline-flex items-center">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Start School Plan
-                  </span>
+                  <select className="app-field" value={lockedSchool} disabled>
+                    <option value={lockedSchool}>{lockedSchool || 'No school assigned'}</option>
+                  </select>
                 )}
-              </button>
-            </div>
+                <Text variant="body-default-s" onBackground="neutral-weak">
+                  {isSuperAdmin
+                    ? `The plan is stored as ${thisYear} for this school. Each school can only have one plan for the year.`
+                    : `Principals can only start a plan for their own school. This ${thisYear} plan will be stored for ${lockedSchool || 'your school'}.`}
+                </Text>
+              </Column>
+
+              {isSuperAdmin && (
+                <Column gap="8">
+                  <Text variant="label-default-s">Assign to a principal (optional)</Text>
+                  <PrincipalEmailAutocomplete
+                    value={initialOwnerEmail}
+                    onChange={setInitialOwnerEmail}
+                    placeholder="Search name or @schools.nyc.gov email"
+                  />
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    Leave blank to keep the plan on your account. Assign when you are creating it for a school’s principal.
+                  </Text>
+                </Column>
+              )}
+
+              <Row gap="8" horizontal="end" wrap>
+                <Button type="button" variant="secondary" href="/dashboard">
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmit} disabled={isSubmitting || !schoolName.trim()}>
+                  {isSubmitting ? 'Creating…' : 'Start plan'}
+                </Button>
+              </Row>
+
+              <Column gap="16" paddingTop="8" style={{ marginTop: 'auto' }}>
+                <Column gap="8" padding="16" background="neutral-weak" radius="m">
+                  <Text variant="label-strong-s">After you start</Text>
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    You will open the section editor. Answers autosave as you type. When every section is reviewed, submit the plan. Copied plans also need the principal’s attestation.
+                  </Text>
+                </Column>
+                <Column gap="8" padding="16" background="neutral-weak" radius="m">
+                  <Text variant="label-strong-s">Need last year’s answers?</Text>
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    Do not create a second {thisYear} plan. Open the {lastYear} plan from Overview and choose Duplicate, or ask Super Admin to copy the school during year setup.
+                  </Text>
+                </Column>
+              </Column>
+            </Column>
           </form>
-        </div>
-      </main>
-    </div>
+        </DashboardSection>
+
+        <Card padding="24" radius="l" fillWidth style={{ height: '100%', minHeight: '36rem' }}>
+          <Column gap="20" style={{ height: '100%' }}>
+            <Row gap="8" vertical="center" wrap>
+              <Heading variant="heading-strong-s">What you are starting</Heading>
+              <Tag size="s" variant="brand" label={thisYear} />
+            </Row>
+            <Text variant="body-default-s" onBackground="neutral-weak">
+              This is the district Consolidated School Plan: child safety, attendance, temporary housing, counseling, and the other required sections for the year.
+            </Text>
+            <Column gap="16">
+              <Column gap="4">
+                <Text variant="label-strong-s">1. Blank plan for this year</Text>
+                <Text variant="body-default-s" onBackground="neutral-weak">
+                  Each school can have one {thisYear} plan. If this school already has one, this page will highlight it in red so you can open that plan instead of creating a second copy.
+                </Text>
+              </Column>
+              <Column gap="4">
+                <Text variant="label-strong-s">2. Copy {lastYear} if you need it</Text>
+                <Text variant="body-default-s" onBackground="neutral-weak">
+                  Start here only when the school does not yet have a {thisYear} plan. If a {lastYear} plan exists, open it and use Duplicate to bring answers forward. Compare then shows attendance, housing, and counseling side by side.
+                </Text>
+              </Column>
+              <Column gap="4">
+                <Text variant="label-strong-s">3. Autosave, then submit</Text>
+                <Text variant="body-default-s" onBackground="neutral-weak">
+                  Sections save as you type. When the school has reviewed every section, submit. Copied plans also need the principal’s attestation.
+                </Text>
+              </Column>
+            </Column>
+          </Column>
+        </Card>
+      </Grid>
+    </DashboardShell>
   );
 }

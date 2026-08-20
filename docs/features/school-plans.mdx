@@ -1,0 +1,95 @@
+---
+title: School plans
+description: Step keys, statuses, autosave, and the form workspace.
+icon: file-lines
+---
+
+A Consolidated School Plan is a `FormSubmission`. Status enum:
+
+`draft` → `submitted` → `under_review` → `approved` | `rejected`
+
+## Default step keys
+
+Fallback keys in `src/lib/formSteps.js` (order is the live bank when published):
+
+1. `tableOfContents`
+2. `childAbuseIntervention`
+3. `sexualHarassment`
+4. `respectForAll`
+5. `suicidePrevention`
+6. `attendancePlan`
+7. `temporaryHousing`
+8. `serviceInSchools`
+9. `planningInterviews`
+10. `militaryRecruitment`
+11. `schoolCulture`
+12. `afterSchoolPrograms`
+13. `cellPhonePolicy`
+14. `counselingPlan`
+
+`principalLetter` exists in some legacy maps but is **not** in the fallback key list. Do not revive it as a required step without a bank migration that keeps answer ids stable.
+
+![Step navigator](https://placehold.co/600x400)
+*Caption: Add screenshot showing FormWorkspace: school + year header, section list with completion checks, quiet question cards, sticky Previous/Next, and autosave status.*
+
+## Form workspace
+
+`/form/[id]` uses `DashboardShell` like the rest of the product.
+
+- Header title is **school + year**. The body heading is the current section only.
+- Status strip: editing/saved time (autosave ~3s), archived/view-only, optional due date, thin progress bar. There is no Save draft button.
+- Header tools: Compare, Duplicate (level ≥ 4), Share (level 5), Comment (level 5), View all, Submit.
+- Copied plans show unreviewed `needsUpdate` flags (“Same as last year” / “New this year” / changed) with **Mark reviewed**.
+- Last step shows a submit summary; submit opens a confirm dialog, then attestation if the plan was copied.
+
+Read-only view is `/view/[id]` (same shell, print/PDF/Word, jump list). New plans: `/form/new`.
+
+## Editing a step
+
+`PUT /api/forms/[id]/step/[stepNumber]`
+
+```json
+{
+  "stepData": {
+    "completed": false,
+    "data": {
+      "screen7question1": "Updated attendance narrative"
+    }
+  },
+  "lastUpdated": "2026-08-19T16:12:00.000Z",
+  "mergeStrategy": "last-write-wins"
+}
+```
+
+The route:
+
+1. Resolves `stepNumber` → `stepKey` via the question bank.
+2. Rejects writes if the school year is archived.
+3. Acquires a 5-minute lock on `form:{id}:step:{stepKey}`.
+4. Rate-limits saves (`rl:save:{userId}:{formId}`, 30 / 60s when Redis is up).
+5. Writes only dirty fields on `formData[stepKey]` (revision `409` on conflict).
+
+Unlock: `POST /api/forms/[id]/step/[stepNumber]/unlock`.
+
+## Needs-update flags
+
+Copied plans may include `needsUpdate[]`:
+
+```json
+{
+  "questionId": "screen7question1",
+  "stepKey": "attendancePlan",
+  "reason": "revisit",
+  "label": "Attendance liaison"
+}
+```
+
+`reason` is `new` | `changed` | `revisit`. Clear a flag with `POST /api/forms/[id]/review-flag` `{ "questionId": "..." }`.
+
+## Attestation
+
+Copied drafts require principal sign-off before submit:
+
+`POST /api/forms/[id]/attest` `{ "name": "Jane Principal" }`
+
+Stores `attestation.confirmed`, `name`, `signedAt`, `signedBy`.

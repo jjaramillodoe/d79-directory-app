@@ -5,6 +5,9 @@ const connectDB = require('../../../../lib/mongodb');
 const FormSubmission = require('../../../../models/FormSubmission');
 const FormComment = require('../../../../models/FormComment');
 const User = require('../../../../models/User');
+const { getPublishedOrJson } = require('../../../../lib/questionBank');
+const { getStepKeys, getStepNumberByKey } = require('../../../../lib/formSteps');
+const { inferSchoolYear } = require('../../../../lib/schoolYear');
 
 // GET /api/forms/[id] - Get specific form
 async function GET(request, { params }) {
@@ -182,8 +185,32 @@ async function GET(request, { params }) {
       comments = [];
     }
 
+    const formPayload = form.toObject ? form.toObject() : form;
+    const schoolYear = inferSchoolYear(formPayload);
+    formPayload.schoolYear = schoolYear;
+
+    let yearSettings = null;
+    try {
+      const { getYearSettings } = require('../../../../lib/schoolYearSettings');
+      yearSettings = await getYearSettings(schoolYear);
+    } catch (error) {
+      console.warn('Could not load school year settings:', error.message);
+    }
+
+    formPayload.yearArchived = Boolean(yearSettings?.archived);
+    formPayload.allowEditsWhenArchived = Boolean(formPayload.allowEditsWhenArchived);
+    formPayload.locked = Boolean(yearSettings?.archived) && !formPayload.allowEditsWhenArchived;
+    formPayload.deadlines = yearSettings?.deadlines || [];
+    formPayload.districtGoals = yearSettings?.districtGoals || [];
+    formPayload.needsUpdate = (formPayload.needsUpdate || []).filter((item) => !item.reviewedAt);
+    formPayload.attestation = formPayload.attestation || { confirmed: false };
+    if (!formPayload.completedSteps?.length) {
+      const { deriveCompletedSteps } = require('../../../../lib/formDuplicate');
+      formPayload.completedSteps = deriveCompletedSteps(formPayload.formData);
+    }
+
     return NextResponse.json({ 
-      form, 
+      form: formPayload, 
       collaborationInfo,
       userPermission, // Add explicit permission level
       comments: comments || [] // Include comments from FormComment collection
@@ -387,36 +414,23 @@ async function PUT(request, { params }) {
 
       const updateData = await request.json();
       const { step, stepData, currentStep, action } = updateData;
-
-      // Shared step mapping for consistent step numbering - NOTE: principalLetter removed
-      const stepNumberMap = {
-      'tableOfContents': 1,
-      'childAbuseIntervention': 2,
-      'sexualHarassment': 3,
-      'respectForAll': 4,
-      'suicidePrevention': 5,
-      'attendancePlan': 6,
-      'temporaryHousing': 7,
-      'serviceInSchools': 8,
-      'planningInterviews': 9,
-      'militaryRecruitment': 10,
-      'schoolCulture': 11,
-      'afterSchoolPrograms': 12,
-      'cellPhonePolicy': 13,
-      'counselingPlan': 14
-    };
+      const formYear = inferSchoolYear(form);
+      const { isFormLocked } = require('../../../../lib/schoolYearSettings');
+      const locked = await isFormLocked(form);
+      if (locked && action !== 'review') {
+        return NextResponse.json({
+          error: 'This school year is archived',
+          message: `${formYear} plans are read-only for audit. Super Admin can make this plan live, or duplicate into the new year.`,
+        }, { status: 403 });
+      }
+      const bank = await getPublishedOrJson({
+        schoolYear: formYear,
+        version: form.questionBankVersion,
+      });
+      const stepNames = getStepKeys(bank.steps);
 
       // Handle different update actions
       if (action === 'save_step' && step && stepData) {
-      // Save specific step data - NOTE: principalLetter has been removed
-      const stepNames = [
-        'tableOfContents', 'childAbuseIntervention', 
-        'sexualHarassment', 'respectForAll', 'suicidePrevention',
-        'attendancePlan', 'temporaryHousing', 'serviceInSchools',
-        'planningInterviews', 'militaryRecruitment', 'schoolCulture',
-        'afterSchoolPrograms', 'cellPhonePolicy', 'counselingPlan'
-      ];
-
       const stepKey = stepNames[step - 1];
       
       if (stepKey) {
@@ -458,34 +472,33 @@ async function PUT(request, { params }) {
         // Update completed steps array - use correct step mapping
         const completedSteps = Object.keys(form.formData)
           .filter(key => form.formData[key]?.completed)
-          .map(key => stepNumberMap[key])
-          .filter(stepNumber => stepNumber !== undefined)
+          .map(key => getStepNumberByKey(bank.steps, key))
+          .filter(stepNumber => stepNumber !== undefined && stepNumber !== null)
           .sort((a, b) => a - b);
         
         form.completedSteps = completedSteps;
+        form.markModified('formData');
       }
     }
 
       // Update current step if provided
-      if (currentStep && currentStep >= 1 && currentStep <= 14) {
+      if (currentStep && currentStep >= 1 && currentStep <= stepNames.length) {
         form.currentStep = currentStep;
       }
 
       // Handle form submission
       if (action === 'submit') {
+      if (form.duplicatedFrom && !form.attestation?.confirmed) {
+        return NextResponse.json({
+          error: 'Attestation required',
+          message: 'Review the copied plan and sign the principal attestation before submitting.',
+        }, { status: 400 });
+      }
       form.status = 'submitted';
       form.submittedAt = new Date();
       
       // If complete form data is provided, update all steps
       if (updateData.formData) {
-        const stepNames = [
-          'tableOfContents', 'childAbuseIntervention', 
-          'sexualHarassment', 'respectForAll', 'suicidePrevention',
-          'attendancePlan', 'temporaryHousing', 'serviceInSchools',
-          'planningInterviews', 'militaryRecruitment', 'schoolCulture',
-          'afterSchoolPrograms', 'cellPhonePolicy', 'counselingPlan'
-        ];
-
         // Update all step data
         stepNames.forEach(stepKey => {
           if (updateData.formData[stepKey]) {
@@ -507,8 +520,8 @@ async function PUT(request, { params }) {
       // Update completed steps array - use correct step mapping
       const completedSteps = Object.keys(form.formData)
         .filter(stepKey => form.formData[stepKey]?.completed)
-        .map(stepKey => stepNumberMap[stepKey])
-        .filter(stepNumber => stepNumber !== undefined)
+        .map(stepKey => getStepNumberByKey(bank.steps, stepKey))
+        .filter(stepNumber => stepNumber !== undefined && stepNumber !== null)
         .sort((a, b) => a - b);
       form.completedSteps = completedSteps;
     }

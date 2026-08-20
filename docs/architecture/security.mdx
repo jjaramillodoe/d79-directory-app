@@ -1,0 +1,99 @@
+---
+title: Edge proxy and security
+description: Next.js 16 proxy, route gates, security headers, and public vs private indexing.
+icon: shield-halved
+---
+
+Next.js 16 renamed middleware to **proxy**. The file is `src/proxy.js` (not `middleware.js`). It runs on the edge matcher below **before** App Router pages and route handlers.
+
+```js
+export const config = {
+  matcher: [
+    '/dashboard',
+    '/dashboard/:path*',
+    '/form/:path*',
+    '/view/:path*',
+    '/admin/:path*',
+    '/api/:path*',
+  ],
+};
+```
+
+Public HTML (`/`, `/about`, `/login`) is **not** in the matcher. `GET /api/public/*` is in the matcher but returns immediately without a session.
+
+## Request path
+
+```mermaid
+flowchart TD
+  Req[Browser request] --> Proxy["src/proxy.js"]
+  Proxy --> AuthApi{"/api/auth POST?"}
+  AuthApi -->|yes| Rl["Rate limit 20 / 60s per IP"]
+  AuthApi -->|no| Public{"/api/public?"}
+  Public -->|yes| Next[Continue]
+  Public -->|no| Jwt["getToken NextAuth JWT"]
+  Jwt --> Denied{"jti on sess:deny:*?"}
+  Denied -->|yes| Unauth["401 or /login"]
+  Denied -->|no| Authed{"userId, active, level ≥ 1?"}
+  Authed -->|no| Unauth
+  Authed -->|yes| Admin{"/admin or /api/admin?"}
+  Admin -->|no| Next
+  Admin -->|yes| Level["level ≥ 4, or ≥ 5 for Super Admin prefixes"]
+  Level -->|fail| Forbid["403 API or redirect /dashboard"]
+  Level -->|ok| Next
+```
+
+<AccordionGroup>
+  <Accordion title="Super Admin page prefixes (level 5)">
+    `/admin/questions`, `/admin/logs`, `/admin/system`, `/admin/goals`, `/admin/submissions`
+  </Accordion>
+  <Accordion title="Super Admin API prefixes (level 5)">
+    `/api/admin/questions`, `/api/admin/health`, `/api/admin/goals`, `/api/admin/forms/rollover`, `/api/admin/forms/live`, `/api/admin/forms/export`
+  </Accordion>
+  <Accordion title="School admin (level ≥ 4)">
+    Other `/admin/*` and `/api/admin/*` paths (for example `/admin/users` and `/api/admin/users/school`) require a principal or Super Admin JWT. Route handlers still reload `User` from MongoDB for the real permission check.
+  </Accordion>
+</AccordionGroup>
+
+The proxy is a **coarse gate**. Form-level RBAC (owner, same school, assignment, share) lives in each route handler. See [Roles and access](/features/roles).
+
+## JWT deny-list
+
+Every JWT gets a `jti` (UUID). On `signOut`, NextAuth writes `sess:deny:{jti}` in Redis until the token would have expired. Proxy and the JWT callback treat a denied `jti` as unauthenticated.
+
+Without Redis, logout cannot revoke the cookie early. The session still expires at `maxAge` (8 hours).
+
+## HTTP headers
+
+`next.config.js` sets these on `/:path*`:
+
+| Header | Value |
+| --- | --- |
+| `X-Frame-Options` | `DENY` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
+| `Content-Security-Policy` | `'self'` default; Google accounts for OAuth; Vercel Analytics/Insights scripts and connect |
+
+CSP `script-src` includes `'unsafe-inline'` and `'unsafe-eval'` because Next.js and Once UI still need them in this build. Do not loosen `frame-ancestors` or `form-action`.
+
+## Indexing
+
+| Surface | Indexing |
+| --- | --- |
+| `/`, `/about` | Allowed in `src/app/robots.js`; listed in `src/app/sitemap.js` |
+| `/dashboard`, `/admin`, `/form`, `/view`, `/login`, `/api` | `disallow` in robots.txt |
+| Authenticated layouts | `src/lib/privateRobots.js` sets `robots: noindex, nofollow` on HTML |
+
+`metadataBase` follows `NEXTAUTH_URL`.
+
+## OAuth hardening
+
+Google provider in `src/lib/auth.js`:
+
+- `hd: 'schools.nyc.gov'` so the account picker prefers DOE Workspace
+- `prompt: 'select_account'`
+- `checks: ['pkce', 'state', 'nonce']`
+- Secure cookies when `NEXTAUTH_URL` is `https://`
+
+Sign-in still **requires** a pre-registered, active `User` with that email. `hd` is not a substitute for the MongoDB allowlist.

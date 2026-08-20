@@ -1,0 +1,118 @@
+---
+title: School year and rollover
+description: July–June years, archive locks, duplicate, and district rollover.
+icon: calendar-days
+---
+
+NYC school years run **July through June**. `currentSchoolYear()` uses `date.getMonth() >= 6` (June = 5 in JS, so July = 6).
+
+On 19 August 2026 the current year is **2026-2027**; previous is **2025-2026**.
+
+```js
+currentSchoolYear()      // "2026-2027"
+previousSchoolYear(y)    // "2025-2026"
+nextSchoolYear(y)        // "2027-2028"
+latestSchoolYear(years)  // highest YYYY-YYYY in the list
+schoolYearTerm(y)        // { start: "2027-07-01", end: "2028-06-30", startLabel, endLabel }
+inferSchoolYear(form)    // form.schoolYear || year from createdAt
+isValidSchoolYear(s)     // /^\d{4}-\d{4}$/
+```
+
+![Year setup](https://placehold.co/600x400)
+*Caption: Add screenshot showing Super Admin Year setup (dashboard ?view=bulk-create) with rollover controls, archive toggle, deadlines, and pinned question-bank version.*
+
+## Year settings
+
+Collection `schoolyearsettings`, unique `schoolYear`:
+
+| Field | Meaning |
+| --- | --- |
+| `archived` | When true, plans for that year are read-only unless a Super Admin marks a single plan live |
+| `questionBankVersion` | Pin published bank version for new forms that year |
+| `deadlines[]` | `{ stepKey, label, dueDate }` shown on the dashboard |
+| `districtGoals[]` | Year-scoped targets used in compare + goals UI |
+
+`GET /api/school-year?schoolYear=2026-2027` (any authenticated user) also returns `planCounts` (`total`, `unfinished`, `liveOverrides`) and `cycle` (latest year, next year, default July–June term, settings that would carry over).
+`PUT /api/school-year` (Super Admin) body includes `schoolYear`, `archived`, `questionBankVersion`, `deadlines`, `districtGoals`. Set `archived: false` to make the whole year live again.
+
+## Set up the next year
+
+Super Admin, Year setup (`/dashboard?view=bulk-create`). Detects the latest year in `schoolyearsettings` and school plans, then creates the next cycle **without copying plans**.
+
+```bash
+curl -X POST http://localhost:3000/api/school-year \
+  -H "Content-Type: application/json" \
+  -d '{"fromYear":"2026-2027"}'
+```
+
+`fromYear` is optional. If omitted, the API uses the latest year already stored.
+
+Creates a `SchoolYearSettings` document for **2027-2028**:
+
+- Term dates default to **July 1, 2027 – June 30, 2028**
+- Carries over pinned question-bank version, district goals, and section due dates shifted +1 year
+- Leaves historical plans and the source year unchanged (`archived` stays as-is)
+- `409` if that next year already has settings
+
+After setup, use **Copy last year into this year** when you are ready to duplicate school plans.
+
+## Reopen unfinished last-year plans
+
+Rollover archives the source year. If some principals still need to finish:
+
+1. **One school:** Submissions → **Make live** on that row. The year stays archived; only that plan is editable (`allowEditsWhenArchived`).
+2. **Whole year:** System → **Reopen an archived year**, or Year setup → **Make this year live**.
+
+`POST /api/admin/forms/live` `{ "formId": "...", "live": true }` (Super Admin).
+
+The form status strip shows “Year archived · this plan is live so it can be finished” when an override is on.
+
+## Duplicate one school
+
+Principals and Super Admins:
+
+```bash
+curl -X POST http://localhost:3000/api/forms/<SOURCE_ID>/duplicate \
+  -H "Content-Type: application/json" \
+  -d '{"schoolYear":"2026-2027"}'
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "formId": "66f1...",
+  "schoolYear": "2026-2027",
+  "sourceYear": "2025-2026",
+  "message": "Created a 2026-2027 draft from the 2025-2026 plan. Answers were copied; reviews and comments were not."
+}
+```
+
+`409` if that school already has a plan for the target year unless `{ "force": true }`.
+
+## District rollover
+
+Super Admin only. Copies the latest plan per school from `sourceYear` into `targetYear`, then **archives** `sourceYear`.
+
+```json
+{
+  "sourceYear": "2025-2026",
+  "targetYear": "2026-2027",
+  "force": false
+}
+```
+
+Returns `created`, `skipped` (already exists), `errors`, and `archivedYear`.
+
+<AccordionGroup>
+  <Accordion title="What is copied">
+    All `formData[*].data` answers, school name, principal, owner assignment. Completions are preserved when a step has answers.
+  </Accordion>
+  <Accordion title="What is not copied">
+    Status (new plan is `draft`), comments, review fields, `sharedWithEmails`, attestation, locks.
+  </Accordion>
+  <Accordion title="Empty counseling">
+    If last year’s `counselingPlan.data` was empty, the copy is empty too. That is expected.
+  </Accordion>
+</AccordionGroup>

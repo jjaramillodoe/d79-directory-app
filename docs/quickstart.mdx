@@ -1,0 +1,91 @@
+---
+title: Quickstart
+description: Install, configure, seed, and run the District 79 Directory locally.
+icon: rocket
+---
+
+<Steps>
+  <Step title="Prerequisites">
+    - Node.js 18+
+    - npm
+    - MongoDB Atlas (recommended) or local MongoDB
+    - Google Cloud OAuth 2.0 Web client
+    - Optional: Redis for multi-instance step locking
+  </Step>
+  <Step title="Clone and install">
+```bash
+git clone <your-repo-url>
+cd d79-directory-app
+npm install
+```
+  </Step>
+  <Step title="Create environment file">
+```bash
+cp .env.example .env.local
+```
+
+Fill in values from [Environment variables](/deploy/environment). Never commit `.env.local`.
+  </Step>
+  <Step title="Configure Google OAuth">
+    1. Open [Google Cloud Console](https://console.cloud.google.com/).
+    2. Create OAuth 2.0 Client IDs → Web application.
+    3. Authorized JavaScript origin: `http://localhost:3000`
+    4. Authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
+    5. Copy Client ID and Client Secret into `.env.local`.
+  </Step>
+  <Step title="Seed an authorized user">
+    Google sign-in **rejects** any `@schools.nyc.gov` address that is not already in the `users` collection.
+
+```bash
+npm run seed-users
+```
+
+Update `src/scripts/seed-users.js` to match the accounts you actually need before running it in production.
+  </Step>
+  <Step title="Start the app">
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000), then **Sign in**.
+  </Step>
+</Steps>
+
+![Login screen](https://placehold.co/600x400)
+*Caption: Add screenshot showing the Google sign-in card and the @schools.nyc.gov restriction notice.*
+
+## Verify the stack
+
+<Tabs>
+  <Tab title="Health checks">
+```bash
+curl -s http://localhost:3000/api/public/overview | jq
+```
+
+Expect `currentYear` (July–June school year), `requiredPlans`, and `schoolsServed`. Super Admins can also open `/admin/system` after sign-in.
+  </Tab>
+  <Tab title="Production build">
+```bash
+npm run build
+npm start
+```
+
+The production build uses webpack (`next build --webpack`). Page files may only export a default page (plus reserved fields such as `metadata`).
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+  After Mongoose schema changes, restart `npm run dev`. Next.js can keep a stale model in memory.
+</Callout>
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production webpack build |
+| `npm start` | Serve the production build |
+| `npm run seed-users` | Insert authorized users |
+| `npm run assign-principals` | Attach principals to existing forms |
+| `npm run fix-form` | Repair form permission assignments |
+| `node src/scripts/create-demo-users.js` | Upsert demo Principal/AP for [role preview](/features/role-preview) (cannot Google-sign-in) |

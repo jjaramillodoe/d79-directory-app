@@ -1,0 +1,57 @@
+---
+title: UI architecture
+description: Once UI shell, public portal, and form workspace hierarchy.
+icon: window-restore
+---
+
+## Provider tree
+
+```text
+RootLayout
+└── Providers (SessionProvider + OnceUIProviders)
+    ├── PublicShell          # / and /about
+    ├── Login page
+    └── DashboardShell       # authenticated product
+        ├── DashboardSidebar
+        ├── DashboardHeader
+        └── page content
+```
+
+`OnceUIProviders` (`src/components/OnceUIProviders.js`) wraps Theme, Layout, Toast, and Icon providers using `src/resources/once-ui.config.js` (brand `blue`, accent `indigo`, light theme).
+
+## Public portal
+
+`src/components/public/PublicShell.js` is a render-prop layout:
+
+- Header: logo, year tag, Home / About, Sign in or Open dashboard
+- Main: page body
+- Footer: Javier Jaramillo and Veronica Pichardo mailto links, D79 + NYC Public Schools logos
+
+Home and About fetch `/api/public/overview` through `usePublicOverview()`.
+
+![About page](https://placehold.co/600x400)
+*Caption: Add screenshot showing the About page using the same portal header/footer as Home, with required sections listed from formQuestions.json.*
+
+## Dashboard
+
+Sidebar groups depend on `session.user.level`:
+
+- **All:** Overview, How to (`/dashboard?view=howto`)
+- **Level ≥ 4:** Comments, analytics, notifications, bulk, performance, new form
+- **Level 4:** School users, collaboration
+- **Level 5:** Year setup (`/dashboard?view=bulk-create`), submissions, all users, goals, question bank, **System**, audit logs, [role preview](/features/role-preview) on Overview
+
+## Form editor hierarchy
+
+```text
+src/app/form/[id]/page.js        # default export FormPage + Suspense
+└── FormPageContent             # local function, not a named page export
+    └── FormWorkspace
+        ├── step nav from question bank
+        ├── GenericFormStep | step-specific components
+        └── DuplicateFormModal / attestation / comments
+```
+
+<Callout type="warning">
+  Next.js 16 type-checks `page.js` files. Do not `export` helpers such as `FormPageContent` from a page module. Keep them as local functions or move them to `src/components`.
+</Callout>
