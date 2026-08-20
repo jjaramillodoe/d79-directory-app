@@ -46,6 +46,7 @@ export default function FormWorkspace({
   deadlineLabel,
   footer,
   children,
+  previewNotice,
 }) {
   const [sectionsOpen, setSectionsOpen] = useState(true);
 
@@ -154,6 +155,11 @@ export default function FormWorkspace({
                 Stay on form
               </Button>
             </Row>
+          )}
+          {previewNotice && (
+            <Text variant="body-default-s" onBackground="warning-strong">
+              {previewNotice}
+            </Text>
           )}
         </Column>
       </Card>

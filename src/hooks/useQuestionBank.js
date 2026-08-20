@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import formQuestionsData from '../data/formQuestions.json';
 
-export default function useQuestionBank({ schoolYear, version } = {}) {
+export default function useQuestionBank({ schoolYear, version, draft = false } = {}) {
   const [questionBank, setQuestionBank] = useState({
     steps: formQuestionsData.steps || [],
     source: 'json',
@@ -14,8 +14,12 @@ export default function useQuestionBank({ schoolYear, version } = {}) {
   useEffect(() => {
     let cancelled = false;
     const params = new URLSearchParams();
-    if (schoolYear) params.set('schoolYear', schoolYear);
-    if (version) params.set('version', String(version));
+    if (draft) {
+      params.set('draft', '1');
+    } else {
+      if (schoolYear) params.set('schoolYear', schoolYear);
+      if (version) params.set('version', String(version));
+    }
 
     fetch(`/api/question-bank${params.toString() ? `?${params}` : ''}`)
       .then((response) => (response.ok ? response.json() : null))
@@ -37,7 +41,7 @@ export default function useQuestionBank({ schoolYear, version } = {}) {
     return () => {
       cancelled = true;
     };
-  }, [schoolYear, version]);
+  }, [schoolYear, version, draft]);
 
   return { questionBank, loading };
 }

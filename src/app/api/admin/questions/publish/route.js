@@ -12,6 +12,7 @@ const {
 const { cloneSteps, toClientTemplate } = require('../../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../../lib/auditLogger');
 const { invalidateQuestionBankCache, invalidateOverviewCache } = require('../../../../../lib/redis');
+const { currentSchoolYear } = require('../../../../../lib/schoolYear');
 
 export async function POST(request) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    const pinYear = String(body.schoolYear || '').trim();
+    const pinYear = String(body.schoolYear || currentSchoolYear()).trim();
 
     await connectDB();
     const draft = await getDraftTemplate();

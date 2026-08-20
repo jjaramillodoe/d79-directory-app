@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import QuestionPreview from '../../../components/admin/QuestionPreview';
 import AppFooter from '../../../components/AppFooter';
+import { currentSchoolYear } from '../../../lib/schoolYear';
 
 const EMPTY_QUESTION = {
   title: '',
@@ -56,7 +57,7 @@ function AdminQuestionsPageContent() {
   const [addingStep, setAddingStep] = useState(false);
   const [stepTitle, setStepTitle] = useState('');
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const [publishYear, setPublishYear] = useState('');
+  const [publishYear, setPublishYear] = useState(currentSchoolYear());
 
   useEffect(() => {
     if (status === 'loading') return;

@@ -98,7 +98,10 @@ function normalizeTable(value, { columns } = {}) {
   }
 
   if (typeof value === 'string' && value.trim()) {
-    return gridToTable(parseDelimited(value), { columns });
+    const grid = parseDelimited(value);
+    const width = Math.max(0, ...grid.map((row) => row.length));
+    if (width <= 1) return gridToTable([], { columns });
+    return gridToTable(grid, { columns });
   }
 
   return gridToTable([], { columns });

@@ -35,9 +35,11 @@ function FormPageContent() {
     schoolName: '',
     status: 'draft'
   });
+  const previewDraftBank = session?.user?.level === 5 && (formData.status || 'draft') === 'draft';
   const { questionBank } = useQuestionBank({
     schoolYear: formData.schoolYear,
-    version: formData.questionBankVersion,
+    version: previewDraftBank || formData.status === 'draft' ? undefined : formData.questionBankVersion,
+    draft: previewDraftBank,
   });
   const [collaborationInfo, setCollaborationInfo] = useState(null);
   const [userPermissions, setUserPermissions] = useState(null); // 'owner', 'edit', 'view', or null
@@ -1858,6 +1860,11 @@ function FormPageContent() {
       onDismissReminder={() => setShowSaveReminder(false)}
       onDismissError={() => setSaveError(null)}
       onNavigateStep={navigateToStep}
+      previewNotice={
+        previewDraftBank && questionBank.source === 'draft'
+          ? 'Previewing the unpublished question bank. Principals still see the last published version until you publish. Paste from Excel into the table grid, not a text box.'
+          : ''
+      }
       headerActions={
         <Row gap="8" wrap>
           <Button size="s" variant="tertiary" href={`/form/${formId}/compare`}>
