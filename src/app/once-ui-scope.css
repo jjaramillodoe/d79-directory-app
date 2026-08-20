@@ -598,6 +598,14 @@
   cursor: default;
 }
 
+.once-ui-root .app-scroll-top {
+  position: fixed;
+  right: var(--static-space-24, 1.5rem);
+  bottom: var(--static-space-24, 1.5rem);
+  z-index: 50;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--brand-solid-strong) 32%, transparent);
+}
+
 .once-ui-root .app-modal-backdrop {
   position: fixed;
   inset: 0;
