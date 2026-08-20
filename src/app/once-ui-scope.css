@@ -558,9 +558,20 @@
   color: inherit;
 }
 
-.once-ui-root .app-table input:focus {
+.once-ui-root .app-table input:focus,
+.once-ui-root .app-table select:focus {
   outline: 2px solid var(--brand-solid-strong);
   outline-offset: -2px;
+}
+
+.once-ui-root .app-table select {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  font: inherit;
+  color: inherit;
 }
 
 .once-ui-root .app-table-actions {

@@ -26,6 +26,7 @@ import {
 import QuestionPreview from '../../../components/admin/QuestionPreview';
 import AppFooter from '../../../components/AppFooter';
 import { currentSchoolYear } from '../../../lib/schoolYear';
+import { normalizeColumnDefs, parseOptions, PROGRAM_TABLE_PRESET } from '../../../lib/tableAnswer';
 
 const EMPTY_QUESTION = {
   title: '',
@@ -34,7 +35,7 @@ const EMPTY_QUESTION = {
   type: 'textarea',
   required: false,
   question_number: '',
-  columns: '',
+  columns: [],
 };
 
 function AdminQuestionsPageContent() {
@@ -314,7 +315,7 @@ function AdminQuestionsPageContent() {
       type: question.type || 'textarea',
       required: Boolean(question.required),
       question_number: question.question_number || '',
-      columns: Array.isArray(question.columns) ? question.columns.join('\n') : question.columns || '',
+      columns: normalizeColumnDefs(question.columns),
       active: question.active !== false,
     });
   };
@@ -810,19 +811,10 @@ function QuestionFields({ value, onChange }) {
         </select>
       </label>
       {value.type === 'table' && (
-        <label className="block text-sm font-medium text-gray-700">
-          Column headers (optional)
-          <textarea
-            value={value.columns || ''}
-            onChange={(e) => update('columns', e.target.value)}
-            rows={4}
-            placeholder={'First Name\nLast Name\nTitle\nEmail\nPhone\nCertified\nTraining Date'}
-            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
-          <span className="mt-1 block text-xs font-normal text-gray-500">
-            One per line or comma-separated. Leave blank so staff can paste their own Excel headers.
-          </span>
-        </label>
+        <TableColumnsEditor
+          columns={value.columns}
+          onChange={(columns) => update('columns', columns)}
+        />
       )}
       <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
         <input
@@ -833,6 +825,94 @@ function QuestionFields({ value, onChange }) {
         Required
       </label>
     </>
+  );
+}
+
+function TableColumnsEditor({ columns, onChange }) {
+  const defs = normalizeColumnDefs(columns);
+
+  const updateColumn = (index, patch) => {
+    onChange(defs.map((column, i) => (i === index ? { ...column, ...patch } : column)));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-medium text-gray-700">Table columns</span>
+        <button
+          type="button"
+          onClick={() => onChange(PROGRAM_TABLE_PRESET.map((column) => ({ ...column, options: [...column.options] })))}
+          className="text-xs font-medium text-blue-700 hover:text-blue-800"
+        >
+          Use Program / Grade / Timeline
+        </button>
+      </div>
+      {defs.length === 0 ? (
+        <p className="text-xs text-gray-500">
+          Leave empty so staff can paste their own Excel headers. Add columns to lock headers, and set a column to Dropdown for a fixed list.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {defs.map((column, index) => (
+            <div key={`col-${index}`} className="rounded-lg border border-gray-200 p-3 space-y-2 bg-gray-50">
+              <div className="flex flex-wrap gap-2">
+                <label className="flex-1 min-w-[10rem] text-xs font-medium text-gray-600">
+                  Header
+                  <input
+                    value={column.header}
+                    onChange={(e) => updateColumn(index, { header: e.target.value })}
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                  />
+                </label>
+                <label className="w-40 text-xs font-medium text-gray-600">
+                  Input
+                  <select
+                    value={column.type}
+                    onChange={(e) =>
+                      updateColumn(index, {
+                        type: e.target.value,
+                        options: e.target.value === 'select' ? column.options : [],
+                      })
+                    }
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="text">Text</option>
+                    <option value="select">Dropdown</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => onChange(defs.filter((_, i) => i !== index))}
+                  className="self-end px-2 py-2 text-xs text-red-700 hover:text-red-800"
+                >
+                  Remove
+                </button>
+              </div>
+              {column.type === 'select' && (
+                <label className="block text-xs font-medium text-gray-600">
+                  Dropdown options (one per line)
+                  <textarea
+                    value={(column.options || []).join('\n')}
+                    onChange={(e) => updateColumn(index, { options: parseOptions(e.target.value) })}
+                    rows={Math.min(8, Math.max(3, (column.options || []).length + 1))}
+                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                  />
+                </label>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() =>
+          onChange([...defs, { header: `Column ${defs.length + 1}`, type: 'text', options: [] }])
+        }
+        className="text-sm font-medium text-blue-700 hover:text-blue-800"
+      >
+        Add column
+      </button>
+    </div>
   );
 }
 

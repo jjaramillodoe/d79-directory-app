@@ -11,7 +11,7 @@ const QuestionSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     active: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
-    columns: { type: [String], default: [] },
+    columns: { type: mongoose.Schema.Types.Mixed, default: [] },
   },
   { _id: false, strict: false }
 );

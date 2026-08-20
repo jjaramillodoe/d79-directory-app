@@ -93,7 +93,7 @@ export const ROLE_GUIDES = {
       'View and review plans across the district',
       'Manage users at any school, including principals',
       'Publish questions, set goals, and run year setup',
-      'Set a question type to Table so staff can paste Excel rows and columns',
+      'Set a question type to Table, including dropdown columns such as Grade Level and Timeline',
       'Preview the app as a principal or assistant principal',
     ],
     cannot: [
@@ -118,7 +118,7 @@ export const EXCEL_TABLE_GUIDE = {
     'Open the question that shows a table grid (not a large text box).',
     'In Excel or Google Sheets, select the range you want, including the header row if it has column names.',
     'Copy, then click anywhere in the table on the form and paste.',
-    'Check that each column stayed in its own column. Edit a cell if you need to fix one value.',
+    'Check that each column stayed in its own column. For dropdown columns, pick from the list if the pasted value did not match.',
     'Use Add row if you need more lines. Clear table if you pasted into the old text box first and want to start over.',
   ],
   notes: [
@@ -127,7 +127,8 @@ export const EXCEL_TABLE_GUIDE = {
   ],
   adminSteps: [
     'In Question bank, edit the question and set Type to Table (Excel paste).',
-    'Optional: list column headers (one per line), such as First Name, Last Name, Title, Email, Phone, Certified, Training Date. Leave blank if staff will paste their own headers.',
+    'Optional: add locked columns. Each column can be Text or Dropdown. Use “Program / Grade / Timeline” for a program table with Grade Level and Timeline lists.',
+    'Leave columns blank if staff will paste their own Excel headers.',
     'Publish so principals and staff see the grid on 2026-2027 draft plans.',
   ],
 };

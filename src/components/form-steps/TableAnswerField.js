@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import {
   gridToTable,
   isTableAnswered,
+  normalizeColumnDefs,
   normalizeTable,
   textLooksLikeGrid,
 } from '../../lib/tableAnswer';
@@ -28,7 +29,43 @@ function parseHtmlTable(html) {
   }
 }
 
-function TableGrid({ table, readOnly, onHeaderChange, onCellChange, onRemoveRow }) {
+function selectOptions(columnDef, cell) {
+  const options = columnDef?.options || [];
+  if (cell && !options.some((option) => option === cell)) {
+    return [cell, ...options];
+  }
+  return options;
+}
+
+function TableCell({ columnDef, cell, readOnly, rowIndex, columnIndex, onChange }) {
+  if (readOnly) return cell || '';
+  if (columnDef?.type === 'select' && columnDef.options?.length) {
+    const options = selectOptions(columnDef, cell);
+    return (
+      <select
+        value={cell}
+        aria-label={`Row ${rowIndex + 1}, ${columnDef.header || `column ${columnIndex + 1}`}`}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">Select one</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  return (
+    <input
+      value={cell}
+      aria-label={`Row ${rowIndex + 1}, column ${columnIndex + 1}`}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+function TableGrid({ table, columnDefs = [], readOnly, onHeaderChange, onCellChange, onRemoveRow }) {
   return (
     <div className="app-table-wrap">
       <table className={`app-table${readOnly ? ' app-table-readonly' : ''}`}>
@@ -55,15 +92,14 @@ function TableGrid({ table, readOnly, onHeaderChange, onCellChange, onRemoveRow 
             <tr key={`r-${rowIndex}`}>
               {row.map((cell, columnIndex) => (
                 <td key={`c-${rowIndex}-${columnIndex}`}>
-                  {readOnly ? (
-                    cell
-                  ) : (
-                    <input
-                      value={cell}
-                      aria-label={`Row ${rowIndex + 1}, column ${columnIndex + 1}`}
-                      onChange={(event) => onCellChange(rowIndex, columnIndex, event.target.value)}
-                    />
-                  )}
+                  <TableCell
+                    columnDef={columnDefs[columnIndex]}
+                    cell={cell}
+                    readOnly={readOnly}
+                    rowIndex={rowIndex}
+                    columnIndex={columnIndex}
+                    onChange={(nextValue) => onCellChange(rowIndex, columnIndex, nextValue)}
+                  />
                 </td>
               ))}
               {!readOnly && onRemoveRow ? (
@@ -88,11 +124,12 @@ function TableGrid({ table, readOnly, onHeaderChange, onCellChange, onRemoveRow 
 }
 
 export function TableDisplay({ value, columns }) {
+  const columnDefs = normalizeColumnDefs(columns);
   const table = normalizeTable(value, { columns });
   if (!isTableAnswered(table)) {
     return <Text onBackground="neutral-weak">No response provided</Text>;
   }
-  return <TableGrid table={table} readOnly />;
+  return <TableGrid table={table} columnDefs={columnDefs} readOnly />;
 }
 
 export default function TableAnswerField({
@@ -102,7 +139,9 @@ export default function TableAnswerField({
   readOnly = false,
   onChange,
 }) {
-  const lockedColumns = Array.isArray(columns) && columns.length > 0 ? columns : undefined;
+  const columnDefs = normalizeColumnDefs(columns);
+  const lockedColumns = columnDefs.length ? columns : undefined;
+  const hasSelectColumns = columnDefs.some((column) => column.type === 'select');
   const table = normalizeTable(value, { columns: lockedColumns });
 
   const emit = (next) => {
@@ -168,10 +207,13 @@ export default function TableAnswerField({
     <div className="app-table-field" onPaste={handlePaste}>
       <Text variant="body-default-s" onBackground="neutral-weak">
         {placeholder ||
-          'Paste a table from Excel or Google Sheets. Columns stay in columns — do not paste into a single cell.'}
+          (hasSelectColumns
+            ? 'Paste from Excel or Google Sheets. Text columns keep what you typed; dropdown columns keep a matching choice.'
+            : 'Paste a table from Excel or Google Sheets. Columns stay in columns — do not paste into a single cell.')}
       </Text>
       <TableGrid
         table={table}
+        columnDefs={columnDefs}
         onHeaderChange={lockedColumns ? undefined : updateHeader}
         onCellChange={updateCell}
         onRemoveRow={removeRow}

@@ -1,5 +1,7 @@
 'use client';
 
+import { normalizeColumnDefs } from '../../lib/tableAnswer';
+
 export default function QuestionPreview({ question }) {
   if (!question) return null;
 
@@ -34,26 +36,38 @@ export default function QuestionPreview({ question }) {
   }
 
   if (type === 'table') {
-    const columns = Array.isArray(question.columns) && question.columns.length
-      ? question.columns
-      : ['Column 1', 'Column 2', 'Column 3'];
+    const defs = normalizeColumnDefs(question.columns);
+    const columns = defs.length
+      ? defs
+      : [
+          { header: 'Column 1', type: 'text', options: [] },
+          { header: 'Column 2', type: 'text', options: [] },
+          { header: 'Column 3', type: 'text', options: [] },
+        ];
     return (
       <div className="overflow-x-auto border border-gray-200 rounded-lg">
         <table className="min-w-full text-xs">
           <thead className="bg-gray-100">
             <tr>
-              {columns.map((column) => (
-                <th key={column} className="px-2 py-1 text-left font-medium text-gray-600">
-                  {column}
+              {columns.map((column, index) => (
+                <th key={`${column.header}-${index}`} className="px-2 py-1 text-left font-medium text-gray-600">
+                  {column.header}
+                  {column.type === 'select' ? ' (dropdown)' : ''}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             <tr>
-              {columns.map((column) => (
-                <td key={column} className="px-2 py-2 text-gray-400">
-                  Paste from Excel
+              {columns.map((column, index) => (
+                <td key={`${column.header}-cell-${index}`} className="px-2 py-2 text-gray-400">
+                  {column.type === 'select' ? (
+                    <select disabled className="w-full bg-transparent text-gray-400">
+                      <option>Select one</option>
+                    </select>
+                  ) : (
+                    'Paste from Excel'
+                  )}
                 </td>
               ))}
             </tr>
