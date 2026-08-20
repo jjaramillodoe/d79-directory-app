@@ -90,7 +90,6 @@ export default function PublicShell({ activePage = 'home', children }) {
         compact={false}
         signedIn={signedIn}
         schoolYear={overview.currentYear}
-        previousYear={overview.previousYear}
         credit="Developed by Javier Jaramillo for District 79 Alternative Schools"
       />
     </Column>
