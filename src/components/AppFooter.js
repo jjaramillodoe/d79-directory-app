@@ -1,9 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { Column, Row, Text, Button } from '@once-ui-system/core';
-import { Mail } from 'lucide-react';
-import { currentSchoolYear } from '../lib/schoolYear';
+import { Column, Row, Text, Button, Grid, Flex } from '@once-ui-system/core';
+import { Mail, Home, CircleHelp, Calendar } from 'lucide-react';
+import { currentSchoolYear, previousSchoolYear } from '../lib/schoolYear';
 
 const CONTACTS = [
   {
@@ -18,8 +18,17 @@ const CONTACTS = [
   },
 ];
 
-export default function AppFooter({ schoolYear, credit, compact = true } = {}) {
+export default function AppFooter({
+  schoolYear,
+  previousYear,
+  credit,
+  compact = true,
+  signedIn = false,
+} = {}) {
   const year = schoolYear || currentSchoolYear();
+  const priorYear = previousYear || previousSchoolYear(year);
+  const primaryHref = signedIn ? '/dashboard' : '/login';
+  const primaryLabel = signedIn ? 'Dashboard' : 'Sign in';
 
   if (compact) {
     return (
@@ -67,15 +76,17 @@ export default function AppFooter({ schoolYear, credit, compact = true } = {}) {
       className="app-footer no-print"
       fillWidth
       paddingX="24"
-      paddingY="20"
-      gap="16"
+      paddingY="24"
+      gap="24"
       background="surface"
       style={{ borderTop: '1px solid var(--neutral-alpha-medium)' }}
     >
-      <Row fillWidth horizontal="between" vertical="start" wrap gap="24">
-        <Column gap="8" style={{ maxWidth: 480 }}>
+      <Grid columns="4" m={{ columns: '2' }} s={{ columns: '1' }} gap="24" fillWidth>
+        <Column gap="12">
           <Row gap="8" vertical="center">
-            <Mail size={16} strokeWidth={1.75} />
+            <Flex padding="4" background="brand-alpha-weak" radius="s">
+              <Mail size={14} strokeWidth={1.75} />
+            </Flex>
             <Text variant="label-strong-s">Need help with a school plan?</Text>
           </Row>
           {CONTACTS.map((person) => (
@@ -94,8 +105,51 @@ export default function AppFooter({ schoolYear, credit, compact = true } = {}) {
           ))}
         </Column>
 
-        <Column gap="12" horizontal="end" s={{ horizontal: 'start' }}>
-          <Row gap="16" vertical="center">
+        <Column gap="12">
+          <Row gap="8" vertical="center">
+            <Flex padding="4" background="brand-alpha-weak" radius="s">
+              <Home size={14} strokeWidth={1.75} />
+            </Flex>
+            <Text variant="label-strong-s">Pages</Text>
+          </Row>
+          <Column gap="4">
+            <Button size="s" variant="tertiary" href="/">
+              Home
+            </Button>
+            <Button size="s" variant="tertiary" href="/about">
+              How the plan works
+            </Button>
+            <Button size="s" variant="tertiary" href={primaryHref}>
+              {primaryLabel}
+            </Button>
+          </Column>
+        </Column>
+
+        <Column gap="12">
+          <Row gap="8" vertical="center">
+            <Flex padding="4" background="brand-alpha-weak" radius="s">
+              <Calendar size={14} strokeWidth={1.75} />
+            </Flex>
+            <Text variant="label-strong-s">This cycle</Text>
+          </Row>
+          <Column gap="8">
+            <Text variant="body-default-s">
+              {year} is open. {priorYear} is archived for copy and compare.
+            </Text>
+            <Text variant="body-default-s" onBackground="neutral-weak">
+              Sign in with a verified @schools.nyc.gov account. The school year runs July–June.
+            </Text>
+          </Column>
+        </Column>
+
+        <Column gap="12">
+          <Row gap="8" vertical="center">
+            <Flex padding="4" background="brand-alpha-weak" radius="s">
+              <CircleHelp size={14} strokeWidth={1.75} />
+            </Flex>
+            <Text variant="label-strong-s">District 79</Text>
+          </Row>
+          <Row gap="16" vertical="center" wrap>
             <Image
               src="/images/d79logo.png"
               alt="NYC District 79"
@@ -116,13 +170,24 @@ export default function AppFooter({ schoolYear, credit, compact = true } = {}) {
               {credit}
             </Text>
           )}
-          <Text variant="label-default-s" onBackground="neutral-weak">
-            District 79 Alternative Schools · {year}
-          </Text>
-          <Text variant="label-default-s" onBackground="neutral-weak">
-            © {new Date().getFullYear()} NYC District 79
-          </Text>
         </Column>
+      </Grid>
+
+      <Row
+        fillWidth
+        horizontal="between"
+        vertical="center"
+        wrap
+        gap="8"
+        paddingTop="8"
+        style={{ borderTop: '1px solid var(--neutral-alpha-weak)' }}
+      >
+        <Text variant="label-default-s" onBackground="neutral-weak">
+          District 79 Alternative Schools · {year}
+        </Text>
+        <Text variant="label-default-s" onBackground="neutral-weak">
+          © {new Date().getFullYear()} NYC District 79
+        </Text>
       </Row>
     </Column>
   );

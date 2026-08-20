@@ -18,6 +18,10 @@ import {
   CheckCircle,
   Save,
   BarChart3,
+  Calendar,
+  Share2,
+  MessageSquare,
+  Shield,
 } from 'lucide-react';
 import PublicShell from '../../components/public/PublicShell';
 import formQuestionsData from '../../data/formQuestions.json';
@@ -56,10 +60,64 @@ const FEATURES = [
 ];
 
 const ACCESS_LEVELS = [
-  { level: 'Levels 1–2', description: 'View approved plans.' },
-  { level: 'Level 3', description: 'Create and edit assigned school plans.' },
-  { level: 'Level 4', description: 'Principals: own, copy, attest, and submit the school plan.' },
-  { level: 'Level 5', description: 'Super Admin: district-wide users, questions, goals, and reviews.' },
+  { level: 'Level 1', title: 'Viewer', description: 'Open plans assigned to you.' },
+  { level: 'Level 2', title: 'School staff', description: 'Open and edit plans at your school.' },
+  {
+    level: 'Level 3',
+    title: 'Assistant Principal',
+    description: 'Edit plans the principal assigned or shared — not every plan at the school.',
+  },
+  {
+    level: 'Level 4',
+    title: 'Principal',
+    description: 'Own, copy, attest, and submit the school plan. Manage staff at that school.',
+  },
+  {
+    level: 'Level 5',
+    title: 'Super Admin',
+    description: 'District-wide users, questions, goals, reviews, and year setup.',
+  },
+];
+
+const YEAR_STEPS = [
+  {
+    step: '1',
+    title: 'The year opens in July',
+    body: 'The school year runs July–June. A new draft year becomes the working copy.',
+  },
+  {
+    step: '2',
+    title: 'Copy last year',
+    body: 'Principals duplicate last year’s answers so nobody starts from a blank form.',
+  },
+  {
+    step: '3',
+    title: 'Update and share',
+    body: 'Edit the required sections, compare years, and share with staff who need to help.',
+  },
+  {
+    step: '4',
+    title: 'Attest and submit',
+    body: 'The principal attests, then submits. Last year stays on file, read-only.',
+  },
+];
+
+const DETAIL_CARDS = [
+  {
+    icon: Share2,
+    title: 'Sharing a plan',
+    body: 'Principals keep ownership. Assistant principals need an assignment or share before they can edit. Same school is not enough for that role.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'After you submit',
+    body: 'District staff can review, comment, and approve. You can still open last year’s plan to compare, but it stays archived.',
+  },
+  {
+    icon: Shield,
+    title: 'How access is checked',
+    body: 'Sign-in is Google with a verified @schools.nyc.gov account. Sessions expire after 8 hours. Activity is logged.',
+  },
 ];
 
 export default function AboutPage() {
@@ -71,7 +129,7 @@ export default function AboutPage() {
   return (
     <PublicShell activePage="about">
       {({ overview, primaryHref, primaryLabel }) => (
-        <Column gap="24" fillWidth>
+        <Column fillWidth flex={1} gap="24">
           <Grid columns="2" s={{ columns: '1' }} gap="24" fillWidth>
             <Column gap="24" vertical="center">
               <Column gap="12">
@@ -112,68 +170,135 @@ export default function AboutPage() {
               </Row>
             </Column>
 
+            <Card padding="24" fillWidth radius="l">
+              <Column gap="16">
+                <Heading as="h2" variant="heading-strong-s">
+                  What you can do
+                </Heading>
+                <Column gap="12">
+                  {FEATURES.map((feature) => (
+                    <Row key={feature.title} gap="12" vertical="start">
+                      <Flex
+                        padding="8"
+                        background="brand-alpha-weak"
+                        radius="m"
+                        style={{ flexShrink: 0 }}
+                      >
+                        <feature.icon size={16} strokeWidth={1.75} />
+                      </Flex>
+                      <Column gap="2">
+                        <Text variant="label-strong-s">{feature.title}</Text>
+                        <Text variant="body-default-s" onBackground="neutral-weak">
+                          {feature.description}
+                        </Text>
+                      </Column>
+                    </Row>
+                  ))}
+                </Column>
+              </Column>
+            </Card>
+          </Grid>
+
+          <Card padding="24" fillWidth radius="l">
             <Column gap="16">
-              <Card padding="24" fillWidth radius="l">
-                <Column gap="16">
+              <Row gap="8" vertical="center">
+                <Flex padding="8" background="brand-alpha-weak" radius="m">
+                  <Calendar size={16} strokeWidth={1.75} />
+                </Flex>
+                <Column gap="2">
                   <Heading as="h2" variant="heading-strong-s">
-                    What you can do
+                    How a year works
                   </Heading>
-                  <Column gap="12">
-                    {FEATURES.map((feature) => (
-                      <Row key={feature.title} gap="12" vertical="start">
-                        <Flex
-                          padding="8"
-                          background="brand-alpha-weak"
-                          radius="m"
-                          style={{ flexShrink: 0 }}
-                        >
-                          <feature.icon size={16} strokeWidth={1.75} />
-                        </Flex>
-                        <Column gap="2">
-                          <Text variant="label-strong-s">{feature.title}</Text>
-                          <Text variant="body-default-s" onBackground="neutral-weak">
-                            {feature.description}
-                          </Text>
-                        </Column>
-                      </Row>
-                    ))}
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    {overview.currentYear} is open. {overview.previousYear} stays archived for copy
+                    and compare.
+                  </Text>
+                </Column>
+              </Row>
+              <Grid columns="4" m={{ columns: '2' }} s={{ columns: '1' }} gap="16" fillWidth>
+                {YEAR_STEPS.map((item) => (
+                  <Column key={item.step} gap="8">
+                    <Flex
+                      padding="4"
+                      background="brand-alpha-weak"
+                      radius="s"
+                      style={{ minWidth: 28, justifyContent: 'center', alignSelf: 'flex-start' }}
+                    >
+                      <Text variant="label-strong-s">{item.step}</Text>
+                    </Flex>
+                    <Text variant="label-strong-s">{item.title}</Text>
+                    <Text variant="body-default-s" onBackground="neutral-weak">
+                      {item.body}
+                    </Text>
+                  </Column>
+                ))}
+              </Grid>
+            </Column>
+          </Card>
+
+          <Column gap="12" fillWidth>
+            <Heading as="h2" variant="heading-strong-s">
+              Access levels
+            </Heading>
+            <Grid columns="3" m={{ columns: '2' }} s={{ columns: '1' }} gap="16" fillWidth>
+              {ACCESS_LEVELS.map((item) => (
+                <Card key={item.level} padding="24" fillWidth radius="l">
+                  <Column gap="8">
+                    <Tag size="s" variant="neutral" label={item.level} />
+                    <Text variant="label-strong-s">{item.title}</Text>
+                    <Text variant="body-default-s" onBackground="neutral-weak">
+                      {item.description}
+                    </Text>
+                  </Column>
+                </Card>
+              ))}
+            </Grid>
+          </Column>
+
+          <Grid columns="3" s={{ columns: '1' }} gap="16" fillWidth>
+            {DETAIL_CARDS.map((item) => (
+              <Card key={item.title} padding="24" fillWidth radius="l">
+                <Column gap="12">
+                  <Flex
+                    padding="8"
+                    background="brand-alpha-weak"
+                    radius="m"
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    <item.icon size={16} strokeWidth={1.75} />
+                  </Flex>
+                  <Column gap="4">
+                    <Heading as="h2" variant="heading-strong-s">
+                      {item.title}
+                    </Heading>
+                    <Text variant="body-default-s" onBackground="neutral-weak">
+                      {item.body}
+                    </Text>
                   </Column>
                 </Column>
               </Card>
-
-              <Card padding="24" fillWidth radius="l">
-                <Column gap="16">
-                  <Heading as="h2" variant="heading-strong-s">
-                    Access levels
-                  </Heading>
-                  <Grid columns="2" s={{ columns: '1' }} gap="12">
-                    {ACCESS_LEVELS.map((item) => (
-                      <Column key={item.level} gap="4">
-                        <Text variant="label-strong-s">{item.level}</Text>
-                        <Text variant="body-default-s" onBackground="neutral-weak">
-                          {item.description}
-                        </Text>
-                      </Column>
-                    ))}
-                  </Grid>
-                </Column>
-              </Card>
-            </Column>
+            ))}
           </Grid>
 
           <Card padding="24" fillWidth radius="l">
             <Column gap="16">
               <Row horizontal="between" vertical="center" wrap gap="8">
-                <Heading as="h2" variant="heading-strong-s">
-                  Required sections
-                </Heading>
+                <Column gap="4">
+                  <Heading as="h2" variant="heading-strong-s">
+                    Required sections
+                  </Heading>
+                  <Text variant="body-default-s" onBackground="neutral-weak">
+                    Every school completes the same {overview.requiredPlans || steps.length}{' '}
+                    sections for {overview.currentYear}.
+                  </Text>
+                </Column>
                 <Tag
                   size="s"
                   variant="brand"
                   label={`${overview.requiredPlans || steps.length} sections`}
                 />
               </Row>
-              <Grid columns="3" m={{ columns: '2' }} s={{ columns: '1' }} gap="12">
+              <Grid columns="2" s={{ columns: '1' }} gap="8" fillWidth>
                 {steps.map((step) => (
                   <Row key={step.number} gap="8" vertical="center">
                     <Flex
