@@ -510,6 +510,83 @@
   cursor: default;
 }
 
+.once-ui-root .app-table-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.once-ui-root .app-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--neutral-alpha-medium);
+  border-radius: var(--radius-m);
+  background: var(--surface-background);
+}
+
+.once-ui-root .app-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 36rem;
+}
+
+.once-ui-root .app-table th,
+.once-ui-root .app-table td {
+  border: 1px solid var(--neutral-alpha-medium);
+  padding: 0;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.875rem;
+}
+
+.once-ui-root .app-table th {
+  background: var(--brand-alpha-weak);
+  font-weight: 600;
+  padding: 8px 10px;
+}
+
+.once-ui-root .app-table-readonly td {
+  padding: 8px 10px;
+}
+
+.once-ui-root .app-table input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  font: inherit;
+  color: inherit;
+}
+
+.once-ui-root .app-table input:focus {
+  outline: 2px solid var(--brand-solid-strong);
+  outline-offset: -2px;
+}
+
+.once-ui-root .app-table-actions {
+  width: 2.5rem;
+  text-align: center;
+  background: var(--surface-background);
+}
+
+.once-ui-root .app-table-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 4px;
+  border: none;
+  background: transparent;
+  color: var(--neutral-on-background-weak);
+  cursor: pointer;
+}
+
+.once-ui-root .app-table-remove:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .once-ui-root .app-modal-backdrop {
   position: fixed;
   inset: 0;

@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Column, Text } from '@once-ui-system/core';
+import { isTableAnswered, isTableValue } from '../../lib/tableAnswer';
 import QuestionCard from './QuestionCard';
 
 function hasMeaningfulAnswer(value) {
   if (value === true) return true;
   if (value === false || value === null || value === undefined) return false;
   if (typeof value === 'string') return value.trim().length > 0;
+  if (isTableValue(value)) return isTableAnswered(value);
   return Boolean(value);
 }
 
@@ -101,7 +103,10 @@ export default function GenericFormStep({
         <QuestionCard
           key={question.id}
           question={question}
-          value={formData[question.id] || (question.type === 'checkbox' ? false : '')}
+          value={
+            formData[question.id] ??
+            (question.type === 'checkbox' ? false : question.type === 'table' ? null : '')
+          }
           onChange={(value) => handleInputChange(question.id, value)}
           readOnly={readOnly}
           flag={flagMap.get(question.id)}

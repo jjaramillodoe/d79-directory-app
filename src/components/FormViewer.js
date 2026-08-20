@@ -15,6 +15,8 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import useQuestionBank from '../hooks/useQuestionBank';
 import useAppToast from '../hooks/useAppToast';
+import { TableDisplay } from './form-steps/TableAnswerField';
+import { isTableValue } from '../lib/tableAnswer';
 
 const FormViewer = ({ form }) => {
   const { questionBank } = useQuestionBank();
@@ -25,6 +27,12 @@ const FormViewer = ({ form }) => {
       if (value === true) return 'Confirmed';
       if (value === false) return 'Not Confirmed';
       return value || 'Not Confirmed';
+    }
+    if (type === 'table' || isTableValue(value)) {
+      return <TableDisplay value={value} />;
+    }
+    if (value && typeof value === 'object') {
+      return JSON.stringify(value);
     }
     return value || 'No response provided';
   };
@@ -471,9 +479,9 @@ const FormViewer = ({ form }) => {
                       {question.title}
                     </h3>
                     <div className="bg-white rounded p-3 border border-gray-300">
-                      <span className="text-gray-700">
+                      <div className="text-gray-700">
                         {formatValue(answer, question.type)}
-                      </span>
+                      </div>
                     </div>
                   </div>
                 );

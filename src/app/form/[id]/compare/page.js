@@ -108,11 +108,11 @@ export default function YearComparePage() {
                   <Row gap="16" wrap>
                     <Column gap="4" style={{ flex: 1, minWidth: 220 }}>
                       <Text variant="label-default-s" onBackground="neutral-weak">{data.compareYear}</Text>
-                      <Text variant="body-default-s">{row.previousValue || '—'}</Text>
+                      <Text variant="body-default-s" style={{ whiteSpace: 'pre-wrap' }}>{row.previousValue || '—'}</Text>
                     </Column>
                     <Column gap="4" style={{ flex: 1, minWidth: 220 }}>
                       <Text variant="label-default-s" onBackground="neutral-weak">{data.currentYear}</Text>
-                      <Text variant="body-default-s">{row.currentValue || '—'}</Text>
+                      <Text variant="body-default-s" style={{ whiteSpace: 'pre-wrap' }}>{row.currentValue || '—'}</Text>
                     </Column>
                   </Row>
                 </Column>

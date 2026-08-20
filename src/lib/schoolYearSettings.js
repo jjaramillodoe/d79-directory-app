@@ -15,6 +15,7 @@ const {
   invalidateYearCache,
   invalidateQuestionBankCache,
 } = require('./redis');
+const { isTableValue, formatTablePlain } = require('./tableAnswer');
 
 const COMPARE_STEPS = [
   { key: 'attendancePlan', label: 'Attendance' },
@@ -332,6 +333,7 @@ function formatAnswer(value) {
   if (value === true) return 'Yes';
   if (value === false) return 'No';
   if (value === null || value === undefined) return '';
+  if (isTableValue(value)) return formatTablePlain(value);
   if (typeof value === 'object') {
     try {
       return JSON.stringify(value);

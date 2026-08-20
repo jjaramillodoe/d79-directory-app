@@ -33,6 +33,7 @@ const EMPTY_QUESTION = {
   type: 'textarea',
   required: false,
   question_number: '',
+  columns: '',
 };
 
 function AdminQuestionsPageContent() {
@@ -312,6 +313,7 @@ function AdminQuestionsPageContent() {
       type: question.type || 'textarea',
       required: Boolean(question.required),
       question_number: question.question_number || '',
+      columns: Array.isArray(question.columns) ? question.columns.join('\n') : question.columns || '',
       active: question.active !== false,
     });
   };
@@ -491,6 +493,7 @@ function AdminQuestionsPageContent() {
                   <option value="all">All types</option>
                   <option value="text">Text</option>
                   <option value="textarea">Textarea</option>
+                  <option value="table">Table</option>
                   <option value="checkbox">Checkbox</option>
                 </select>
                 <select value={requiredFilter} onChange={(e) => setRequiredFilter(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
@@ -801,9 +804,25 @@ function QuestionFields({ value, onChange }) {
         >
           <option value="text">Text</option>
           <option value="textarea">Textarea</option>
+          <option value="table">Table (Excel paste)</option>
           <option value="checkbox">Checkbox</option>
         </select>
       </label>
+      {value.type === 'table' && (
+        <label className="block text-sm font-medium text-gray-700">
+          Column headers (optional)
+          <textarea
+            value={value.columns || ''}
+            onChange={(e) => update('columns', e.target.value)}
+            rows={4}
+            placeholder={'First Name\nLast Name\nTitle\nEmail\nPhone\nCertified\nTraining Date'}
+            className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
+          <span className="mt-1 block text-xs font-normal text-gray-500">
+            One per line or comma-separated. Leave blank so staff can paste their own Excel headers.
+          </span>
+        </label>
+      )}
       <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
         <input
           type="checkbox"

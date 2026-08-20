@@ -33,6 +33,36 @@ export default function QuestionPreview({ question }) {
     );
   }
 
+  if (type === 'table') {
+    const columns = Array.isArray(question.columns) && question.columns.length
+      ? question.columns
+      : ['Column 1', 'Column 2', 'Column 3'];
+    return (
+      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <table className="min-w-full text-xs">
+          <thead className="bg-gray-100">
+            <tr>
+              {columns.map((column) => (
+                <th key={column} className="px-2 py-1 text-left font-medium text-gray-600">
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {columns.map((column) => (
+                <td key={column} className="px-2 py-2 text-gray-400">
+                  Paste from Excel
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <textarea
       disabled

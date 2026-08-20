@@ -47,6 +47,7 @@ export async function POST(request) {
       type: body.type,
       required: body.required,
       question_number: body.question_number,
+      columns: body.columns,
       active: true,
     });
 
@@ -58,6 +59,7 @@ export async function POST(request) {
       description: sanitized.description || '',
       type: ALLOWED_TYPES.includes(sanitized.type) ? sanitized.type : 'textarea',
       required: Boolean(sanitized.required),
+      columns: sanitized.columns || [],
       active: true,
       order: step.questions.length,
     };

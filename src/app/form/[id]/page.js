@@ -13,6 +13,7 @@ import FormStepMeta from '../../../components/form-steps/FormStepMeta';
 import FormSubmitSummary from '../../../components/form-steps/FormSubmitSummary';
 import DuplicateFormModal from '../../../components/admin/DuplicateFormModal';
 import FormAttestModal from '../../../components/form-steps/FormAttestModal';
+import { isTableAnswered } from '../../../lib/tableAnswer';
 import FormShareModal from '../../../components/form-steps/FormShareModal';
 import FormCommentModal from '../../../components/form-steps/FormCommentModal';
 import FormConfirmModal from '../../../components/form-steps/FormConfirmModal';
@@ -1459,6 +1460,10 @@ function FormPageContent() {
     // For text/textarea, check if it's not empty
     if (question.type === 'text' || question.type === 'textarea') {
       return typeof value === 'string' && value.trim().length > 0;
+    }
+
+    if (question.type === 'table') {
+      return isTableAnswered(value);
     }
     
     // For other types, check if value exists

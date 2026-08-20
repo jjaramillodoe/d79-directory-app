@@ -1,6 +1,7 @@
 'use client';
 
 import { Column, Row, Text, Button, Card, Tag } from '@once-ui-system/core';
+import TableAnswerField from './TableAnswerField';
 
 function flagCopy(flag) {
   if (!flag) return '';
@@ -19,6 +20,7 @@ export default function QuestionCard({
 }) {
   const isCheckbox = question.type === 'checkbox';
   const isText = question.type === 'text';
+  const isTable = question.type === 'table';
   const flagged = Boolean(flag);
   const inactive = question.active === false;
 
@@ -89,6 +91,14 @@ export default function QuestionCard({
             onChange={(event) => onChange(event.target.value)}
             placeholder={question.placeholder}
             className="app-field"
+          />
+        ) : isTable ? (
+          <TableAnswerField
+            value={value}
+            columns={question.columns}
+            placeholder={question.placeholder}
+            readOnly={readOnly}
+            onChange={onChange}
           />
         ) : (
           <textarea

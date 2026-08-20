@@ -5,6 +5,7 @@ const connectDB = require('../../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
 const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
+const { isTableValue, isTableAnswered, formatTablePlain } = require('../../../../../../lib/tableAnswer');
 const { Readable } = require('stream');
 const path = require('path');
 const fs = require('fs');
@@ -212,13 +213,17 @@ async function GET(request, { params }) {
             try {
               const questionId = question.id;
               const questionTitle = question.title || questionId;
-              const hasData = stepData[questionId] !== undefined && stepData[questionId] !== null && stepData[questionId] !== '';
+              const hasData = isTableValue(stepData[questionId])
+                ? isTableAnswered(stepData[questionId])
+                : stepData[questionId] !== undefined && stepData[questionId] !== null && stepData[questionId] !== '';
               
               let displayValue = '';
               
               if (hasData) {
                 const value = stepData[questionId];
-                if (typeof value === 'object' && value !== null) {
+                if (isTableValue(value)) {
+                  displayValue = formatTablePlain(value);
+                } else if (typeof value === 'object' && value !== null) {
                   if (Array.isArray(value)) {
                     displayValue = value.join(', ');
                   } else {

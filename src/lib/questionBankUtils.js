@@ -1,3 +1,5 @@
+const { isTableValue, isTableAnswered } = require('./tableAnswer');
+
 const EDITABLE_FIELDS = [
   'title',
   'placeholder',
@@ -6,9 +8,10 @@ const EDITABLE_FIELDS = [
   'required',
   'question_number',
   'active',
+  'columns',
 ];
 
-const ALLOWED_TYPES = ['text', 'textarea', 'checkbox', 'select'];
+const ALLOWED_TYPES = ['text', 'textarea', 'checkbox', 'select', 'table'];
 
 function cloneSteps(steps) {
   return JSON.parse(JSON.stringify(steps || [])).map((step) => {
@@ -41,10 +44,23 @@ function sortQuestions(questions) {
   });
 }
 
+function parseColumnList(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 20);
+  }
+  if (typeof value !== 'string') return [];
+  return value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
 function hasMeaningfulAnswer(value) {
   if (value === true) return true;
   if (value === false || value === null || value === undefined) return false;
   if (typeof value === 'string') return value.trim().length > 0;
+  if (isTableValue(value)) return isTableAnswered(value);
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'object') return Object.keys(value).length > 0;
   return Boolean(value);
@@ -154,6 +170,9 @@ function sanitizeQuestionUpdates(updates = {}) {
   if (typeof sanitized.question_number === 'number') {
     sanitized.question_number = String(sanitized.question_number);
   }
+  if (Object.prototype.hasOwnProperty.call(sanitized, 'columns')) {
+    sanitized.columns = parseColumnList(sanitized.columns);
+  }
   return sanitized;
 }
 
@@ -170,6 +189,7 @@ function stepsSignature(steps) {
       type: question.type || 'textarea',
       required: Boolean(question.required),
       description: question.description || '',
+      columns: Array.isArray(question.columns) ? question.columns : [],
       active: question.active !== false,
       order: typeof question.order === 'number' ? question.order : 0,
     })),
