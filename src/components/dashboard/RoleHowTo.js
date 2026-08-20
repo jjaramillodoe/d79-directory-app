@@ -1,9 +1,9 @@
 'use client';
 
 import { Column, Row, Text, Grid, Flex } from '@once-ui-system/core';
-import { Check, X, ListOrdered } from 'lucide-react';
+import { Check, X, ListOrdered, Table } from 'lucide-react';
 import DashboardSection from './DashboardSection';
-import { getRoleGuide } from '../../lib/roleGuides';
+import { getRoleGuide, EXCEL_TABLE_GUIDE } from '../../lib/roleGuides';
 
 function GuideList({ items, icon: Icon, background }) {
   return (
@@ -52,6 +52,34 @@ export default function RoleHowTo({ userLevel, compact = false }) {
                   {index + 1}. {step}
                 </Text>
               ))}
+            </Column>
+          </Column>
+        )}
+
+        {!compact && guide.showExcelTables && (
+          <Column gap="8">
+            <Row gap="8" vertical="center">
+              <Table size={16} strokeWidth={1.75} />
+              <Text variant="label-strong-s">{EXCEL_TABLE_GUIDE.title}</Text>
+            </Row>
+            <Column gap="8" padding="16" background="neutral-alpha-weak" radius="m">
+              <Text variant="body-default-s">{EXCEL_TABLE_GUIDE.summary}</Text>
+              {EXCEL_TABLE_GUIDE.steps.map((step, index) => (
+                <Text key={step} variant="body-default-s">
+                  {index + 1}. {step}
+                </Text>
+              ))}
+              {EXCEL_TABLE_GUIDE.notes.map((note) => (
+                <Text key={note} variant="body-default-s" onBackground="neutral-weak">
+                  {note}
+                </Text>
+              ))}
+              {guide.excelAdmin &&
+                EXCEL_TABLE_GUIDE.adminSteps.map((step, index) => (
+                  <Text key={step} variant="body-default-s">
+                    Admin {index + 1}. {step}
+                  </Text>
+                ))}
             </Column>
           </Column>
         )}

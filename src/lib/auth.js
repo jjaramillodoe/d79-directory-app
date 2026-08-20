@@ -60,6 +60,7 @@ const authOptions = {
       session.impersonating = Boolean(token.impersonateEmail);
       session.actorEmail = token.actorEmail || null;
       session.actorName = token.actorName || null;
+      session.actorLevel = token.actorLevel || null;
       return session;
     },
     async jwt({ token, user, trigger, session }) {
@@ -92,6 +93,7 @@ const authOptions = {
 
         token.actorEmail = actor.email;
         token.actorName = actor.name;
+        token.actorLevel = actor.level;
 
         let dbUser = actor;
         if (token.impersonateEmail && Number(actor.level) === 5) {

@@ -179,8 +179,8 @@ async function isTokenDenied(jti) {
   return (await redis.exists(denyKey(jti))) === 1;
 }
 
-function questionBankCacheKey({ schoolYear, version } = {}) {
-  return `qb:published:${schoolYear || 'latest'}:${version || 'head'}`;
+function questionBankCacheKey({ schoolYear, version, preferPublished } = {}) {
+  return `qb:published:${schoolYear || 'latest'}:${version || 'head'}:${preferPublished ? 'live' : 'pin'}`;
 }
 
 async function invalidateQuestionBankCache() {

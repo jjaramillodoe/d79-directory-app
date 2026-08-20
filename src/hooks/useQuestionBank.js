@@ -3,10 +3,15 @@
 import { useEffect, useState } from 'react';
 import formQuestionsData from '../data/formQuestions.json';
 
-export default function useQuestionBank({ schoolYear, version, draft = false } = {}) {
+export default function useQuestionBank({
+  schoolYear,
+  version,
+  draft = false,
+  preferPublished = false,
+} = {}) {
   const [questionBank, setQuestionBank] = useState({
-    steps: formQuestionsData.steps || [],
-    source: 'json',
+    steps: [],
+    source: 'loading',
     version: null,
   });
   const [loading, setLoading] = useState(true);
@@ -18,21 +23,35 @@ export default function useQuestionBank({ schoolYear, version, draft = false } =
       params.set('draft', '1');
     } else {
       if (schoolYear) params.set('schoolYear', schoolYear);
-      if (version) params.set('version', String(version));
+      if (version && !preferPublished) params.set('version', String(version));
+      if (preferPublished) params.set('latest', '1');
     }
 
-    fetch(`/api/question-bank${params.toString() ? `?${params}` : ''}`)
+    fetch(`/api/question-bank?${params.toString()}`, { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
-        if (cancelled || !data?.steps?.length) return;
+        if (cancelled) return;
+        if (data?.steps?.length) {
+          setQuestionBank({
+            steps: data.steps,
+            source: data.source || 'mongo',
+            version: data.version || null,
+          });
+          return;
+        }
         setQuestionBank({
-          steps: data.steps,
-          source: data.source || 'mongo',
-          version: data.version || null,
+          steps: formQuestionsData.steps || [],
+          source: 'json',
+          version: null,
         });
       })
       .catch(() => {
-        // Keep JSON fallback so existing answers still render.
+        if (cancelled) return;
+        setQuestionBank({
+          steps: formQuestionsData.steps || [],
+          source: 'json',
+          version: null,
+        });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -41,7 +60,7 @@ export default function useQuestionBank({ schoolYear, version, draft = false } =
     return () => {
       cancelled = true;
     };
-  }, [schoolYear, version, draft]);
+  }, [schoolYear, version, draft, preferPublished]);
 
   return { questionBank, loading };
 }

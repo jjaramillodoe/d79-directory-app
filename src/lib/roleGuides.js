@@ -24,6 +24,7 @@ export const ROLE_GUIDES = {
     can: [
       'Open the Consolidated School Plan for your school',
       'Edit answers and rely on autosave',
+      'Paste Excel or Google Sheets tables into table questions without losing columns',
       'Compare last year with this year when the principal has both plans',
       'Export a copy if you have access to that plan',
     ],
@@ -37,6 +38,7 @@ export const ROLE_GUIDES = {
       'On Overview, open your school’s current-year plan.',
       'Update your sections. The principal submits when the school is ready.',
     ],
+    showExcelTables: true,
   },
   3: {
     title: 'Assistant Principal',
@@ -44,6 +46,7 @@ export const ROLE_GUIDES = {
     can: [
       'Open and edit assigned school plans',
       'Work in the sections you were given, with autosave',
+      'Paste Excel or Google Sheets tables into table questions without losing columns',
       'Collaborate with others who were also assigned',
       'Compare years and export when you have access',
     ],
@@ -57,6 +60,7 @@ export const ROLE_GUIDES = {
       'On Overview, open an assigned plan.',
       'If the list is empty, ask the principal to share the plan with you under Collaboration.',
     ],
+    showExcelTables: true,
   },
   4: {
     title: 'Principal',
@@ -64,6 +68,7 @@ export const ROLE_GUIDES = {
     can: [
       'Open, edit, duplicate, attest, and submit your school’s plan',
       'Start a new plan for your school only',
+      'Paste Excel or Google Sheets tables into table questions without losing columns',
       'Add and manage Assistant Principals and staff at your school (levels 1–3)',
       'Share the plan with level 3 staff for editing',
       'Compare years and export PDF or Word',
@@ -79,6 +84,7 @@ export const ROLE_GUIDES = {
       'Use School users to add staff, then Collaboration to assign the plan.',
       'When every section is reviewed, submit. Copied plans also need your attestation.',
     ],
+    showExcelTables: true,
   },
   5: {
     title: 'Super Admin',
@@ -87,6 +93,7 @@ export const ROLE_GUIDES = {
       'View and review plans across the district',
       'Manage users at any school, including principals',
       'Publish questions, set goals, and run year setup',
+      'Set a question type to Table so staff can paste Excel rows and columns',
       'Preview the app as a principal or assistant principal',
     ],
     cannot: [
@@ -96,8 +103,33 @@ export const ROLE_GUIDES = {
     startHere: [
       'Use Preview school roles on Overview to walk through a school’s workflow.',
       'Year setup is for next year’s settings, not for editing this year’s school answers.',
+      'To allow Excel paste, set the question type to Table in Question bank, then publish.',
     ],
+    showExcelTables: true,
+    excelAdmin: true,
   },
+};
+
+export const EXCEL_TABLE_GUIDE = {
+  title: 'Paste a table from Excel',
+  summary:
+    'Some questions use a table grid instead of a text box. You can paste a spreadsheet range and keep the rows and columns.',
+  steps: [
+    'Open the question that shows a table grid (not a large text box).',
+    'In Excel or Google Sheets, select the range you want, including the header row if it has column names.',
+    'Copy, then click anywhere in the table on the form and paste.',
+    'Check that each column stayed in its own column. Edit a cell if you need to fix one value.',
+    'Use Add row if you need more lines. Clear table if you pasted into the old text box first and want to start over.',
+  ],
+  notes: [
+    'Pasting into a plain text box will flatten the table into one block of text. Use the grid.',
+    'Do not paste into a single cell if you copied several columns — click the grid first, then paste.',
+  ],
+  adminSteps: [
+    'In Question bank, edit the question and set Type to Table (Excel paste).',
+    'Optional: list column headers (one per line), such as First Name, Last Name, Title, Email, Phone, Certified, Training Date. Leave blank if staff will paste their own headers.',
+    'Publish so principals and staff see the grid on 2026-2027 draft plans.',
+  ],
 };
 
 export function getRoleGuide(level) {

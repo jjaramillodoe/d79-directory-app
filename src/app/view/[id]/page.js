@@ -30,9 +30,11 @@ export default function FormViewPage() {
   const { data: session, status } = useSession();
   const toast = useAppToast();
   const [formData, setFormData] = useState(null);
+  const isDraftForm = (formData?.status || 'draft') === 'draft';
   const { questionBank } = useQuestionBank({
     schoolYear: formData?.schoolYear,
-    version: formData?.questionBankVersion,
+    version: isDraftForm ? undefined : formData?.questionBankVersion,
+    preferPublished: isDraftForm,
   });
   const FORM_STEPS = (questionBank.steps || []).map((step, index) => ({
     id: index + 1,

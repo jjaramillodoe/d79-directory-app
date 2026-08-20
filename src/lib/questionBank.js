@@ -156,15 +156,15 @@ async function getAdminQuestionBank() {
   };
 }
 
-async function getPublishedOrJson({ schoolYear, version } = {}) {
-  const cacheKey = questionBankCacheKey({ schoolYear, version });
+async function getPublishedOrJson({ schoolYear, version, preferPublished = false } = {}) {
+  const cacheKey = questionBankCacheKey({ schoolYear, version, preferPublished });
   const cached = await cacheGet(cacheKey);
   if (cached?.steps) return cached;
 
   let payload = null;
   try {
     await connectDB();
-    if (version) {
+    if (version && !preferPublished) {
       const pinned = await getTemplateByVersion(version);
       if (pinned?.steps?.length) payload = toBankPayload(pinned);
     }

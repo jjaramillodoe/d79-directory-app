@@ -35,11 +35,15 @@ function FormPageContent() {
     schoolName: '',
     status: 'draft'
   });
-  const previewDraftBank = session?.user?.level === 5 && (formData.status || 'draft') === 'draft';
-  const { questionBank } = useQuestionBank({
+  const isDraftForm = (formData.status || 'draft') === 'draft';
+  const isSuperAdminActor =
+    Number(session?.user?.level) === 5 || Number(session?.actorLevel) === 5;
+  const previewDraftBank = isSuperAdminActor && isDraftForm;
+  const { questionBank, loading: questionBankLoading } = useQuestionBank({
     schoolYear: formData.schoolYear,
-    version: previewDraftBank || formData.status === 'draft' ? undefined : formData.questionBankVersion,
+    version: isDraftForm ? undefined : formData.questionBankVersion,
     draft: previewDraftBank,
+    preferPublished: isDraftForm && !previewDraftBank,
   });
   const [collaborationInfo, setCollaborationInfo] = useState(null);
   const [userPermissions, setUserPermissions] = useState(null); // 'owner', 'edit', 'view', or null
@@ -1828,7 +1832,7 @@ function FormPageContent() {
   const canManageSharing = session?.user?.level === 5 || session?.user?.email?.toLowerCase() === 'jjaramillo7@gmail.com';
 
   // Don't render until session and form data are loaded
-  if (status === 'loading' || !session || loading) {
+  if (status === 'loading' || !session || loading || questionBankLoading || questionBank.source === 'loading') {
     return (
       <Column minHeight="100vh" horizontal="center" vertical="center" gap="16" background="page">
         <Spinner size="l" />
