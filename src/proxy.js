@@ -14,6 +14,7 @@ const SUPER_ADMIN_APIS = [
   '/api/admin/health',
   '/api/admin/goals',
   '/api/admin/forms/rollover',
+  '/api/admin/forms/migrate-contacts',
   '/api/admin/forms/live',
   '/api/admin/forms/export',
 ];

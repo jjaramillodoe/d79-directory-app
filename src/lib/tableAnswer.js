@@ -1,3 +1,9 @@
+const {
+  looksLikeContactColumns,
+  parseContactsAsTable,
+  CONTACT_TABLE_PRESET,
+} = require('./contactTextParser');
+
 const MAX_ROWS = 100;
 const MAX_COLS = 20;
 
@@ -209,8 +215,11 @@ function normalizeTable(value, { columns } = {}) {
   if (typeof value === 'string' && value.trim()) {
     const grid = parseDelimited(value);
     const width = Math.max(0, ...grid.map((row) => row.length));
-    if (width <= 1) return gridToTable([], { columns });
-    return gridToTable(grid, { columns });
+    if (width > 1) return gridToTable(grid, { columns });
+    if (looksLikeContactColumns(columns)) {
+      return parseContactsAsTable(value, { columns: normalizeColumnDefs(columns) });
+    }
+    return gridToTable([], { columns });
   }
 
   return gridToTable([], { columns });
@@ -250,6 +259,7 @@ module.exports = {
   GRADE_LEVEL_OPTIONS,
   TIMELINE_OPTIONS,
   PROGRAM_TABLE_PRESET,
+  CONTACT_TABLE_PRESET,
   isTableValue,
   isTableAnswered,
   cleanCell,

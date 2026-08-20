@@ -10,6 +10,7 @@ import BulkOperations from '../../components/BulkOperations';
 import SchoolPerformanceScoring from '../../components/SchoolPerformanceScoring';
 import BulkFormCreation from '../../components/BulkFormCreation';
 import YearRollover from '../../components/admin/YearRollover';
+import ContactTableMigrate from '../../components/admin/ContactTableMigrate';
 import YearLockPanel from '../../components/admin/YearLockPanel';
 import YearSettingsPanel from '../../components/admin/YearSettingsPanel';
 import SetupNextYear from '../../components/admin/SetupNextYear';
@@ -271,6 +272,7 @@ function DashboardPageContent() {
               }}
             />
             <YearRollover onComplete={() => fetchForms()} />
+            <ContactTableMigrate />
             <YearLockPanel />
             <YearSettingsPanel focusYear={setupYear} />
             <BulkFormCreation

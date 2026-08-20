@@ -93,7 +93,7 @@ export const ROLE_GUIDES = {
       'View and review plans across the district',
       'Manage users at any school, including principals',
       'Publish questions, set goals, and run year setup',
-      'Set a question type to Table, including dropdown columns such as Grade Level and Timeline',
+      'Set table columns to Text or Dropdown, then convert copied text lists into table rows from Year setup',
       'Preview the app as a principal or assistant principal',
     ],
     cannot: [
@@ -127,9 +127,9 @@ export const EXCEL_TABLE_GUIDE = {
   ],
   adminSteps: [
     'In Question bank, edit the question and set Type to Table (Excel paste).',
-    'Optional: add locked columns. Each column can be Text or Dropdown. Use “Program / Grade / Timeline” for a program table with Grade Level and Timeline lists.',
-    'Leave columns blank if staff will paste their own Excel headers.',
+    'Optional: add locked columns. Each column can be Text or Dropdown. Use “Name / Title / Email / Phone” for staff lists, or “Program / Grade / Timeline” for program tables.',
     'Publish so principals and staff see the grid on 2026-2027 draft plans.',
+    'On Year setup, use Convert text lists into tables to preview copied answers, then save rows. Incomplete rows get a review flag.',
   ],
 };
 

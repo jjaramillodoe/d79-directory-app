@@ -26,7 +26,7 @@ import {
 import QuestionPreview from '../../../components/admin/QuestionPreview';
 import AppFooter from '../../../components/AppFooter';
 import { currentSchoolYear } from '../../../lib/schoolYear';
-import { normalizeColumnDefs, parseOptions, PROGRAM_TABLE_PRESET } from '../../../lib/tableAnswer';
+import { normalizeColumnDefs, parseOptions, PROGRAM_TABLE_PRESET, CONTACT_TABLE_PRESET } from '../../../lib/tableAnswer';
 
 const EMPTY_QUESTION = {
   title: '',
@@ -839,13 +839,22 @@ function TableColumnsEditor({ columns, onChange }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium text-gray-700">Table columns</span>
-        <button
-          type="button"
-          onClick={() => onChange(PROGRAM_TABLE_PRESET.map((column) => ({ ...column, options: [...column.options] })))}
-          className="text-xs font-medium text-blue-700 hover:text-blue-800"
-        >
-          Use Program / Grade / Timeline
-        </button>
+        <span className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => onChange(CONTACT_TABLE_PRESET.map((column) => ({ ...column, options: [...column.options] })))}
+            className="text-xs font-medium text-blue-700 hover:text-blue-800"
+          >
+            Use Name / Title / Email / Phone
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(PROGRAM_TABLE_PRESET.map((column) => ({ ...column, options: [...column.options] })))}
+            className="text-xs font-medium text-blue-700 hover:text-blue-800"
+          >
+            Use Program / Grade / Timeline
+          </button>
+        </span>
       </div>
       {defs.length === 0 ? (
         <p className="text-xs text-gray-500">

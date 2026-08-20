@@ -7,6 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
+  "test": "node --test src/lib/contactTextParser.test.js",
+  "migrate-contacts": "node src/scripts/migrate-textarea-contacts.js",
     "seed-users": "node src/scripts/seed-users.js",
     "assign-principals": "node src/scripts/assign-principals-to-forms.js",
     "fix-form": "node src/scripts/fix-form-permissions.js"

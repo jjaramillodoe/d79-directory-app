@@ -185,3 +185,9 @@ export interface FormSubmission extends FormData {
   submissionDate: Date;
   reviewStatus: 'pending' | 'in_review' | 'completed';
 }
+
+export type {
+  ContactRecord,
+  ContactTable,
+  ContactColumnDef,
+} from '../lib/contactTextParser';
