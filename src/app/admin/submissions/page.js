@@ -858,7 +858,7 @@ export default function AdminSubmissionsPage() {
       )}
 
       {showPrintModal && printSubmission && (
-        <div className="app-modal-backdrop">
+        <div className="app-modal-backdrop app-modal-wide">
           <Card
             padding="0"
             radius="l"

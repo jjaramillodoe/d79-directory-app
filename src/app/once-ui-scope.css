@@ -629,6 +629,20 @@
   background: rgba(15, 23, 42, 0.45);
 }
 
+/* Once UI Card wraps itself in fill-width, which stretches to the overlay and
+   leaves the visible panel on the left. Cap the overlay child so flex centering works. */
+.once-ui-root .app-modal-backdrop > * {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  width: min(32rem, 100%) !important;
+  max-width: min(32rem, 100%);
+}
+
+.once-ui-root .app-modal-backdrop.app-modal-wide > * {
+  width: min(72rem, 100%) !important;
+  max-width: min(72rem, 100%);
+}
+
 .once-ui-root .app-modal-backdrop input,
 .once-ui-root .app-modal-backdrop select,
 .once-ui-root .app-modal-backdrop textarea {
