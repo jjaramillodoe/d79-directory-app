@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 
 // Import form step components
@@ -31,6 +31,8 @@ function FormPageContent() {
   const toast = useAppToast();
 
   const [currentStep, setCurrentStep] = useState(1);
+  const currentStepRef = useRef(1);
+  const formHydratedRef = useRef(false);
   const [formData, setFormData] = useState({
     schoolName: '',
     status: 'draft'
@@ -50,6 +52,7 @@ function FormPageContent() {
   const [stepData, setStepData] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(0);
   const [redirectTimeout, setRedirectTimeout] = useState(null);
@@ -109,16 +112,22 @@ function FormPageContent() {
     }
   }, [isPrintView]);
 
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
+
   // Load form data when session and formId are available
   useEffect(() => {
-    if (session && formId && formId !== 'undefined' && formId !== 'null') {
+    if (session?.user && formId && formId !== 'undefined' && formId !== 'null') {
       loadFormData();
     } else if (session && (!formId || formId === 'undefined' || formId === 'null')) {
       console.error('Invalid form ID:', formId);
       toast.error('Invalid form ID. Redirecting to dashboard…');
       setTimeout(() => router.push('/dashboard'), 500);
     }
-  }, [session, formId, router]);
+    // session object identity changes often; only reload when the user or form changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email, formId]);
 
   // Handle authentication
   useEffect(() => {
@@ -256,6 +265,25 @@ function FormPageContent() {
   const getStepNumberFromKey = (stepKey) => {
     const index = bankStepKeys.indexOf(stepKey);
     return index >= 0 ? index + 1 : 0;
+  };
+
+  const persistCurrentStep = (stepNumber) => {
+    if (!formId || !stepNumber) return;
+    fetch(`/api/forms/${formId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentStep: stepNumber }),
+    }).catch(() => {});
+  };
+
+  const goToStep = (stepNumber) => {
+    const next = Number(stepNumber);
+    if (!next || next === currentStepRef.current) return;
+    currentStepRef.current = next;
+    setCurrentStep(next);
+    persistCurrentStep(next);
+    const pane = document.querySelector('[data-form-step-scroll]');
+    if (pane) pane.scrollTop = 0;
   };
 
   // Register as active editor and poll for active editors when step changes
@@ -551,11 +579,7 @@ function FormPageContent() {
         }
       }
       
-      setCurrentStep(currentStep + 1);
-      // Scroll to top after step change
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
+      goToStep(currentStep + 1);
     }
   };
 
@@ -599,11 +623,7 @@ function FormPageContent() {
         }
       }
       
-      setCurrentStep(currentStep - 1);
-      // Scroll to top after step change
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
+      goToStep(currentStep - 1);
     }
   };
 
@@ -902,26 +922,6 @@ function FormPageContent() {
     // Auto-save will happen through the navigation functions instead
   }, [currentStep, stepData]);
 
-  // Scroll to top whenever step changes
-  useEffect(() => {
-    // Scroll to top when step changes - ensures users start at the top of each step
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Also try scrolling the main content area if it exists
-    const mainContent = document.querySelector('main');
-    if (mainContent) {
-      mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    
-    // Focus on the first input/textarea if available to help with accessibility
-    setTimeout(() => {
-      const firstInput = document.querySelector('main input, main textarea');
-      if (firstInput && typeof firstInput.focus === 'function') {
-        firstInput.focus();
-      }
-    }, 300);
-  }, [currentStep]);
-
   // Backup periodic save in case debounce is skipped while a save is in flight
   useEffect(() => {
     const interval = setInterval(() => {
@@ -968,8 +968,8 @@ function FormPageContent() {
   }, [session, formId]);
 
   // Enhanced loadFormData with better error handling
-  const loadFormData = async () => {
-    setLoading(true);
+  const loadFormData = async ({ silent = false } = {}) => {
+    if (!silent && !formHydratedRef.current) setLoading(true);
     try {
       const response = await fetch(`/api/forms/${formId}`, {
         method: 'GET',
@@ -1015,7 +1015,14 @@ function FormPageContent() {
         setFormDeadlines(data.form.deadlines || []);
         setAttestation(data.form.attestation || null);
         setDuplicatedFrom(data.form.duplicatedFrom || null);
-        setCurrentStep(data.form.currentStep || 1);
+        const serverStep = Number(data.form.currentStep) || 1;
+        if (!formHydratedRef.current) {
+          formHydratedRef.current = true;
+          if (currentStepRef.current === 1 && serverStep > 1) {
+            currentStepRef.current = serverStep;
+            setCurrentStep(serverStep);
+          }
+        }
         // Register as active editor when form loads
         if (formId && session) {
           const stepKey = getStepKey(data.form.currentStep || 1);
@@ -1173,23 +1180,8 @@ function FormPageContent() {
       }
     }
     
-    // Now safe to navigate
-    setCurrentStep(stepNumber);
-    // Scroll to top immediately when navigating
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    goToStep(stepNumber);
   };
-  
-  // Scroll to top whenever step changes
-  useEffect(() => {
-    // Scroll to top when step changes
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Also try scrolling the main content area if it exists
-    const mainContent = document.querySelector('main');
-    if (mainContent) {
-      mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [currentStep]);
 
   const renderFormStep = () => {
     const currentStepData = getCurrentStepData();
@@ -1289,29 +1281,28 @@ function FormPageContent() {
 
   // Save Draft - saves and stays on the form
   const handleSaveDraft = async () => {
-    setSaving(true);
+    setSavingDraft(true);
     try {
-      // Clear any pending debounced auto-saves to prevent conflicts
       if (window.autoSaveTimeout) {
         clearTimeout(window.autoSaveTimeout);
         window.autoSaveTimeout = null;
       }
-      
-      // Force immediate save of current step
-      const result = await saveCurrentStep(3); // 3 retries for manual saves
-      
+
+      const result = await saveCurrentStep(3);
+
       if (result.success) {
+        setLastSaved(new Date());
+        setShowSaveReminder(false);
         const completionStatus = getCompletionStatus();
-        // Show a brief success message without redirect
-        toast.success(`Draft saved. ${completionStatus.completed}/${completionStatus.total} steps complete.`);
+        toast.success(`Draft saved. The plan was not submitted. ${completionStatus.completed}/${completionStatus.total} sections complete.`);
       } else {
         throw new Error(result.message || 'Save failed');
       }
     } catch (error) {
       console.error('Error saving draft:', error);
-      toast.error(`Failed to save draft: ${error.message}`);
+      toast.error(`Could not save draft: ${error.message}`);
     } finally {
-      setSaving(false);
+      setSavingDraft(false);
     }
   };
 
@@ -1854,7 +1845,7 @@ function FormPageContent() {
       }))}
       completion={getCompletionStatus()}
       userPermissions={userPermissions}
-      autoSaving={autoSaving}
+      autoSaving={autoSaving || savingDraft}
       lastSaved={lastSaved}
       saveError={saveError}
       showSaveReminder={showSaveReminder}
@@ -1892,7 +1883,17 @@ function FormPageContent() {
           <Button size="s" variant="tertiary" href={`/view/${formId}`}>
             View all
           </Button>
-          <Button size="s" variant="secondary" onClick={handleSubmit} disabled={saving || redirecting || formLocked}>
+          {!formLocked && userPermissions !== 'view' && (
+            <Button
+              size="s"
+              variant="secondary"
+              onClick={handleSaveDraft}
+              disabled={saving || savingDraft || redirecting}
+            >
+              {savingDraft ? 'Saving draft…' : 'Save draft'}
+            </Button>
+          )}
+          <Button size="s" variant="secondary" onClick={handleSubmit} disabled={saving || savingDraft || redirecting || formLocked}>
             {formLocked ? 'Read-only' : saving ? 'Submitting…' : 'Submit'}
           </Button>
         </Row>
@@ -1907,7 +1908,7 @@ function FormPageContent() {
       })()}
       footer={
         <Row fillWidth horizontal="between" vertical="center" wrap gap="8">
-          <Button size="s" variant="secondary" onClick={handlePrevious} disabled={currentStep === 1 || saving || redirecting}>
+          <Button size="s" variant="secondary" onClick={handlePrevious} disabled={currentStep === 1 || saving || savingDraft || redirecting}>
             Previous
           </Button>
           <Row gap="8" vertical="center" wrap>
@@ -1922,7 +1923,17 @@ function FormPageContent() {
               }
               return null;
             })()}
-            <Button size="s" onClick={handleNext} disabled={formLocked || saving || redirecting || currentStep === FORM_STEPS.length}>
+            {!formLocked && userPermissions !== 'view' && (
+              <Button
+                size="s"
+                variant="secondary"
+                onClick={handleSaveDraft}
+                disabled={saving || savingDraft || redirecting}
+              >
+                {savingDraft ? 'Saving draft…' : 'Save draft'}
+              </Button>
+            )}
+            <Button size="s" onClick={handleNext} disabled={formLocked || saving || savingDraft || redirecting || currentStep === FORM_STEPS.length}>
               Next
             </Button>
           </Row>

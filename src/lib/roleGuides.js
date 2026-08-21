@@ -23,7 +23,7 @@ export const ROLE_GUIDES = {
     summary: 'You can work in your school’s plan. You cannot create a second plan or manage accounts.',
     can: [
       'Open the Consolidated School Plan for your school',
-      'Edit answers and rely on autosave',
+      'Edit answers — they autosave, and Save draft keeps the plan without submitting',
       'Paste Excel or Google Sheets tables into table questions without losing columns',
       'Compare last year with this year when the principal has both plans',
       'Export a copy if you have access to that plan',
@@ -45,7 +45,7 @@ export const ROLE_GUIDES = {
     summary: 'You edit plans the principal assigned to you. You do not own the school plan or the user list.',
     can: [
       'Open and edit assigned school plans',
-      'Work in the sections you were given, with autosave',
+      'Work in the sections you were given. Answers autosave; Save draft does not submit the plan',
       'Paste Excel or Google Sheets tables into table questions without losing columns',
       'Collaborate with others who were also assigned',
       'Compare years and export when you have access',
@@ -82,7 +82,7 @@ export const ROLE_GUIDES = {
     startHere: [
       'On Overview, open this year’s plan or duplicate last year’s.',
       'Use School users to add staff, then Collaboration to assign the plan.',
-      'When every section is reviewed, submit. Copied plans also need your attestation.',
+      'When every section is reviewed, submit. Copied plans also need your attestation. Save draft anytime — that does not submit.',
     ],
     showExcelTables: true,
   },

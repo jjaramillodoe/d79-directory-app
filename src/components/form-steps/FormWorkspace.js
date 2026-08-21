@@ -95,12 +95,12 @@ export default function FormWorkspace({
     ? Math.round((completion.completed / formSteps.length) * 100)
     : 0;
   const saveLabel = autoSaving
-    ? 'Saving…'
+    ? 'Saving draft…'
     : saveError
       ? saveError
       : lastSaved
-        ? `Editing · Saved ${lastSaved.toLocaleTimeString()}`
-        : 'Editing · autosaved';
+        ? `Draft saved ${lastSaved.toLocaleTimeString()}`
+        : 'Draft · answers autosave as you type';
 
   return (
     <DashboardShell
@@ -245,7 +245,7 @@ export default function FormWorkspace({
             flexDirection: 'column',
           }}
         >
-          <Column gap="16" fillWidth style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          <Column gap="16" fillWidth data-form-step-scroll style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
             <Column gap="4">
               <Heading variant="heading-strong-m">{stepTitle}</Heading>
             </Column>

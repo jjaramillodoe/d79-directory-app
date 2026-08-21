@@ -295,7 +295,10 @@ async function PUT(request, { params }) {
     const updatedForm = await FormSubmission.findOneAndUpdate(
       filter,
       {
-        $set: updateData,
+        $set: {
+          ...updateData,
+          currentStep: stepNum,
+        },
         $inc: { [`formData.${stepKey}.revisionCount`]: 1 },
       },
       { new: true, runValidators: true, strict: false }
