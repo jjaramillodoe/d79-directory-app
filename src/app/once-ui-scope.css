@@ -606,6 +606,18 @@
   box-shadow: 0 10px 24px color-mix(in srgb, var(--brand-solid-strong) 32%, transparent);
 }
 
+.once-ui-root .app-btn-submit {
+  background: #083258 !important;
+  border-color: #083258 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.once-ui-root .app-btn-submit:hover:not(:disabled):not([data-disabled]) {
+  background: #0b4578 !important;
+  border-color: #0b4578 !important;
+}
+
 .once-ui-root .app-modal-backdrop {
   position: fixed;
   inset: 0;

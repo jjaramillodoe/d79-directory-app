@@ -1886,14 +1886,20 @@ function FormPageContent() {
           {!formLocked && userPermissions !== 'view' && (
             <Button
               size="s"
-              variant="secondary"
+              variant="primary"
               onClick={handleSaveDraft}
               disabled={saving || savingDraft || redirecting}
             >
               {savingDraft ? 'Saving draft…' : 'Save draft'}
             </Button>
           )}
-          <Button size="s" variant="secondary" onClick={handleSubmit} disabled={saving || savingDraft || redirecting || formLocked}>
+          <Button
+            size="s"
+            variant="primary"
+            className="app-btn-submit"
+            onClick={handleSubmit}
+            disabled={saving || savingDraft || redirecting || formLocked}
+          >
             {formLocked ? 'Read-only' : saving ? 'Submitting…' : 'Submit'}
           </Button>
         </Row>
@@ -1926,14 +1932,14 @@ function FormPageContent() {
             {!formLocked && userPermissions !== 'view' && (
               <Button
                 size="s"
-                variant="secondary"
+                variant="primary"
                 onClick={handleSaveDraft}
                 disabled={saving || savingDraft || redirecting}
               >
                 {savingDraft ? 'Saving draft…' : 'Save draft'}
               </Button>
             )}
-            <Button size="s" onClick={handleNext} disabled={formLocked || saving || savingDraft || redirecting || currentStep === FORM_STEPS.length}>
+            <Button size="s" variant="secondary" onClick={handleNext} disabled={formLocked || saving || savingDraft || redirecting || currentStep === FORM_STEPS.length}>
               Next
             </Button>
           </Row>
