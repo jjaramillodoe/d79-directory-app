@@ -98,7 +98,7 @@ export default function SetupNextYear({ onCreated }) {
     </DashboardSection>
 
       {confirming && cycle && (
-        <div className="app-modal-backdrop">
+        <div className="app-modal-backdrop app-modal-md">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '36rem' }}>
             <Column gap="16">
               <Heading variant="heading-strong-m">Set up {nextYear}?</Heading>

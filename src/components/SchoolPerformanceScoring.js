@@ -309,7 +309,7 @@ export default function SchoolPerformanceScoring({ forms = [] }) {
       </DashboardSection>
 
       {selectedSchool && (
-        <div className="app-modal-backdrop">
+        <div className="app-modal-backdrop app-modal-lg">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '40rem' }}>
             <Column gap="20">
               <Row fillWidth horizontal="between" vertical="center" wrap gap="12">

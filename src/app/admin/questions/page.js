@@ -601,7 +601,7 @@ function AdminQuestionsPageContent() {
       </div>
 
       {addingStep && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="app-modal-backdrop">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
@@ -654,7 +654,7 @@ function AdminQuestionsPageContent() {
       )}
 
       {(editingQuestion || adding) && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
+        <div className="app-modal-drawer">
           <div className="w-full max-w-xl h-full bg-white shadow-xl overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
               <div>
@@ -715,7 +715,7 @@ function AdminQuestionsPageContent() {
       )}
 
       {showPublishModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="app-modal-backdrop">
           <div className="bg-white rounded-xl max-w-lg w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-2">Publish question bank?</h3>
             <p className="text-gray-600 mb-4">

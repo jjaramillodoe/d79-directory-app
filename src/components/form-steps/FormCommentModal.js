@@ -13,7 +13,7 @@ export default function FormCommentModal({
   onSubmit,
 }) {
   return (
-    <div className="app-modal-backdrop">
+    <div className="app-modal-backdrop app-modal-md">
       <Card
         padding="24"
         radius="l"

@@ -618,7 +618,8 @@
   border-color: #0b4578 !important;
 }
 
-.once-ui-root .app-modal-backdrop {
+.app-modal-backdrop {
+  --app-modal-max: 32rem;
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -629,18 +630,40 @@
   background: rgba(15, 23, 42, 0.45);
 }
 
-/* Once UI Card wraps itself in fill-width, which stretches to the overlay and
-   leaves the visible panel on the left. Cap the overlay child so flex centering works. */
-.once-ui-root .app-modal-backdrop > * {
+.app-modal-md { --app-modal-max: 36rem; }
+.app-modal-lg { --app-modal-max: 40rem; }
+.app-modal-xl { --app-modal-max: 56rem; }
+.app-modal-wide { --app-modal-max: 72rem; }
+.app-modal-full { --app-modal-max: 80rem; }
+
+/* Once UI Card wraps itself in fill-width, which stretches across the overlay
+   and leaves the visible panel on the left. Cap that wrapper so centering works. */
+.app-modal-backdrop > .fill-width,
+.app-modal-backdrop > .reset-button-styles {
   box-sizing: border-box;
   flex: 0 1 auto;
-  width: min(32rem, 100%) !important;
-  max-width: min(32rem, 100%);
+  width: min(var(--app-modal-max), 100%) !important;
+  max-width: min(var(--app-modal-max), 100%);
+  margin-inline: auto;
 }
 
-.once-ui-root .app-modal-backdrop.app-modal-wide > * {
-  width: min(72rem, 100%) !important;
-  max-width: min(72rem, 100%);
+.app-modal-backdrop > * {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.app-modal-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.app-modal-drawer > * {
+  width: min(36rem, 100%);
+  height: 100%;
 }
 
 .once-ui-root .app-modal-backdrop input,

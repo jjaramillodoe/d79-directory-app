@@ -523,7 +523,7 @@ function AdminUsersPageContent() {
       <div className="legacy-ui">
         {/* Modal for Create/Edit User */}
         {showModal && (
-          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="app-modal-backdrop">
             <div className="bg-white rounded-lg p-8 w-full max-w-lg max-h-90vh overflow-y-auto">
               <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
                 <UserPlus className="w-6 h-6 mr-2 text-blue-600" />
@@ -650,7 +650,7 @@ function AdminUsersPageContent() {
 
         {/* Advanced User Management Modal */}
         {showAdvancedModal && (
-          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="app-modal-backdrop app-modal-wide">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl my-8 max-h-[95vh] flex flex-col">
               <div className="p-6 border-b border-gray-200 flex-shrink-0">
                 <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
@@ -782,7 +782,7 @@ function AdminUsersPageContent() {
 
         {/* Bulk Actions Modal */}
         {showBulkModal && (
-          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="app-modal-backdrop">
             <div className="bg-white rounded-lg p-8 w-full max-w-2xl max-h-90vh overflow-y-auto">
               <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
                 <Users className="w-6 h-6 mr-2 text-purple-600" />
@@ -871,7 +871,7 @@ function AdminUsersPageContent() {
 
         {/* Audit Log Modal */}
         {showAuditModal && (
-          <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="app-modal-backdrop app-modal-full">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl my-8 max-h-[95vh] flex flex-col">
               <div className="p-6 border-b border-gray-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
@@ -941,7 +941,7 @@ function AdminUsersPageContent() {
 
          {/* CSV Import Modal */}
          {showCsvImportModal && (
-           <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           <div className="app-modal-backdrop app-modal-xl">
              <div className="bg-white rounded-lg p-8 w-full max-w-4xl max-h-90vh overflow-y-auto">
                <div className="flex items-center justify-between mb-6">
                  <h3 className="text-2xl font-semibold text-gray-900 flex items-center">

@@ -257,7 +257,7 @@ export default function SmartNotifications({ forms = [] }) {
       </DashboardSection>
 
       {showCompose && (
-        <div className="app-modal-backdrop">
+        <div className="app-modal-backdrop app-modal-md">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '36rem' }}>
             <Column gap="16">
               <Row fillWidth horizontal="between" vertical="center">

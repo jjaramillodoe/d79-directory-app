@@ -462,7 +462,7 @@ const CollaborationDashboard = ({ user }) => {
 
       {/* Create User Modal */}
       {showCreateUser && (
-        <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="app-modal-backdrop">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Create Level 3 User</h3>
             <p className="text-sm text-gray-600 mb-4">
@@ -528,7 +528,7 @@ const CollaborationDashboard = ({ user }) => {
 
       {/* Share Form Modal */}
       {showShareForm && (
-        <div className="legacy-ui fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="app-modal-backdrop">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <h3 className="text-lg font-semibold mb-4">Share Form with Level 3 Users</h3>
             
