@@ -46,3 +46,7 @@ next-env.d.ts
 
 
 .env*.local
+
+# contact conversion dry-run reports (school PII)
+migration_diff.json
+migration_diff_*.json

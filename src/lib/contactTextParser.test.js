@@ -5,6 +5,7 @@ const {
   parseContactsFromTextAsync,
   parseContactsAsTable,
   contactsToTable,
+  notesForExport,
   CONTACT_TABLE_HEADERS,
   normalizePhone,
   isEmail,
@@ -143,13 +144,15 @@ test('low-confidence paragraph keeps the original text in notes', () => {
   assert.equal(row.email, '');
 });
 
-test('contactsToTable uses Name Title Email Phone Notes headers', () => {
-  const table = parseContactsAsTable('Ada Gomez - Counselor, ada.gomez@schools.nyc.gov');
+test('table notes always keep the original source text', () => {
+  const source = 'Ada Gomez - Counselor, ada.gomez@schools.nyc.gov';
+  const table = parseContactsAsTable(source);
   assert.deepEqual(table.headers, CONTACT_TABLE_HEADERS);
   assert.equal(table.rows.length, 1);
   assert.equal(table.rows[0][0], 'Ada Gomez');
   assert.equal(table.rows[0][1], 'Counselor');
   assert.equal(table.rows[0][2], 'ada.gomez@schools.nyc.gov');
+  assert.equal(table.rows[0][4], source);
 });
 
 test('custom First Name / Last Name columns split the parsed name', () => {
@@ -159,6 +162,7 @@ test('custom First Name / Last Name columns split the parsed name', () => {
   assert.equal(table.rows[0][0], 'Ada');
   assert.equal(table.rows[0][1], 'Gomez');
   assert.equal(table.rows[0][2], 'Counselor');
+  assert.equal(table.rows[0][5], 'Ada Gomez - Counselor');
 });
 
 test('LLM enrichment fills name/title but cannot override regex email', async () => {

@@ -111,6 +111,21 @@ export default function ContactTableMigrate() {
     }
   };
 
+  const downloadDiff = () => {
+    const payload = preview?.diff || preview;
+    if (!payload) return;
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `migration_diff_${year.trim()}_${questionId || 'question'}_${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const toggleAll = (on) => {
     if (!preview?.items) return;
     const next = {};
@@ -127,8 +142,8 @@ export default function ContactTableMigrate() {
     >
       <Column gap="16">
         <Text onBackground="neutral-weak">
-          Use this after a question is set to Table. Emails and phones are read first; leftover wording stays in Notes.
-          Schools with incomplete rows get a review flag.
+          Preview first, then download the dry-run report. Emails and phones use regex; names and titles are best-effort.
+          Original wording is kept in Notes/Raw Text so nothing is discarded. Incomplete rows get a review flag.
         </Text>
         <Row gap="16" wrap>
           <Column gap="8" style={{ minWidth: 160 }}>
@@ -184,6 +199,9 @@ export default function ContactTableMigrate() {
               <Button size="s" variant="tertiary" onClick={() => toggleAll(false)}>
                 Select none
               </Button>
+              <Button size="s" variant="secondary" onClick={downloadDiff}>
+                Download migration_diff.json
+              </Button>
             </Row>
 
             {(preview.items || []).map((item) => {
@@ -217,7 +235,7 @@ export default function ContactTableMigrate() {
                         <table className="min-w-full text-xs">
                           <thead>
                             <tr>
-                              {['Name', 'Title', 'Email', 'Phone', 'Notes', 'Confidence'].map((header) => (
+                              {['Name', 'Title', 'Email', 'Phone', 'Notes / original', 'Confidence'].map((header) => (
                                 <th key={header} className="text-left pr-3 pb-1 font-medium">
                                   {header}
                                 </th>
@@ -270,7 +288,8 @@ export default function ContactTableMigrate() {
             <Column gap="12">
               <Heading variant="heading-strong-s">Save table rows for {selectedIds.length} school{selectedIds.length === 1 ? '' : 's'}?</Heading>
               <Text variant="body-default-s">
-                The original text is replaced with parsed rows. Leftover wording stays in Notes. This is written to the audit log.
+                Download migration_diff.json first and spot-check parsed rows against the original text. The original
+                wording is kept in Notes/Raw Text. Incomplete rows are flagged for review.
               </Text>
               <Row gap="8" horizontal="end">
                 <Button variant="secondary" onClick={() => setConfirming(false)} disabled={applying}>

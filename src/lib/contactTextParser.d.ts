@@ -35,6 +35,7 @@ export function parseContactsAsTable(
   text: string,
   options?: { headers?: string[]; columns?: Array<string | ContactColumnDef> }
 ): ContactTable;
+export function notesForExport(contact: ContactRecord): string;
 export function contactsToTable(
   contacts: ContactRecord[],
   options?: { headers?: string[]; columns?: Array<string | ContactColumnDef> }

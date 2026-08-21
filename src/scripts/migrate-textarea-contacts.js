@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 /**
  * CLI wrapper for the Super Admin contact-table conversion.
- * Prefer Year setup in the app. Dry run is the default.
+ * Prefer Year setup in the app. Dry run is the default and writes migration_diff.json.
  *
  *   node src/scripts/migrate-textarea-contacts.js --year 2026-2027
+ *   node src/scripts/migrate-textarea-contacts.js --year 2026-2027 --question screen4question2
+ *   node src/scripts/migrate-textarea-contacts.js --year 2026-2027 --question screen4question2 --out migration_diff.json
  *   node src/scripts/migrate-textarea-contacts.js --year 2026-2027 --question screen4question2 --apply
  */
 
+const fs = require('fs');
+const path = require('path');
 const connectDB = require('../lib/mongodb');
 const {
   listMigratableQuestions,
@@ -23,6 +27,7 @@ function argValue(flag, fallback) {
 async function main() {
   const year = argValue('--year', '2026-2027');
   const questionId = argValue('--question', '');
+  const outFile = argValue('--out', 'migration_diff.json');
   const apply = process.argv.includes('--apply');
 
   await connectDB();
@@ -34,21 +39,20 @@ async function main() {
   }
 
   const preview = await previewContactMigration({ schoolYear: year, questionId });
+  const diffPath = path.resolve(process.cwd(), outFile);
+  fs.writeFileSync(diffPath, JSON.stringify(preview.diff, null, 2));
+  console.error(`Wrote dry-run report to ${diffPath}`);
+
   if (!apply) {
     console.log(
       JSON.stringify(
         {
           year,
           mode: 'dry-run',
+          out: diffPath,
           question: preview.question,
           matched: preview.matched,
           needingReview: preview.needingReview,
-          sample: preview.items.slice(0, 15).map((item) => ({
-            school: item.school,
-            rows: item.rows,
-            review: item.review,
-            names: item.contacts.map((contact) => contact.name || '(unparsed)').slice(0, 8),
-          })),
         },
         null,
         2
@@ -62,7 +66,7 @@ async function main() {
     questionId,
     formIds: preview.items.map((item) => item.formId),
   });
-  console.log(JSON.stringify({ year, mode: 'apply', ...result }, null, 2));
+  console.log(JSON.stringify({ year, mode: 'apply', diff: diffPath, ...result }, null, 2));
   process.exit(0);
 }
 

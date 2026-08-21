@@ -353,6 +353,13 @@ function headerKey(header) {
     .replace(/[^a-z]/g, '');
 }
 
+function notesForExport(contact) {
+  const leftover = collapseSpaces(contact?.unparsedNotes);
+  const source = collapseSpaces(contact?.rawSource);
+  if (source) return source;
+  return leftover;
+}
+
 function valueForHeader(contact, header) {
   const key = headerKey(header);
   const parts = String(contact.name || '').split(/\s+/).filter(Boolean);
@@ -362,7 +369,9 @@ function valueForHeader(contact, header) {
   if (key === 'title' || key === 'role' || key === 'position') return contact.title || '';
   if (key === 'email') return contact.email || '';
   if (key === 'phone' || key === 'telephone') return contact.phone || '';
-  if (key.includes('note') || key.includes('raw') || key.includes('unparsed')) return contact.unparsedNotes || '';
+  if (key.includes('note') || key.includes('raw') || key.includes('unparsed') || key.includes('source')) {
+    return notesForExport(contact);
+  }
   return '';
 }
 
@@ -428,6 +437,7 @@ module.exports = {
   parseContactsFromTextAsync,
   parseContactsAsTable,
   contactsToTable,
+  notesForExport,
   mergeLlmEnrichment,
   normalizePhone,
   isEmail,

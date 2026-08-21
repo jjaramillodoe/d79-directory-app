@@ -129,7 +129,7 @@ export const EXCEL_TABLE_GUIDE = {
     'In Question bank, edit the question and set Type to Table (Excel paste).',
     'Optional: add locked columns. Each column can be Text or Dropdown. Use “Name / Title / Email / Phone” for staff lists, or “Program / Grade / Timeline” for program tables.',
     'Publish so principals and staff see the grid on 2026-2027 draft plans.',
-    'On Year setup, use Convert text lists into tables to preview copied answers, then save rows. Incomplete rows get a review flag.',
+    'On Year setup, preview Convert text lists into tables, download migration_diff.json, then convert. Original wording stays in Notes.',
   ],
 };
 

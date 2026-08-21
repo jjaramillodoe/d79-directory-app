@@ -5,6 +5,7 @@ const {
   parseContactsFromText,
   parseContactsAsTable,
   looksLikeContactColumns,
+  notesForExport,
   CONTACT_TABLE_HEADERS,
 } = require('./contactTextParser');
 const { isTableValue, columnHeaders, normalizeColumnDefs } = require('./tableAnswer');
@@ -109,6 +110,7 @@ function previewEntry(form, question) {
     formId: String(form._id),
     school: form.schoolName || 'Unknown school',
     status: form.status || 'draft',
+    original: value,
     sourceChars: value.length,
     sourcePreview: value.replace(/\s+/g, ' ').trim().slice(0, 240),
     rows: contacts.length,
@@ -118,10 +120,40 @@ function previewEntry(form, question) {
       title: contact.title,
       email: contact.email,
       phone: contact.phone,
-      unparsedNotes: contact.unparsedNotes,
+      leftover: contact.unparsedNotes || '',
+      unparsedNotes: notesForExport(contact),
+      rawSource: contact.rawSource || '',
       confidence: contact.confidence || 'low',
     })),
     headers,
+  };
+}
+
+function buildMigrationDiff(preview) {
+  return {
+    generatedAt: new Date().toISOString(),
+    schoolYear: preview.schoolYear,
+    mode: 'dry-run',
+    question: preview.question,
+    matched: preview.matched,
+    needingReview: preview.needingReview,
+    records: (preview.items || []).map((item) => ({
+      formId: item.formId,
+      school: item.school,
+      status: item.status,
+      review: item.review,
+      original: item.original,
+      parsed: (item.contacts || []).map((contact) => ({
+        name: contact.name,
+        title: contact.title,
+        email: contact.email,
+        phone: contact.phone,
+        leftover: contact.leftover || '',
+        notes: contact.unparsedNotes || '',
+        rawSource: contact.rawSource || '',
+        confidence: contact.confidence || 'low',
+      })),
+    })),
   };
 }
 
@@ -136,8 +168,7 @@ async function previewContactMigration({ schoolYear, questionId }) {
 
   const forms = await FormSubmission.find({ schoolYear }).select('formData schoolName status').lean();
   const items = forms.map((form) => previewEntry(form, question)).filter(Boolean);
-
-  return {
+  const payload = {
     schoolYear,
     question: {
       id: question.id,
@@ -151,6 +182,8 @@ async function previewContactMigration({ schoolYear, questionId }) {
     needingReview: items.filter((item) => item.review).length,
     items,
   };
+  payload.diff = buildMigrationDiff(payload);
+  return payload;
 }
 
 async function applyContactMigration({ schoolYear, questionId, formIds }) {
@@ -235,5 +268,6 @@ module.exports = {
   listMigratableQuestions,
   previewContactMigration,
   applyContactMigration,
+  buildMigrationDiff,
   needsReview,
 };
