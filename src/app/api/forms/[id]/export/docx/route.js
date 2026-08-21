@@ -5,7 +5,8 @@ const connectDB = require('../../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
 const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
-const { isTableValue, isTableAnswered, formatTablePlain } = require('../../../../../../lib/tableAnswer');
+const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
+const { resolveExportTable, buildDocxTable } = require('../../../../../../lib/exportTables');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
 const path = require('path');
 const fs = require('fs');
@@ -165,17 +166,18 @@ async function GET(request, { params }) {
         questions.forEach((question) => {
           const questionId = question.id;
           const questionTitle = question.title || questionId;
-          const hasData = isTableValue(stepData[questionId])
-            ? isTableAnswered(stepData[questionId])
-            : stepData[questionId] !== undefined && stepData[questionId] !== null && stepData[questionId] !== '';
+          const value = stepData[questionId];
+          const table = resolveExportTable(value, question.columns, {
+            always: question.type === 'table',
+          });
+          const hasData = table
+            ? isTableAnswered(table)
+            : value !== undefined && value !== null && value !== '';
           
           let displayValue = '';
           
-          if (hasData) {
-            const value = stepData[questionId];
-            if (isTableValue(value)) {
-              displayValue = formatTablePlain(value);
-            } else if (typeof value === 'object' && value !== null) {
+          if (!table && hasData) {
+            if (typeof value === 'object' && value !== null) {
               if (Array.isArray(value)) {
                 displayValue = value.join(', ');
               } else {
@@ -184,8 +186,7 @@ async function GET(request, { params }) {
             } else {
               displayValue = String(value || '');
             }
-          } else {
-            // No data - show empty line for user to fill in
+          } else if (!table) {
             displayValue = '_______________________________________________________';
           }
           
@@ -194,34 +195,56 @@ async function GET(request, { params }) {
           children.push(
             new Paragraph({
               children: [
-                new TextRun({ text: `${questionNum}${questionTitle}: `, bold: true }),
-                new TextRun({ 
-                  text: displayValue,
-                  ...(hasData ? {} : { color: '808080' }) // Gray for empty fields
-                }),
+                new TextRun({ text: `${questionNum}${questionTitle}`, bold: true }),
               ],
-              spacing: { after: hasData ? 200 : 300 }, // More space for empty fields
+              spacing: { after: table ? 80 : 80 },
             })
           );
+
+          if (table) {
+            children.push(buildDocxTable(table));
+            children.push(new Paragraph({ text: '', spacing: { after: 200 } }));
+          } else {
+            children.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: displayValue,
+                    ...(hasData ? {} : { color: '808080' }),
+                  }),
+                ],
+                spacing: { after: hasData ? 200 : 300 },
+              })
+            );
+          }
         });
       } else {
         // Fallback: if we can't find questions, show data that exists
         if (Object.keys(stepData).length > 0) {
           Object.entries(stepData).forEach(([key, value]) => {
             const questionTitle = getQuestionTitle(formQuestionsData, step.key, key);
-            const displayValue = typeof value === 'object' 
-              ? JSON.stringify(value, null, 2) 
-              : String(value || '');
-
+            const table = resolveExportTable(value);
             children.push(
               new Paragraph({
-                children: [
-                  new TextRun({ text: `${questionTitle}: `, bold: true }),
-                  new TextRun({ text: displayValue }),
-                ],
-                spacing: { after: 200 },
+                children: [new TextRun({ text: `${questionTitle}`, bold: true })],
+                spacing: { after: 80 },
               })
             );
+            if (table) {
+              children.push(buildDocxTable(table));
+              children.push(new Paragraph({ text: '', spacing: { after: 200 } }));
+            } else {
+              children.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value || ''),
+                    }),
+                  ],
+                  spacing: { after: 200 },
+                })
+              );
+            }
           });
         } else {
           children.push(

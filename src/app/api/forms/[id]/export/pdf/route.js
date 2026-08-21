@@ -5,7 +5,8 @@ const connectDB = require('../../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
 const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
-const { isTableValue, isTableAnswered, formatTablePlain } = require('../../../../../../lib/tableAnswer');
+const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
+const { resolveExportTable, drawPdfTable, pdfSafe } = require('../../../../../../lib/exportTables');
 const { Readable } = require('stream');
 const path = require('path');
 const fs = require('fs');
@@ -213,17 +214,18 @@ async function GET(request, { params }) {
             try {
               const questionId = question.id;
               const questionTitle = question.title || questionId;
-              const hasData = isTableValue(stepData[questionId])
-                ? isTableAnswered(stepData[questionId])
-                : stepData[questionId] !== undefined && stepData[questionId] !== null && stepData[questionId] !== '';
+              const value = stepData[questionId];
+              const table = resolveExportTable(value, question.columns, {
+                always: question.type === 'table',
+              });
+              const hasData = table
+                ? isTableAnswered(table)
+                : value !== undefined && value !== null && value !== '';
               
               let displayValue = '';
               
-              if (hasData) {
-                const value = stepData[questionId];
-                if (isTableValue(value)) {
-                  displayValue = formatTablePlain(value);
-                } else if (typeof value === 'object' && value !== null) {
+              if (!table && hasData) {
+                if (typeof value === 'object' && value !== null) {
                   if (Array.isArray(value)) {
                     displayValue = value.join(', ');
                   } else {
@@ -233,40 +235,38 @@ async function GET(request, { params }) {
                   displayValue = String(value || '');
                 }
                 
-                // Truncate very long values to prevent PDF errors
                 if (displayValue.length > 5000) {
                   displayValue = displayValue.substring(0, 5000) + '... (truncated)';
                 }
-              } else {
-                // No data - show empty line for user to fill in
+              } else if (!table) {
                 displayValue = '_______________________________________________________';
               }
               
-              // Use safe font names that PDFKit supports
               try {
-                // Escape special characters that might cause issues
-                const safeLabel = String(questionTitle).replace(/[^\x20-\x7E\n\r]/g, '');
-                const safeValue = String(displayValue).replace(/[^\x20-\x7E\n\r]/g, '');
-                
-                // Show question number if available
+                const safeLabel = pdfSafe(questionTitle);
                 const questionNum = question.question_number ? `Q${question.question_number}: ` : '';
                 
-                doc.font('Helvetica-Bold').text(`${questionNum}${safeLabel}:`, { continued: false });
-                if (hasData) {
-                  doc.font('Helvetica').text(safeValue, { indent: 20 });
+                doc.font('Helvetica-Bold').text(`${questionNum}${safeLabel}`, { continued: false });
+                if (table) {
+                  doc.moveDown(0.3);
+                  drawPdfTable(doc, table);
                 } else {
-                  // For empty fields, show a line and extra space
+                  const safeValue = pdfSafe(displayValue);
                   doc.font('Helvetica').text(safeValue, { indent: 20 });
-                  doc.moveDown(0.3); // Extra space for writing
+                  if (!hasData) doc.moveDown(0.3);
+                  doc.moveDown(0.8);
                 }
-                doc.moveDown(0.8);
               } catch (textError) {
                 // If text rendering fails, try with simpler approach
                 console.error(`Text rendering error for ${questionTitle}:`, textError);
                 try {
                   const questionNum = question.question_number ? `Q${question.question_number}: ` : '';
-                  doc.font('Helvetica').text(`${questionNum}${String(questionTitle)}: ${String(displayValue)}`, { indent: 20 });
-                  doc.moveDown(0.8);
+                  if (table) {
+                    drawPdfTable(doc, table);
+                  } else {
+                    doc.font('Helvetica').text(`${questionNum}${String(questionTitle)}: ${String(displayValue)}`, { indent: 20 });
+                    doc.moveDown(0.8);
+                  }
                 } catch (fallbackError) {
                   console.error(`Fallback text rendering also failed:`, fallbackError);
                   // Skip this question if even fallback fails
@@ -283,24 +283,22 @@ async function GET(request, { params }) {
             Object.entries(stepData).forEach(([key, value]) => {
               try {
                 const questionTitle = getQuestionTitle(formQuestionsData, step.key, key);
-                let displayValue = '';
-                
-                if (typeof value === 'object' && value !== null) {
-                  if (Array.isArray(value)) {
-                    displayValue = value.join(', ');
-                  } else {
-                    displayValue = JSON.stringify(value, null, 2);
-                  }
+                const table = resolveExportTable(value);
+                const safeLabel = pdfSafe(questionTitle || key);
+                doc.font('Helvetica-Bold').text(`${safeLabel}`, { continued: false });
+                if (table) {
+                  doc.moveDown(0.3);
+                  drawPdfTable(doc, table);
                 } else {
-                  displayValue = String(value || '');
+                  let displayValue = '';
+                  if (typeof value === 'object' && value !== null) {
+                    displayValue = Array.isArray(value) ? value.join(', ') : JSON.stringify(value, null, 2);
+                  } else {
+                    displayValue = String(value || '');
+                  }
+                  doc.font('Helvetica').text(pdfSafe(displayValue), { indent: 20 });
+                  doc.moveDown(0.5);
                 }
-                
-                const safeLabel = String(questionTitle || key).replace(/[^\x20-\x7E\n\r]/g, '');
-                const safeValue = String(displayValue).replace(/[^\x20-\x7E\n\r]/g, '');
-                
-                doc.font('Helvetica-Bold').text(`${safeLabel}:`, { continued: false });
-                doc.font('Helvetica').text(safeValue, { indent: 20 });
-                doc.moveDown(0.5);
               } catch (fieldError) {
                 console.error(`Error processing field ${key}:`, fieldError);
               }

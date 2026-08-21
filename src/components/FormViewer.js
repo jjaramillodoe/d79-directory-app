@@ -22,14 +22,15 @@ const FormViewer = ({ form }) => {
   const { questionBank } = useQuestionBank();
   const toast = useAppToast();
   // Format checkbox values to show "Confirmed" instead of "true"
-  const formatValue = (value, type) => {
+  const formatValue = (value, question) => {
+    const type = question?.type;
     if (type === 'checkbox') {
       if (value === true) return 'Confirmed';
       if (value === false) return 'Not Confirmed';
       return value || 'Not Confirmed';
     }
     if (type === 'table' || isTableValue(value)) {
-      return <TableDisplay value={value} />;
+      return <TableDisplay value={value} columns={question?.columns} />;
     }
     if (value && typeof value === 'object') {
       return JSON.stringify(value);
@@ -480,7 +481,7 @@ const FormViewer = ({ form }) => {
                     </h3>
                     <div className="bg-white rounded p-3 border border-gray-300">
                       <div className="text-gray-700">
-                        {formatValue(answer, question.type)}
+                        {formatValue(answer, question)}
                       </div>
                     </div>
                   </div>
