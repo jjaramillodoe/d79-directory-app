@@ -36,6 +36,7 @@ const EMPTY_QUESTION = {
   required: false,
   question_number: '',
   columns: [],
+  gatesFollowing: false,
 };
 
 function AdminQuestionsPageContent() {
@@ -317,6 +318,7 @@ function AdminQuestionsPageContent() {
       question_number: question.question_number || '',
       columns: normalizeColumnDefs(question.columns),
       active: question.active !== false,
+      gatesFollowing: Boolean(question.gatesFollowing),
     });
   };
 
@@ -801,15 +803,39 @@ function QuestionFields({ value, onChange }) {
         Type
         <select
           value={value.type}
-          onChange={(e) => update('type', e.target.value)}
+          onChange={(e) => {
+            const type = e.target.value;
+            onChange({
+              ...value,
+              type,
+              gatesFollowing: type === 'yesno' ? Boolean(value.gatesFollowing) : false,
+            });
+          }}
           className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         >
           <option value="text">Text</option>
           <option value="textarea">Textarea</option>
           <option value="table">Table (Excel paste)</option>
           <option value="checkbox">Checkbox</option>
+          <option value="yesno">Yes / No</option>
         </select>
       </label>
+      {value.type === 'yesno' && (
+        <label className="flex items-start gap-2 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={Boolean(value.gatesFollowing)}
+            onChange={(e) => onChange({ ...value, gatesFollowing: e.target.checked })}
+          />
+          <span>
+            Hide later questions in this section unless the answer is Yes
+            <span className="block font-normal text-gray-500">
+              Use this for School Counseling: if the school does not offer the activity, stop after this question.
+            </span>
+          </span>
+        </label>
+      )}
       {value.type === 'table' && (
         <TableColumnsEditor
           columns={value.columns}

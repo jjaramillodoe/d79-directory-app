@@ -21,6 +21,7 @@ export default function QuestionCard({
   const isCheckbox = question.type === 'checkbox';
   const isText = question.type === 'text';
   const isTable = question.type === 'table';
+  const isYesNo = question.type === 'yesno';
   const flagged = Boolean(flag);
   const inactive = question.active === false;
 
@@ -37,13 +38,13 @@ export default function QuestionCard({
         <Row gap="12" vertical="start" fillWidth>
           <Tag size="s" variant="brand" label={String(question.question_number || '•')} />
           <Column gap="4" fillWidth style={{ minWidth: 0 }}>
-            {!isCheckbox && (
+            {!isCheckbox && !isYesNo && (
               <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
                 {question.title}
                 {question.required && question.active !== false && !readOnly ? ' · Required' : ''}
               </Text>
             )}
-            {question.description && !isCheckbox && (
+            {question.description && !isCheckbox && !isYesNo && (
               <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
                 {question.description}
               </Text>
@@ -67,7 +68,41 @@ export default function QuestionCard({
           </Row>
         )}
 
-        {isCheckbox ? (
+        {isYesNo ? (
+          <Column gap="8">
+            <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
+              {question.title}
+              {question.required && question.active !== false && !readOnly ? ' · Required' : ''}
+            </Text>
+            {question.description && (
+              <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
+                {question.description}
+              </Text>
+            )}
+            <div className="app-yesno" role="radiogroup" aria-label={question.title}>
+              {['yes', 'no'].map((option) => {
+                const selected = value === option;
+                return (
+                  <label
+                    key={option}
+                    className="app-yesno-option"
+                    data-selected={selected ? 'true' : 'false'}
+                  >
+                    <input
+                      type="radio"
+                      name={question.id}
+                      value={option}
+                      checked={selected}
+                      disabled={readOnly}
+                      onChange={() => onChange(option)}
+                    />
+                    <span>{option === 'yes' ? 'Yes' : 'No'}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </Column>
+        ) : isCheckbox ? (
           <Row gap="12" vertical="start" as="label" style={{ cursor: readOnly ? 'default' : 'pointer' }}>
             <input
               type="checkbox"

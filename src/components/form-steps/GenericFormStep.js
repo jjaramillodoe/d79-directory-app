@@ -2,43 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Column, Text } from '@once-ui-system/core';
-import { isTableAnswered, isTableValue } from '../../lib/tableAnswer';
+import { questionsForDisplay } from '../../lib/questionBankUtils';
 import QuestionCard from './QuestionCard';
-
-function hasMeaningfulAnswer(value) {
-  if (value === true) return true;
-  if (value === false || value === null || value === undefined) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
-  if (isTableValue(value)) return isTableAnswered(value);
-  return Boolean(value);
-}
-
-function questionsForDisplay(questions = [], answers = {}) {
-  const sorted = [...questions].sort((a, b) => {
-    const orderA = typeof a.order === 'number' ? a.order : 0;
-    const orderB = typeof b.order === 'number' ? b.order : 0;
-    return orderA - orderB;
-  });
-
-  const visible = sorted.filter((question) => question.active !== false || hasMeaningfulAnswer(answers[question.id]));
-  const knownIds = new Set(visible.map((question) => question.id));
-
-  Object.keys(answers || {}).forEach((id) => {
-    if (knownIds.has(id) || !hasMeaningfulAnswer(answers[id])) return;
-    visible.push({
-      id,
-      question_number: '',
-      title: id,
-      type: typeof answers[id] === 'boolean' ? 'checkbox' : 'textarea',
-      required: false,
-      description: 'Saved answer retained for a question that is no longer active.',
-      active: false,
-      orphan: true,
-    });
-  });
-
-  return visible;
-}
 
 export default function GenericFormStep({
   stepKey,

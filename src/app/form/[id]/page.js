@@ -14,6 +14,7 @@ import FormSubmitSummary from '../../../components/form-steps/FormSubmitSummary'
 import DuplicateFormModal from '../../../components/admin/DuplicateFormModal';
 import FormAttestModal from '../../../components/form-steps/FormAttestModal';
 import { isTableAnswered } from '../../../lib/tableAnswer';
+import { visibleQuestions } from '../../../lib/questionBankUtils';
 import FormShareModal from '../../../components/form-steps/FormShareModal';
 import FormCommentModal from '../../../components/form-steps/FormCommentModal';
 import FormConfirmModal from '../../../components/form-steps/FormConfirmModal';
@@ -1454,6 +1455,10 @@ function FormPageContent() {
       return value === true;
     }
     
+    if (question.type === 'yesno') {
+      return value === 'yes' || value === 'no';
+    }
+    
     // For text/textarea, check if it's not empty
     if (question.type === 'text' || question.type === 'textarea') {
       return typeof value === 'string' && value.trim().length > 0;
@@ -1479,8 +1484,8 @@ function FormPageContent() {
       return false;
     }
     
-    // Get all required questions for this step
-    const requiredQuestions = step.questions.filter(q => q.required === true && q.active !== false);
+    const stepQuestions = visibleQuestions(step.questions, stepInfo.data);
+    const requiredQuestions = stepQuestions.filter(q => q.required === true && q.active !== false);
     
     // If no required questions, check if step has any data
     if (requiredQuestions.length === 0) {
@@ -1508,7 +1513,7 @@ function FormPageContent() {
     const stepInfo = stepData[stepKey];
     const stepDataObj = stepInfo?.data || {};
     
-    const allQuestions = step.questions;
+    const allQuestions = visibleQuestions(step.questions, stepDataObj);
     const requiredQuestions = allQuestions.filter(q => q.required === true && q.active !== false);
     const optionalQuestions = allQuestions.filter(q => q.required !== true || q.active === false);
     

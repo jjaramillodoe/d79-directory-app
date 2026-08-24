@@ -16,6 +16,22 @@ export default function QuestionPreview({ question }) {
     );
   }
 
+  if (type === 'yesno') {
+    return (
+      <div className="flex flex-wrap gap-3">
+        {['Yes', 'No'].map((option) => (
+          <label
+            key={option}
+            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white"
+          >
+            <input type="radio" disabled name="preview-yesno" />
+            {option}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
   if (type === 'text') {
     return (
       <input

@@ -6,6 +6,7 @@ const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
 const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
 const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
+const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questionBankUtils');
 const { resolveExportTable, buildDocxTable } = require('../../../../../../lib/exportTables');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
 const path = require('path');
@@ -159,7 +160,7 @@ async function GET(request, { params }) {
 
       // Step content - show all questions from formQuestions.json
       const stepQuestions = formQuestionsData.steps.find(s => s.key === step.key);
-      const questions = stepQuestions?.questions || [];
+      const questions = visibleQuestions(stepQuestions?.questions || [], stepData);
       
       if (questions.length > 0) {
         // Show all questions, whether they have data or not
@@ -172,12 +173,16 @@ async function GET(request, { params }) {
           });
           const hasData = table
             ? isTableAnswered(table)
-            : value !== undefined && value !== null && value !== '';
+            : question.type === 'yesno'
+              ? Boolean(formatYesNo(value))
+              : value !== undefined && value !== null && value !== '';
           
           let displayValue = '';
           
           if (!table && hasData) {
-            if (typeof value === 'object' && value !== null) {
+            if (question.type === 'yesno') {
+              displayValue = formatYesNo(value);
+            } else if (typeof value === 'object' && value !== null) {
               if (Array.isArray(value)) {
                 displayValue = value.join(', ');
               } else {

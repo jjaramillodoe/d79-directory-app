@@ -606,6 +606,33 @@
   box-shadow: 0 10px 24px color-mix(in srgb, var(--brand-solid-strong) 32%, transparent);
 }
 
+.once-ui-root .app-yesno {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.once-ui-root .app-yesno-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 6.5rem;
+  padding: 10px 16px;
+  border: 1px solid var(--neutral-alpha-medium);
+  border-radius: var(--radius-m);
+  background: var(--surface-background);
+  cursor: pointer;
+}
+
+.once-ui-root .app-yesno-option[data-selected='true'] {
+  border-color: var(--brand-solid-strong);
+  background: var(--brand-alpha-weak);
+}
+
+.once-ui-root .app-yesno-option input {
+  accent-color: var(--brand-solid-strong);
+}
+
 .once-ui-root .app-btn-submit {
   background: #083258 !important;
   border-color: #083258 !important;

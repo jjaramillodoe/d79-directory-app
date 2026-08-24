@@ -16,6 +16,7 @@ const {
   invalidateQuestionBankCache,
 } = require('./redis');
 const { isTableValue, formatTablePlain } = require('./tableAnswer');
+const { isQuestionVisible } = require('./questionBankUtils');
 
 const COMPARE_STEPS = [
   { key: 'attendancePlan', label: 'Attendance' },
@@ -330,8 +331,8 @@ async function buildNeedsUpdateFromVersions(sourceVersion, targetSteps) {
 }
 
 function formatAnswer(value) {
-  if (value === true) return 'Yes';
-  if (value === false) return 'No';
+  if (value === true || value === 'yes' || value === 'Yes') return 'Yes';
+  if (value === false || value === 'no' || value === 'No') return 'No';
   if (value === null || value === undefined) return '';
   if (isTableValue(value)) return formatTablePlain(value);
   if (typeof value === 'object') {
@@ -350,8 +351,16 @@ function compareStepAnswers(previousForm, currentForm, steps) {
     const questions = [...(step.questions || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
     questions.forEach((question) => {
       if (question.active === false) return;
-      const previousValue = formatAnswer(previousForm?.formData?.[step.key]?.data?.[question.id]);
-      const currentValue = formatAnswer(currentForm?.formData?.[step.key]?.data?.[question.id]);
+      const previousAnswers = previousForm?.formData?.[step.key]?.data || {};
+      const currentAnswers = currentForm?.formData?.[step.key]?.data || {};
+      if (
+        !isQuestionVisible(question, questions, previousAnswers) &&
+        !isQuestionVisible(question, questions, currentAnswers)
+      ) {
+        return;
+      }
+      const previousValue = formatAnswer(previousAnswers[question.id]);
+      const currentValue = formatAnswer(currentAnswers[question.id]);
       rows.push({
         stepKey: step.key,
         stepTitle: step.title,

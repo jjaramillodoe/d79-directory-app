@@ -17,6 +17,7 @@ import useQuestionBank from '../hooks/useQuestionBank';
 import useAppToast from '../hooks/useAppToast';
 import { TableDisplay } from './form-steps/TableAnswerField';
 import { isTableValue } from '../lib/tableAnswer';
+import { visibleQuestions, formatYesNo } from '../lib/questionBankUtils';
 
 const FormViewer = ({ form }) => {
   const { questionBank } = useQuestionBank();
@@ -28,6 +29,9 @@ const FormViewer = ({ form }) => {
       if (value === true) return 'Confirmed';
       if (value === false) return 'Not Confirmed';
       return value || 'Not Confirmed';
+    }
+    if (type === 'yesno') {
+      return formatYesNo(value) || 'No response provided';
     }
     if (type === 'table' || isTableValue(value)) {
       return <TableDisplay value={value} columns={question?.columns} />;
@@ -409,7 +413,7 @@ const FormViewer = ({ form }) => {
         const stepKey = step.key;
         const stepData = form.formData?.[stepKey];
         const answers = stepData?.data || {};
-        const questions = (step.questions || []).filter((question) => {
+        const questions = visibleQuestions(step.questions || [], answers).filter((question) => {
           const answer = answers[question.id];
           const hasAnswer = answer !== undefined && answer !== null && answer !== '';
           return hasAnswer;

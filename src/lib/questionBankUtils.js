@@ -9,9 +9,11 @@ const EDITABLE_FIELDS = [
   'question_number',
   'active',
   'columns',
+  'gatesFollowing',
+  'visibleWhen',
 ];
 
-const ALLOWED_TYPES = ['text', 'textarea', 'checkbox', 'select', 'table'];
+const ALLOWED_TYPES = ['text', 'textarea', 'checkbox', 'select', 'table', 'yesno'];
 
 function cloneSteps(steps) {
   return JSON.parse(JSON.stringify(steps || [])).map((step) => {
@@ -23,6 +25,7 @@ function cloneSteps(steps) {
       if (typeof next.active !== 'boolean') next.active = true;
       if (typeof next.order !== 'number') next.order = index;
       if (typeof next.required !== 'boolean') next.required = false;
+      if (typeof next.gatesFollowing !== 'boolean') next.gatesFollowing = Boolean(next.gatesFollowing);
       return next;
     });
     return cloned;
@@ -58,19 +61,55 @@ function hasMeaningfulAnswer(value) {
   return Boolean(value);
 }
 
+function normalizeYesNo(value) {
+  if (value === true || value === 'yes' || value === 'Yes') return 'yes';
+  if (value === false || value === 'no' || value === 'No') return 'no';
+  return '';
+}
+
+function formatYesNo(value) {
+  const normalized = normalizeYesNo(value);
+  if (normalized === 'yes') return 'Yes';
+  if (normalized === 'no') return 'No';
+  return '';
+}
+
+function isQuestionVisible(question, questions = [], answers = {}) {
+  if (!question) return false;
+  const sorted = sortQuestions(questions);
+  const index = sorted.findIndex((item) => item.id === question.id);
+  for (let i = 0; i < index; i += 1) {
+    const prior = sorted[i];
+    if (!prior?.gatesFollowing) continue;
+    if (normalizeYesNo(answers[prior.id]) !== 'yes') return false;
+  }
+  const rule = question.visibleWhen;
+  if (rule?.questionId) {
+    const expected = rule.equals == null ? 'yes' : rule.equals;
+    const actual = answers[rule.questionId];
+    if (normalizeYesNo(expected)) {
+      if (normalizeYesNo(actual) !== normalizeYesNo(expected)) return false;
+    } else if (String(actual ?? '') !== String(expected)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function visibleQuestions(questions, answers = {}) {
   return sortQuestions(questions).filter((question) => {
+    if (!isQuestionVisible(question, questions, answers)) return false;
     if (question.active !== false) return true;
     return hasMeaningfulAnswer(answers[question.id]);
   });
 }
 
-function mergeOrphanAnswers(questions, answers = {}) {
+function questionsForDisplay(questions, answers = {}) {
+  const visible = visibleQuestions(questions, answers);
   const knownIds = new Set((questions || []).map((question) => question.id));
-  const merged = sortQuestions(questions);
   Object.keys(answers || {}).forEach((id) => {
     if (knownIds.has(id) || !hasMeaningfulAnswer(answers[id])) return;
-    merged.push({
+    visible.push({
       id,
       question_number: '',
       title: id,
@@ -80,10 +119,14 @@ function mergeOrphanAnswers(questions, answers = {}) {
       description: 'This answer was saved for a question no longer in the published bank. It has not been deleted.',
       active: false,
       orphan: true,
-      order: merged.length,
+      order: visible.length,
     });
   });
-  return merged;
+  return visible;
+}
+
+function mergeOrphanAnswers(questions, answers = {}) {
+  return questionsForDisplay(questions, answers);
 }
 
 function nextQuestionId(step) {
@@ -165,6 +208,23 @@ function sanitizeQuestionUpdates(updates = {}) {
   if (Object.prototype.hasOwnProperty.call(sanitized, 'columns')) {
     sanitized.columns = parseColumnConfig(sanitized.columns);
   }
+  if (typeof sanitized.gatesFollowing === 'string') {
+    sanitized.gatesFollowing = sanitized.gatesFollowing === 'true';
+  }
+  if (sanitized.type && sanitized.type !== 'yesno') {
+    sanitized.gatesFollowing = false;
+  }
+  if (sanitized.visibleWhen && typeof sanitized.visibleWhen === 'object') {
+    const questionId = String(sanitized.visibleWhen.questionId || '').trim();
+    if (questionId) {
+      sanitized.visibleWhen = {
+        questionId,
+        equals: sanitized.visibleWhen.equals == null ? 'yes' : sanitized.visibleWhen.equals,
+      };
+    } else {
+      delete sanitized.visibleWhen;
+    }
+  }
   return sanitized;
 }
 
@@ -183,6 +243,8 @@ function stepsSignature(steps) {
       description: question.description || '',
       columns: normalizeColumnDefs(question.columns),
       active: question.active !== false,
+      gatesFollowing: Boolean(question.gatesFollowing),
+      visibleWhen: question.visibleWhen || null,
       order: typeof question.order === 'number' ? question.order : 0,
     })),
   }));
@@ -242,7 +304,11 @@ module.exports = {
   normalizeSteps,
   sortQuestions,
   hasMeaningfulAnswer,
+  normalizeYesNo,
+  formatYesNo,
+  isQuestionVisible,
   visibleQuestions,
+  questionsForDisplay,
   mergeOrphanAnswers,
   nextQuestionId,
   nextQuestionNumber,

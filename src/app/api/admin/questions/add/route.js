@@ -60,6 +60,8 @@ export async function POST(request) {
       type: ALLOWED_TYPES.includes(sanitized.type) ? sanitized.type : 'textarea',
       required: Boolean(sanitized.required),
       columns: sanitized.columns || [],
+      gatesFollowing: Boolean(sanitized.gatesFollowing),
+      visibleWhen: sanitized.visibleWhen || undefined,
       active: true,
       order: step.questions.length,
     };

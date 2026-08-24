@@ -1366,8 +1366,18 @@
             "title": "School Counseling Plan",
             "questions": [
                 {
-                    "id": "screen15question1",
+                    "id": "screen15questionOffer",
                     "question_number": "1",
+                    "title": "Does your school offer a comprehensive School Counseling Activity?",
+                    "placeholder": "",
+                    "type": "yesno",
+                    "required": true,
+                    "gatesFollowing": true,
+                    "description": "If No, you do not need to complete the rest of this section."
+                },
+                {
+                    "id": "screen15question1",
+                    "question_number": "2",
                     "title": "NYSED state law requires certified school counselor(s) design and develop the school's counseling program in collaboration with school teaching staff, student service, and other pupil personnel service providers. Provide the name and title of your school's counseling plan coordinator. The coordinator is responsible for creating this plan in collaboration with key school community members. The school counseling plan coordinator will also be responsible for attending OSYD professional development and revising the counseling plan based on changing student counseling needs and/or Student Service Manager's feedback. \nContact your Director of Student Services if you do not have a certified counselor in the building.",
                     "placeholder": "Enter the full name, title, and role description of your School Counseling Plan Coordinator (e.g., Jane Doe – Certified School Counselor, responsible for plan development and revision).",
                     "type": "textarea",
@@ -1376,7 +1386,7 @@
                 },
                 {
                     "id": "screen15question2",
-                    "question_number": "2",
+                    "question_number": "3",
                     "title": "School counseling program Mission and Vision. The school's counseling program mission and vision statement communicates what the school hopes to achieve for students five to fifteen years in the future. It aligns with the school's and DOE's vision statement and is informed by the school counseling program's core beliefs. For additional resources on drafting the school's counseling vision and mission statement, see 'The ASCA National Model: A Framework for School Counseling Programs' at https://www.schoolcounselor.org/",
                     "placeholder": "Write your school counseling program’s Mission and Vision statements. Describe how they align with the school’s overall goals and DOE’s vision for student success.",
                     "type": "textarea",
