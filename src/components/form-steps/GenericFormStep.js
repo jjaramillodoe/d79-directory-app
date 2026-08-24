@@ -63,7 +63,7 @@ export default function GenericFormStep({
   }
 
   return (
-    <Column gap="16" fillWidth className="app-form-questions">
+    <Column gap="16" fillWidth horizontal="stretch" className="app-form-questions" style={{ width: '100%' }}>
       {displayQuestions.map((question) => (
         <QuestionCard
           key={question.id}

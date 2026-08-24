@@ -771,14 +771,25 @@
 .once-ui-root .app-form-questions,
 .once-ui-root .app-form-questions > *,
 .once-ui-root .app-question-card {
-  width: 100%;
-  max-width: none;
+  width: 100% !important;
+  max-width: none !important;
   box-sizing: border-box;
+  align-self: stretch;
+}
+
+.once-ui-root .app-question-card {
+  align-items: stretch !important;
 }
 
 .once-ui-root .app-question-card .app-field,
-.once-ui-root .app-question-card .app-table-field {
-  width: 100%;
+.once-ui-root .app-question-card .app-field-area,
+.once-ui-root .app-question-card .app-table-field,
+.once-ui-root .app-question-card .app-question-answer {
+  width: 100% !important;
+  max-width: none !important;
+  align-self: stretch;
+  box-sizing: border-box;
+  display: block;
 }
 
 @media (max-width: 768px) {

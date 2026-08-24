@@ -36,9 +36,11 @@ export default function QuestionCard({
       radius="l"
       fillWidth
       gap="12"
+      horizontal="stretch"
       className="app-question-card"
       border={flagged ? 'warning-medium' : 'neutral-medium'}
       background={flagged ? 'warning-alpha-weak' : 'surface'}
+      style={{ width: '100%', alignSelf: 'stretch' }}
     >
         <Row gap="12" vertical="start" fillWidth>
           <Tag size="s" variant="brand" label={String(question.question_number || '•')} />
@@ -145,15 +147,18 @@ export default function QuestionCard({
             onChange={(event) => onChange(event.target.value)}
             placeholder={question.placeholder}
             className="app-field"
+            style={{ width: '100%', display: 'block', boxSizing: 'border-box' }}
           />
         ) : isTable ? (
-          <TableAnswerField
-            value={value}
-            columns={question.columns}
-            placeholder={question.placeholder}
-            readOnly={readOnly}
-            onChange={onChange}
-          />
+          <div className="app-question-answer">
+            <TableAnswerField
+              value={value}
+              columns={question.columns}
+              placeholder={question.placeholder}
+              readOnly={readOnly}
+              onChange={onChange}
+            />
+          </div>
         ) : (
           <textarea
             id={question.id}
@@ -163,6 +168,7 @@ export default function QuestionCard({
             placeholder={question.placeholder}
             rows={5}
             className="app-field app-field-area"
+            style={{ width: '100%', display: 'block', boxSizing: 'border-box' }}
           />
         )}
     </Column>
