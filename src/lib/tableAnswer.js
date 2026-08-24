@@ -60,13 +60,7 @@ function looksLikeHeaderRow(row, headers) {
 }
 
 const GRADE_LEVEL_OPTIONS = [
-  '6',
-  '7',
-  '8',
-  '9',
-  '10',
-  '11',
-  '12',
+  '6,7, 8, 9, 10, 11, and 12',
   'All',
   'Literacy-Elementary (K-5)',
   'Pre-HSE Middle School (6-8)',
