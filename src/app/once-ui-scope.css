@@ -756,6 +756,44 @@
 .once-ui-root .legacy-ui .pl-10 { padding-left: 2.5rem }
 .once-ui-root .legacy-ui .pr-10 { padding-right: 2.5rem }
 
+.once-ui-root .app-form-workspace {
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.once-ui-root .app-form-main {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: none;
+}
+
+.once-ui-root .app-form-questions,
+.once-ui-root .app-form-questions > *,
+.once-ui-root .app-question-card {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.once-ui-root .app-question-card .app-field,
+.once-ui-root .app-question-card .app-table-field {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .once-ui-root .app-form-sections {
+    width: 100% !important;
+    max-height: none !important;
+    position: static !important;
+  }
+
+  .once-ui-root .app-form-main {
+    width: 100% !important;
+    max-height: none !important;
+  }
+}
+
 .once-ui-root a.app-text-link {
   color: #1d4ed8;
   text-decoration: underline;

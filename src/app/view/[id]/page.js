@@ -336,14 +336,14 @@ export default function FormViewPage() {
           </Column>
         </Card>
 
-        <Row fillWidth gap="16" wrap style={{ alignItems: 'flex-start' }}>
+        <Row fillWidth gap="16" className="app-form-workspace" s={{ direction: 'column' }} style={{ alignItems: 'stretch' }}>
           <Column
             gap="8"
             padding="16"
             background="surface"
             border="neutral-medium"
             radius="l"
-            className="no-print"
+            className="no-print app-form-sections"
             style={{
               width: 280,
               flexShrink: 0,
@@ -378,7 +378,7 @@ export default function FormViewPage() {
             ))}
           </Column>
 
-          <Column fillWidth gap="16" style={{ minWidth: 0, flex: 1 }}>
+          <Column flex={1} fillWidth gap="16" className="app-form-main app-form-questions" style={{ minWidth: 0 }}>
             {FORM_STEPS.map((step, index) => (
               <Card
                 key={step.id}

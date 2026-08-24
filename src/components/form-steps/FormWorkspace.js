@@ -164,14 +164,20 @@ export default function FormWorkspace({
         </Column>
       </Card>
 
-      <Row fillWidth gap="16" wrap style={{ alignItems: 'stretch', flex: 1, minHeight: 'calc(100vh - 16rem)' }}>
+      <Row
+        fillWidth
+        gap="16"
+        className="app-form-workspace"
+        s={{ direction: 'column' }}
+        style={{ alignItems: 'stretch', flex: 1, minHeight: 'calc(100vh - 16rem)' }}
+      >
         <Column
           gap="8"
           padding={sectionsOpen ? '16' : '8'}
           background="surface"
           border="neutral-medium"
           radius="l"
-          className="no-print"
+          className="no-print app-form-sections"
           style={{
             width: sectionsOpen ? 300 : 64,
             flexShrink: 0,
@@ -235,18 +241,18 @@ export default function FormWorkspace({
         </Column>
 
         <Column
-          fillWidth
+          flex={1}
           gap="12"
+          className="app-form-main"
           style={{
             minWidth: 0,
-            flex: 1,
             maxHeight: 'calc(100vh - 16rem)',
             display: 'flex',
             flexDirection: 'column',
           }}
         >
           <Column gap="16" fillWidth data-form-step-scroll style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-            <Column gap="4">
+            <Column gap="4" fillWidth>
               <Heading variant="heading-strong-m">{stepTitle}</Heading>
             </Column>
             {children}

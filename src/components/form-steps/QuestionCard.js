@@ -1,6 +1,6 @@
 'use client';
 
-import { Column, Row, Text, Button, Card, Tag } from '@once-ui-system/core';
+import { Column, Row, Text, Button, Tag } from '@once-ui-system/core';
 import TableAnswerField from './TableAnswerField';
 import LinkifiedText from '../LinkifiedText';
 import { isGateQuestion, normalizeYesNo } from '../../lib/questionBankUtils';
@@ -31,15 +31,15 @@ export default function QuestionCard({
   const inactive = question.active === false;
 
   return (
-    <Card
+    <Column
       padding="20"
       radius="l"
       fillWidth
-      direction="column"
+      gap="12"
+      className="app-question-card"
       border={flagged ? 'warning-medium' : 'neutral-medium'}
       background={flagged ? 'warning-alpha-weak' : 'surface'}
     >
-      <Column gap="12" fillWidth>
         <Row gap="12" vertical="start" fillWidth>
           <Tag size="s" variant="brand" label={String(question.question_number || '•')} />
           <Column gap="4" fillWidth style={{ minWidth: 0 }}>
@@ -165,7 +165,6 @@ export default function QuestionCard({
             className="app-field app-field-area"
           />
         )}
-      </Column>
-    </Card>
+    </Column>
   );
 }
