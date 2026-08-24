@@ -17,7 +17,7 @@ import useQuestionBank from '../hooks/useQuestionBank';
 import useAppToast from '../hooks/useAppToast';
 import { TableDisplay } from './form-steps/TableAnswerField';
 import { isTableValue } from '../lib/tableAnswer';
-import { visibleQuestions, formatYesNo } from '../lib/questionBankUtils';
+import { visibleQuestions, formatYesNo, isGateQuestion } from '../lib/questionBankUtils';
 
 const FormViewer = ({ form }) => {
   const { questionBank } = useQuestionBank();
@@ -25,10 +25,13 @@ const FormViewer = ({ form }) => {
   // Format checkbox values to show "Confirmed" instead of "true"
   const formatValue = (value, question) => {
     const type = question?.type;
-    if (type === 'checkbox') {
-      if (value === true) return 'Confirmed';
-      if (value === false) return 'Not Confirmed';
-      return value || 'Not Confirmed';
+    if (type === 'checkbox' || (type === 'yesno' && isGateQuestion(question))) {
+      const yesNo = formatYesNo(value);
+      if (yesNo) return yesNo;
+      if (value === true) return 'Yes';
+      if (value === false) return 'No';
+      if (type === 'checkbox' && !isGateQuestion(question)) return 'Not Confirmed';
+      return 'No';
     }
     if (type === 'yesno') {
       return formatYesNo(value) || 'No response provided';

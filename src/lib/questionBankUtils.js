@@ -74,13 +74,25 @@ function formatYesNo(value) {
   return '';
 }
 
+function looksLikeCounselingGate(question) {
+  const title = String(question?.title || '').toLowerCase();
+  return title.includes('comprehensive school counseling activity');
+}
+
+function isGateQuestion(question) {
+  if (!question) return false;
+  if (question.gatesFollowing) return true;
+  if (question.type !== 'checkbox' && question.type !== 'yesno') return false;
+  return looksLikeCounselingGate(question);
+}
+
 function isQuestionVisible(question, questions = [], answers = {}) {
   if (!question) return false;
   const sorted = sortQuestions(questions);
   const index = sorted.findIndex((item) => item.id === question.id);
   for (let i = 0; i < index; i += 1) {
     const prior = sorted[i];
-    if (!prior?.gatesFollowing) continue;
+    if (!isGateQuestion(prior)) continue;
     if (normalizeYesNo(answers[prior.id]) !== 'yes') return false;
   }
   const rule = question.visibleWhen;
@@ -211,7 +223,7 @@ function sanitizeQuestionUpdates(updates = {}) {
   if (typeof sanitized.gatesFollowing === 'string') {
     sanitized.gatesFollowing = sanitized.gatesFollowing === 'true';
   }
-  if (sanitized.type && sanitized.type !== 'yesno') {
+  if (sanitized.type && sanitized.type !== 'yesno' && sanitized.type !== 'checkbox') {
     sanitized.gatesFollowing = false;
   }
   if (sanitized.visibleWhen && typeof sanitized.visibleWhen === 'object') {
@@ -306,6 +318,7 @@ module.exports = {
   hasMeaningfulAnswer,
   normalizeYesNo,
   formatYesNo,
+  isGateQuestion,
   isQuestionVisible,
   visibleQuestions,
   questionsForDisplay,

@@ -2,6 +2,7 @@
 
 import { Column, Row, Text, Button, Card, Tag } from '@once-ui-system/core';
 import TableAnswerField from './TableAnswerField';
+import { isGateQuestion, normalizeYesNo } from '../../lib/questionBankUtils';
 
 function flagCopy(flag) {
   if (!flag) return '';
@@ -22,6 +23,9 @@ export default function QuestionCard({
   const isText = question.type === 'text';
   const isTable = question.type === 'table';
   const isYesNo = question.type === 'yesno';
+  const isGate = isGateQuestion(question);
+  const showAsCheckbox = isCheckbox || (isYesNo && isGate);
+  const isChecked = value === true || normalizeYesNo(value) === 'yes';
   const flagged = Boolean(flag);
   const inactive = question.active === false;
 
@@ -38,13 +42,13 @@ export default function QuestionCard({
         <Row gap="12" vertical="start" fillWidth>
           <Tag size="s" variant="brand" label={String(question.question_number || '•')} />
           <Column gap="4" fillWidth style={{ minWidth: 0 }}>
-            {!isCheckbox && !isYesNo && (
+            {!showAsCheckbox && !isYesNo && (
               <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
                 {question.title}
                 {question.required && question.active !== false && !readOnly ? ' · Required' : ''}
               </Text>
             )}
-            {question.description && !isCheckbox && !isYesNo && (
+            {question.description && !showAsCheckbox && !isYesNo && (
               <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
                 {question.description}
               </Text>
@@ -68,7 +72,7 @@ export default function QuestionCard({
           </Row>
         )}
 
-        {isYesNo ? (
+        {isYesNo && !showAsCheckbox ? (
           <Column gap="8">
             <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
               {question.title}
@@ -102,21 +106,28 @@ export default function QuestionCard({
               })}
             </div>
           </Column>
-        ) : isCheckbox ? (
-          <Row gap="12" vertical="start" as="label" style={{ cursor: readOnly ? 'default' : 'pointer' }}>
-            <input
-              type="checkbox"
-              id={question.id}
-              checked={Boolean(value)}
-              disabled={readOnly}
-              onChange={(event) => onChange(event.target.checked)}
-              className="app-checkbox"
-            />
-            <Text variant="body-default-m" style={{ whiteSpace: 'pre-line' }}>
-              {question.title}
-              {question.required && !readOnly ? ' · Required' : ''}
-            </Text>
-          </Row>
+        ) : showAsCheckbox ? (
+          <Column gap="8">
+            <Row gap="12" vertical="start" as="label" style={{ cursor: readOnly ? 'default' : 'pointer' }}>
+              <input
+                type="checkbox"
+                id={question.id}
+                checked={isChecked}
+                disabled={readOnly}
+                onChange={(event) => onChange(event.target.checked)}
+                className="app-checkbox"
+              />
+              <Text variant="body-default-m" style={{ whiteSpace: 'pre-line' }}>
+                {question.title}
+                {question.required && !readOnly ? ' · Required' : ''}
+              </Text>
+            </Row>
+            {question.description && (
+              <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
+                {question.description}
+              </Text>
+            )}
+          </Column>
         ) : isText ? (
           <input
             type="text"

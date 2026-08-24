@@ -3,10 +3,12 @@ const assert = require('node:assert/strict');
 const {
   normalizeYesNo,
   formatYesNo,
+  isGateQuestion,
   isQuestionVisible,
   visibleQuestions,
   questionsForDisplay,
   hasMeaningfulAnswer,
+  sanitizeQuestionUpdates,
 } = require('./questionBankUtils');
 
 const questions = [
@@ -69,4 +71,65 @@ test('gated answers are not surfaced as orphan questions', () => {
     display.map((question) => question.id),
     ['offer']
   );
+});
+
+test('counseling checkbox hides the following table until it is checked', () => {
+  const counseling = [
+    {
+      id: 'offer',
+      question_number: '3',
+      type: 'checkbox',
+      title: 'Does your school offer a comprehensive School Counseling Activity?',
+      required: true,
+      order: 0,
+    },
+    {
+      id: 'programs',
+      question_number: '3a',
+      type: 'table',
+      title: 'Does your school offer a comprehensive School Counseling Activity?',
+      required: false,
+      order: 1,
+    },
+  ];
+
+  assert.equal(isGateQuestion(counseling[0]), true);
+  assert.equal(isGateQuestion(counseling[1]), false);
+  assert.equal(isQuestionVisible(counseling[1], counseling, {}), false);
+  assert.equal(isQuestionVisible(counseling[1], counseling, { offer: false }), false);
+  assert.equal(isQuestionVisible(counseling[1], counseling, { offer: true }), true);
+  assert.equal(isQuestionVisible(counseling[1], counseling, { offer: 'yes' }), true);
+});
+
+test('yesno counseling title also hides later questions without gatesFollowing', () => {
+  const counseling = [
+    {
+      id: 'offer',
+      question_number: '3',
+      type: 'yesno',
+      title: 'Does your school offer a comprehensive School Counseling Activity?',
+      required: true,
+      order: 0,
+    },
+    {
+      id: 'programs',
+      question_number: '3a',
+      type: 'table',
+      title: 'Does your school offer a comprehensive School Counseling Activity?',
+      required: false,
+      order: 1,
+    },
+  ];
+
+  assert.equal(isQuestionVisible(counseling[1], counseling, {}), false);
+  assert.equal(isQuestionVisible(counseling[1], counseling, { offer: 'no' }), false);
+  assert.equal(isQuestionVisible(counseling[1], counseling, { offer: false }), false);
+  assert.equal(isQuestionVisible(counseling[1], counseling, { offer: 'yes' }), true);
+});
+
+test('sanitize keeps gatesFollowing on checkbox questions', () => {
+  const kept = sanitizeQuestionUpdates({ type: 'checkbox', gatesFollowing: true });
+  assert.equal(kept.gatesFollowing, true);
+  const cleared = sanitizeQuestionUpdates({ type: 'textarea', gatesFollowing: true });
+  assert.equal(cleared.gatesFollowing, false);
 });

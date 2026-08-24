@@ -221,14 +221,14 @@ async function GET(request, { params }) {
               });
               const hasData = table
                 ? isTableAnswered(table)
-                : question.type === 'yesno'
+                : question.type === 'yesno' || question.type === 'checkbox'
                   ? Boolean(formatYesNo(value))
                   : value !== undefined && value !== null && value !== '';
               
               let displayValue = '';
               
               if (!table && hasData) {
-                if (question.type === 'yesno') {
+                if (question.type === 'yesno' || question.type === 'checkbox') {
                   displayValue = formatYesNo(value);
                 } else if (typeof value === 'object' && value !== null) {
                   if (Array.isArray(value)) {

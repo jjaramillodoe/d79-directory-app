@@ -14,7 +14,7 @@ import FormSubmitSummary from '../../../components/form-steps/FormSubmitSummary'
 import DuplicateFormModal from '../../../components/admin/DuplicateFormModal';
 import FormAttestModal from '../../../components/form-steps/FormAttestModal';
 import { isTableAnswered } from '../../../lib/tableAnswer';
-import { visibleQuestions } from '../../../lib/questionBankUtils';
+import { visibleQuestions, isGateQuestion, normalizeYesNo } from '../../../lib/questionBankUtils';
 import FormShareModal from '../../../components/form-steps/FormShareModal';
 import FormCommentModal from '../../../components/form-steps/FormCommentModal';
 import FormConfirmModal from '../../../components/form-steps/FormConfirmModal';
@@ -1444,19 +1444,26 @@ function FormPageContent() {
 
   // Check if a question has been answered
   const isQuestionAnswered = (question, stepData) => {
-    if (!stepData || !stepData[question.id]) {
+    if (isGateQuestion(question) && (question.type === 'checkbox' || question.type === 'yesno')) {
+      return true;
+    }
+
+    if (!stepData) {
       return false;
     }
-    
+
     const value = stepData[question.id];
-    
-    // For checkboxes, check if it's true
+
     if (question.type === 'checkbox') {
       return value === true;
     }
-    
+
     if (question.type === 'yesno') {
-      return value === 'yes' || value === 'no';
+      return normalizeYesNo(value) === 'yes' || normalizeYesNo(value) === 'no';
+    }
+
+    if (value === undefined || value === null || value === '') {
+      return false;
     }
     
     // For text/textarea, check if it's not empty

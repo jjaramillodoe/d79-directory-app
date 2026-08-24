@@ -808,7 +808,7 @@ function QuestionFields({ value, onChange }) {
             onChange({
               ...value,
               type,
-              gatesFollowing: type === 'yesno' ? Boolean(value.gatesFollowing) : false,
+              gatesFollowing: type === 'yesno' || type === 'checkbox' ? Boolean(value.gatesFollowing) : false,
             });
           }}
           className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -820,7 +820,7 @@ function QuestionFields({ value, onChange }) {
           <option value="yesno">Yes / No</option>
         </select>
       </label>
-      {value.type === 'yesno' && (
+      {(value.type === 'yesno' || value.type === 'checkbox') && (
         <label className="flex items-start gap-2 text-sm font-medium text-gray-700">
           <input
             type="checkbox"
@@ -831,7 +831,7 @@ function QuestionFields({ value, onChange }) {
           <span>
             Hide later questions in this section unless the answer is Yes
             <span className="block font-normal text-gray-500">
-              Use this for School Counseling: if the school does not offer the activity, stop after this question.
+              Use this for School Counseling: checked is Yes, unchecked is No. Later questions stay hidden until they check the box.
             </span>
           </span>
         </label>
