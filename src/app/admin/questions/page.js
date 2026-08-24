@@ -24,6 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import QuestionPreview from '../../../components/admin/QuestionPreview';
+import LinkifiedText from '../../../components/LinkifiedText';
 import AppFooter from '../../../components/AppFooter';
 import { currentSchoolYear } from '../../../lib/schoolYear';
 import { normalizeColumnDefs, parseOptions, PROGRAM_TABLE_PRESET, CONTACT_TABLE_PRESET } from '../../../lib/tableAnswer';
@@ -682,11 +683,11 @@ function AdminQuestionsPageContent() {
                 <h4 className="text-sm font-semibold text-gray-800 mb-2">Preview</h4>
                 <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                   <p className="text-sm font-medium text-gray-800 mb-2 whitespace-pre-line">
-                    {(adding ? addForm : editForm).title || 'Question title'}
+                    <LinkifiedText text={(adding ? addForm : editForm).title || 'Question title'} />
                   </p>
                   {(adding ? addForm : editForm).description && (
                     <p className="text-xs text-gray-600 mb-3 whitespace-pre-line">
-                      {(adding ? addForm : editForm).description}
+                      <LinkifiedText text={(adding ? addForm : editForm).description} />
                     </p>
                   )}
                   <QuestionPreview question={adding ? addForm : editForm} />
@@ -777,9 +778,12 @@ function QuestionFields({ value, onChange }) {
         <textarea
           value={value.title}
           onChange={(e) => update('title', e.target.value)}
-          rows={4}
+          rows={8}
           className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
+        <span className="mt-1 block font-normal text-gray-500">
+          Paste the full question as-is. Any https:// or www. link becomes clickable on the form.
+        </span>
       </label>
       <label className="block text-sm font-medium text-gray-700">
         Description
@@ -789,6 +793,9 @@ function QuestionFields({ value, onChange }) {
           rows={3}
           className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
+        <span className="mt-1 block font-normal text-gray-500">
+          Optional helper text under the title. Paste https:// links here too if needed.
+        </span>
       </label>
       <label className="block text-sm font-medium text-gray-700">
         Placeholder

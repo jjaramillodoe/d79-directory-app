@@ -1,6 +1,7 @@
 'use client';
 
 import { normalizeColumnDefs } from '../../lib/tableAnswer';
+import LinkifiedText from '../LinkifiedText';
 
 export default function QuestionPreview({ question }) {
   if (!question) return null;
@@ -11,7 +12,9 @@ export default function QuestionPreview({ question }) {
     return (
       <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <input type="checkbox" disabled className="mt-1 w-4 h-4" />
-        <label className="text-sm text-gray-700 whitespace-pre-line">{question.title || 'Checkbox question'}</label>
+        <label className="text-sm text-gray-700 whitespace-pre-line">
+          <LinkifiedText text={question.title || 'Checkbox question'} />
+        </label>
       </div>
     );
   }

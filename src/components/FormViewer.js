@@ -18,6 +18,7 @@ import useAppToast from '../hooks/useAppToast';
 import { TableDisplay } from './form-steps/TableAnswerField';
 import { isTableValue } from '../lib/tableAnswer';
 import { visibleQuestions, formatYesNo, isGateQuestion } from '../lib/questionBankUtils';
+import LinkifiedText from './LinkifiedText';
 
 const FormViewer = ({ form }) => {
   const { questionBank } = useQuestionBank();
@@ -483,8 +484,8 @@ const FormViewer = ({ form }) => {
 
                 return (
                   <div key={question.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 print-no-break">
-                    <h3 className="font-semibold text-gray-800 mb-3 text-lg">
-                      {question.title}
+                    <h3 className="font-semibold text-gray-800 mb-3 text-lg whitespace-pre-line">
+                      <LinkifiedText text={question.title} />
                     </h3>
                     <div className="bg-white rounded p-3 border border-gray-300">
                       <div className="text-gray-700">

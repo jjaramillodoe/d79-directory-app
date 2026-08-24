@@ -8,7 +8,8 @@ const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
 const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
 const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questionBankUtils');
 const { resolveExportTable, buildDocxTable } = require('../../../../../../lib/exportTables');
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
+const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ExternalHyperlink } = require('docx');
+const { splitLinkifiedText } = require('../../../../../../lib/linkifyText');
 const path = require('path');
 const fs = require('fs');
 
@@ -54,6 +55,28 @@ function getQuestionTitle(formQuestionsData, stepKey, fieldId) {
     console.error(`Error getting question title for ${stepKey}.${fieldId}:`, error);
     return fieldId;
   }
+}
+
+function linkifiedDocxRuns(text, { bold = false, prefix = '' } = {}) {
+  const parts = splitLinkifiedText(`${prefix}${text || ''}`);
+  if (!parts.length) {
+    return [new TextRun({ text: prefix || '', bold })];
+  }
+  return parts.map((part) => {
+    if (part.type === 'url') {
+      return new ExternalHyperlink({
+        children: [
+          new TextRun({
+            text: part.text,
+            style: 'Hyperlink',
+            bold,
+          }),
+        ],
+        link: part.href,
+      });
+    }
+    return new TextRun({ text: part.text, bold });
+  });
 }
 
 // GET /api/forms/[id]/export/docx - Generate editable DOCX
@@ -199,9 +222,7 @@ async function GET(request, { params }) {
           
           children.push(
             new Paragraph({
-              children: [
-                new TextRun({ text: `${questionNum}${questionTitle}`, bold: true }),
-              ],
+              children: linkifiedDocxRuns(questionTitle, { bold: true, prefix: questionNum }),
               spacing: { after: table ? 80 : 80 },
             })
           );
@@ -231,7 +252,7 @@ async function GET(request, { params }) {
             const table = resolveExportTable(value);
             children.push(
               new Paragraph({
-                children: [new TextRun({ text: `${questionTitle}`, bold: true })],
+                children: linkifiedDocxRuns(questionTitle, { bold: true }),
                 spacing: { after: 80 },
               })
             );

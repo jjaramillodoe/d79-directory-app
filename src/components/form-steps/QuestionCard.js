@@ -2,6 +2,7 @@
 
 import { Column, Row, Text, Button, Card, Tag } from '@once-ui-system/core';
 import TableAnswerField from './TableAnswerField';
+import LinkifiedText from '../LinkifiedText';
 import { isGateQuestion, normalizeYesNo } from '../../lib/questionBankUtils';
 
 function flagCopy(flag) {
@@ -44,13 +45,15 @@ export default function QuestionCard({
           <Column gap="4" fillWidth style={{ minWidth: 0 }}>
             {!showAsCheckbox && !isYesNo && (
               <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
-                {question.title}
-                {question.required && question.active !== false && !readOnly ? ' · Required' : ''}
+                <LinkifiedText
+                  text={question.title}
+                  suffix={question.required && question.active !== false && !readOnly ? ' · Required' : null}
+                />
               </Text>
             )}
             {question.description && !showAsCheckbox && !isYesNo && (
               <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
-                {question.description}
+                <LinkifiedText text={question.description} />
               </Text>
             )}
             {inactive && (
@@ -75,12 +78,14 @@ export default function QuestionCard({
         {isYesNo && !showAsCheckbox ? (
           <Column gap="8">
             <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
-              {question.title}
-              {question.required && question.active !== false && !readOnly ? ' · Required' : ''}
+              <LinkifiedText
+                text={question.title}
+                suffix={question.required && question.active !== false && !readOnly ? ' · Required' : null}
+              />
             </Text>
             {question.description && (
               <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
-                {question.description}
+                <LinkifiedText text={question.description} />
               </Text>
             )}
             <div className="app-yesno" role="radiogroup" aria-label={question.title}>
@@ -108,7 +113,7 @@ export default function QuestionCard({
           </Column>
         ) : showAsCheckbox ? (
           <Column gap="8">
-            <Row gap="12" vertical="start" as="label" style={{ cursor: readOnly ? 'default' : 'pointer' }}>
+            <Row gap="12" vertical="start">
               <input
                 type="checkbox"
                 id={question.id}
@@ -118,13 +123,16 @@ export default function QuestionCard({
                 className="app-checkbox"
               />
               <Text variant="body-default-m" style={{ whiteSpace: 'pre-line' }}>
-                {question.title}
-                {question.required && !readOnly ? ' · Required' : ''}
+                <LinkifiedText
+                  text={question.title}
+                  labelFor={readOnly ? '' : question.id}
+                  suffix={question.required && !readOnly ? ' · Required' : null}
+                />
               </Text>
             </Row>
             {question.description && (
               <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
-                {question.description}
+                <LinkifiedText text={question.description} />
               </Text>
             )}
           </Column>

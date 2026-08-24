@@ -756,3 +756,15 @@
 .once-ui-root .legacy-ui .pl-10 { padding-left: 2.5rem }
 .once-ui-root .legacy-ui .pr-10 { padding-right: 2.5rem }
 
+.once-ui-root a.app-text-link {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.once-ui-root a.app-text-link:hover {
+  color: #1e40af;
+}
+
