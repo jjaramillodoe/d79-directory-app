@@ -22,6 +22,7 @@ import {
   Upload,
   RotateCcw,
   X,
+  Asterisk,
 } from 'lucide-react';
 import QuestionPreview from '../../../components/admin/QuestionPreview';
 import QuestionTextToolbar from '../../../components/admin/QuestionTextToolbar';
@@ -126,13 +127,17 @@ function AdminQuestionsPageContent() {
   }, [selectedStep, typeFilter, requiredFilter, activeFilter, searchTerm]);
 
   const applyDraft = (draft) => {
+    const questions = (draft.steps || []).flatMap((step) => step.questions || []);
     setData((prev) => ({
       ...prev,
       draft,
       hasUnpublishedChanges: true,
       draftSummary: {
         ...prev?.draftSummary,
-        totalQuestions: (draft.steps || []).reduce((sum, step) => sum + (step.questions?.length || 0), 0),
+        totalQuestions: questions.length,
+        requiredQuestions: questions.filter((question) => question.required).length,
+        optionalQuestions: questions.filter((question) => !question.required).length,
+        inactiveQuestions: questions.filter((question) => question.active === false).length,
       },
     }));
   };
@@ -207,6 +212,38 @@ function AdminQuestionsPageContent() {
       setSelectedStepKey(result.step.key);
       setNotice(
         `Added step “${result.step.title}”. Add questions here, then publish to make it live. Existing form answers were not changed.`
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleRequired = async (question) => {
+    const nextRequired = !question.required;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/admin/questions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepKey: selectedStep.key,
+          questionId: question.id,
+          updates: { required: nextRequired },
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to update question');
+      applyDraft(result.draft);
+      if (editingQuestion?.id === question.id) {
+        setEditForm((prev) => ({ ...prev, required: nextRequired }));
+      }
+      setNotice(
+        nextRequired
+          ? 'Marked required in the draft. Publish to make it live on forms.'
+          : 'Marked optional in the draft. Publish to make it live on forms.'
       );
     } catch (err) {
       setError(err.message);
@@ -555,7 +592,21 @@ function AdminQuestionsPageContent() {
                           <div className="text-xs text-gray-500 mt-1">{question.id}</div>
                         </td>
                         <td className="px-4 py-3 capitalize text-gray-700">{question.type}</td>
-                        <td className="px-4 py-3">{question.required ? 'Yes' : 'No'}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleRequired(question)}
+                            disabled={saving}
+                            title={question.required ? 'Make optional' : 'Make required'}
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 ${
+                              question.required
+                                ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {question.required ? 'Required' : 'Optional'}
+                          </button>
+                        </td>
                         <td className="px-4 py-3">
                           <span
                             className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
@@ -572,6 +623,17 @@ function AdminQuestionsPageContent() {
                             </button>
                             <button onClick={() => handleMove(question, 1)} className="p-2 hover:bg-gray-200 rounded" title="Move down">
                               <ArrowDown className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleRequired(question)}
+                              disabled={saving}
+                              className={`p-2 hover:bg-gray-200 rounded disabled:opacity-50 ${
+                                question.required ? 'text-red-700' : 'text-gray-500'
+                              }`}
+                              title={question.required ? 'Make optional' : 'Make required'}
+                            >
+                              <Asterisk className="w-4 h-4" />
                             </button>
                             <button onClick={() => openEdit(question)} className="p-2 hover:bg-gray-200 rounded" title="Edit">
                               <Pencil className="w-4 h-4" />
