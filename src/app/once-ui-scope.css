@@ -792,6 +792,10 @@
   display: block;
 }
 
+.once-ui-root .app-question-card strong {
+  font-weight: 650;
+}
+
 @media (max-width: 768px) {
   .once-ui-root .app-form-sections {
     width: 100% !important;

@@ -1,5 +1,6 @@
 const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"'`]+/gi;
 const TRAILING_PUNCTUATION = /[),.;:!?]+$/;
+const BOLD_PATTERN = /\*\*([^*]+)\*\*/g;
 
 function cleanUrlText(value) {
   return String(value || '').replace(/[\u200b\u200c\u200d\u00ad]/g, '');
@@ -56,7 +57,40 @@ function splitLinkifiedText(text) {
   return parts;
 }
 
+function splitFormattedText(text) {
+  const source = String(text ?? '');
+  if (!source) return [];
+
+  const chunks = [];
+  const boldRe = new RegExp(BOLD_PATTERN.source, 'g');
+  let lastIndex = 0;
+  let match = boldRe.exec(source);
+
+  while (match) {
+    if (match.index > lastIndex) {
+      chunks.push({ bold: false, text: source.slice(lastIndex, match.index) });
+    }
+    chunks.push({ bold: true, text: match[1] });
+    lastIndex = match.index + match[0].length;
+    match = boldRe.exec(source);
+  }
+
+  if (lastIndex < source.length) {
+    chunks.push({ bold: false, text: source.slice(lastIndex) });
+  }
+
+  if (!chunks.length) return splitLinkifiedText(source);
+
+  return chunks.flatMap((chunk) =>
+    splitLinkifiedText(chunk.text).map((part) => ({
+      ...part,
+      bold: chunk.bold,
+    }))
+  );
+}
+
 module.exports = {
   splitLinkifiedText,
+  splitFormattedText,
   normalizeHref,
 };

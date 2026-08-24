@@ -24,7 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import QuestionPreview from '../../../components/admin/QuestionPreview';
-import LinkifiedText from '../../../components/LinkifiedText';
+import QuestionPrompt from '../../../components/QuestionPrompt';
 import AppFooter from '../../../components/AppFooter';
 import { currentSchoolYear } from '../../../lib/schoolYear';
 import { normalizeColumnDefs, parseOptions, PROGRAM_TABLE_PRESET, CONTACT_TABLE_PRESET } from '../../../lib/tableAnswer';
@@ -680,16 +680,16 @@ function AdminQuestionsPageContent() {
                 onChange={adding ? setAddForm : setEditForm}
               />
               <div>
-                <h4 className="text-sm font-semibold text-gray-800 mb-2">Preview</h4>
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <p className="text-sm font-medium text-gray-800 mb-2 whitespace-pre-line">
-                    <LinkifiedText text={(adding ? addForm : editForm).title || 'Question title'} />
-                  </p>
-                  {(adding ? addForm : editForm).description && (
-                    <p className="text-xs text-gray-600 mb-3 whitespace-pre-line">
-                      <LinkifiedText text={(adding ? addForm : editForm).description} />
-                    </p>
-                  )}
+                <h4 className="text-sm font-semibold text-gray-800 mb-2">Form preview</h4>
+                <div className="border border-gray-200 rounded-lg p-4 bg-white space-y-3 once-ui-root">
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-semibold">
+                      {(adding ? addForm : editForm).question_number || '•'}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <QuestionPrompt question={adding ? addForm : editForm} requiredSuffix={(adding ? addForm : editForm).required ? ' · Required' : null} />
+                    </div>
+                  </div>
                   <QuestionPreview question={adding ? addForm : editForm} />
                 </div>
               </div>
@@ -774,7 +774,7 @@ function QuestionFields({ value, onChange }) {
         />
       </label>
       <label className="block text-sm font-medium text-gray-700">
-        Title
+        Heading + instructions
         <textarea
           value={value.title}
           onChange={(e) => update('title', e.target.value)}
@@ -782,11 +782,11 @@ function QuestionFields({ value, onChange }) {
           className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
         <span className="mt-1 block font-normal text-gray-500">
-          Paste the full question as-is. Any https:// or www. link becomes clickable on the form.
+          First short sentence or first line is the heading. Everything after it is the instruction text. Paste https:// links as-is. Wrap a phrase in **double asterisks** to bold it, for example **Please Note:**
         </span>
       </label>
       <label className="block text-sm font-medium text-gray-700">
-        Description
+        Short helper
         <textarea
           value={value.description}
           onChange={(e) => update('description', e.target.value)}
@@ -794,7 +794,7 @@ function QuestionFields({ value, onChange }) {
           className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
         <span className="mt-1 block font-normal text-gray-500">
-          Optional helper text under the title. Paste https:// links here too if needed.
+          Gray line under the question, like what to include in the answer. Keep this short.
         </span>
       </label>
       <label className="block text-sm font-medium text-gray-700">

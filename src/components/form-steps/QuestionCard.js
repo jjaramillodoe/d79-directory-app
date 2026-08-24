@@ -2,7 +2,7 @@
 
 import { Column, Row, Text, Button, Tag } from '@once-ui-system/core';
 import TableAnswerField from './TableAnswerField';
-import LinkifiedText from '../LinkifiedText';
+import QuestionPrompt from '../QuestionPrompt';
 import { isGateQuestion, normalizeYesNo } from '../../lib/questionBankUtils';
 
 function flagCopy(flag) {
@@ -44,19 +44,14 @@ export default function QuestionCard({
     >
         <Row gap="12" vertical="start" fillWidth>
           <Tag size="s" variant="brand" label={String(question.question_number || '•')} />
-          <Column gap="4" fillWidth style={{ minWidth: 0 }}>
+          <Column gap="4" fillWidth style={{ minWidth: 0, width: '100%' }}>
             {!showAsCheckbox && !isYesNo && (
-              <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
-                <LinkifiedText
-                  text={question.title}
-                  suffix={question.required && question.active !== false && !readOnly ? ' · Required' : null}
-                />
-              </Text>
-            )}
-            {question.description && !showAsCheckbox && !isYesNo && (
-              <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
-                <LinkifiedText text={question.description} />
-              </Text>
+              <QuestionPrompt
+                question={question}
+                requiredSuffix={
+                  question.required && question.active !== false && !readOnly ? ' · Required' : null
+                }
+              />
             )}
             {inactive && (
               <Text variant="label-default-s" onBackground="warning-strong">
@@ -78,18 +73,11 @@ export default function QuestionCard({
         )}
 
         {isYesNo && !showAsCheckbox ? (
-          <Column gap="8">
-            <Text variant="heading-strong-s" style={{ whiteSpace: 'pre-line' }}>
-              <LinkifiedText
-                text={question.title}
-                suffix={question.required && question.active !== false && !readOnly ? ' · Required' : null}
-              />
-            </Text>
-            {question.description && (
-              <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
-                <LinkifiedText text={question.description} />
-              </Text>
-            )}
+          <Column gap="8" fillWidth>
+            <QuestionPrompt
+              question={question}
+              requiredSuffix={question.required && question.active !== false && !readOnly ? ' · Required' : null}
+            />
             <div className="app-yesno" role="radiogroup" aria-label={question.title}>
               {['yes', 'no'].map((option) => {
                 const selected = value === option;
@@ -114,8 +102,8 @@ export default function QuestionCard({
             </div>
           </Column>
         ) : showAsCheckbox ? (
-          <Column gap="8">
-            <Row gap="12" vertical="start">
+          <Column gap="8" fillWidth>
+            <Row gap="12" vertical="start" fillWidth>
               <input
                 type="checkbox"
                 id={question.id}
@@ -124,19 +112,14 @@ export default function QuestionCard({
                 onChange={(event) => onChange(event.target.checked)}
                 className="app-checkbox"
               />
-              <Text variant="body-default-m" style={{ whiteSpace: 'pre-line' }}>
-                <LinkifiedText
-                  text={question.title}
-                  labelFor={readOnly ? '' : question.id}
-                  suffix={question.required && !readOnly ? ' · Required' : null}
+              <Column gap="4" fillWidth style={{ minWidth: 0 }}>
+                <QuestionPrompt
+                  question={question}
+                  headingVariant="body-default-m"
+                  requiredSuffix={question.required && !readOnly ? ' · Required' : null}
                 />
-              </Text>
+              </Column>
             </Row>
-            {question.description && (
-              <Text variant="body-default-s" onBackground="neutral-weak" style={{ whiteSpace: 'pre-line' }}>
-                <LinkifiedText text={question.description} />
-              </Text>
-            )}
           </Column>
         ) : isText ? (
           <input

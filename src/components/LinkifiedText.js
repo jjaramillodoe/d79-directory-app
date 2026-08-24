@@ -1,19 +1,18 @@
 'use client';
 
-import { splitLinkifiedText } from '../lib/linkifyText';
+import { splitFormattedText } from '../lib/linkifyText';
 
 export default function LinkifiedText({ text, suffix = null, labelFor = '' }) {
-  const parts = splitLinkifiedText(text);
+  const parts = splitFormattedText(text);
 
   if (!parts.length && !suffix) return null;
 
   return (
     <>
       {parts.map((part, index) => {
-        if (part.type === 'url') {
-          return (
+        const content =
+          part.type === 'url' ? (
             <a
-              key={`url-${index}`}
               href={part.href}
               target="_blank"
               rel="noopener noreferrer"
@@ -22,18 +21,23 @@ export default function LinkifiedText({ text, suffix = null, labelFor = '' }) {
             >
               {part.text}
             </a>
-          );
-        }
-
-        if (labelFor) {
-          return (
-            <label key={`text-${index}`} htmlFor={labelFor} style={{ cursor: 'pointer' }}>
+          ) : labelFor ? (
+            <label htmlFor={labelFor} style={{ cursor: 'pointer' }}>
               {part.text}
             </label>
+          ) : (
+            part.text
           );
+
+        if (part.bold) {
+          return <strong key={`part-${index}`}>{content}</strong>;
         }
 
-        return <span key={`text-${index}`}>{part.text}</span>;
+        if (part.type === 'url' || labelFor) {
+          return <span key={`part-${index}`}>{content}</span>;
+        }
+
+        return <span key={`part-${index}`}>{content}</span>;
       })}
       {suffix}
     </>
