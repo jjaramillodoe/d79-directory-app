@@ -14,6 +14,7 @@ import {
   Pencil,
   ArrowUp,
   ArrowDown,
+  GripVertical,
   Eye,
   EyeOff,
   CheckCircle,
@@ -938,11 +939,27 @@ function QuestionFields({ value, onChange }) {
   );
 }
 
+function reorderItems(items, from, to) {
+  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
+    return items;
+  }
+  const next = [...items];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
 function TableColumnsEditor({ columns, onChange }) {
   const defs = normalizeColumnDefs(columns);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
 
   const updateColumn = (index, patch) => {
     onChange(defs.map((column, i) => (i === index ? { ...column, ...patch } : column)));
+  };
+
+  const moveColumn = (from, to) => {
+    onChange(reorderItems(defs, from, to));
   };
 
   return (
@@ -955,7 +972,7 @@ function TableColumnsEditor({ columns, onChange }) {
             onClick={() => onChange(CONTACT_TABLE_PRESET.map((column) => ({ ...column, options: [...column.options] })))}
             className="text-xs font-medium text-blue-700 hover:text-blue-800"
           >
-            Use Name / Title / Email / Phone
+            Use Contact Table
           </button>
           <button
             type="button"
@@ -972,9 +989,77 @@ function TableColumnsEditor({ columns, onChange }) {
         </p>
       ) : (
         <div className="space-y-3">
+          <p className="text-xs text-gray-500">Drag the handle or use the arrows to change column order.</p>
           {defs.map((column, index) => (
-            <div key={`col-${index}`} className="rounded-lg border border-gray-200 p-3 space-y-2 bg-gray-50">
+            <div
+              key={`col-${index}`}
+              data-column-row
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                if (overIndex !== index) setOverIndex(index);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const from = Number(event.dataTransfer.getData('text/plain'));
+                moveColumn(Number.isNaN(from) ? dragIndex : from, index);
+                setDragIndex(null);
+                setOverIndex(null);
+              }}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setOverIndex((current) => (current === index ? null : current));
+                }
+              }}
+              className={`rounded-lg border p-3 space-y-2 bg-gray-50 ${
+                overIndex === index && dragIndex !== index
+                  ? 'border-blue-400 ring-2 ring-blue-100'
+                  : 'border-gray-200'
+              } ${dragIndex === index ? 'opacity-60' : ''}`}
+            >
               <div className="flex flex-wrap gap-2">
+                <div className="flex items-end gap-1">
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(event) => {
+                      setDragIndex(index);
+                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.setData('text/plain', String(index));
+                      const row = event.currentTarget.closest('[data-column-row]');
+                      if (row) event.dataTransfer.setDragImage(row, 24, 24);
+                    }}
+                    onDragEnd={() => {
+                      setDragIndex(null);
+                      setOverIndex(null);
+                    }}
+                    className="self-end p-2 text-gray-500 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing"
+                    title="Drag to reorder"
+                    aria-label={`Drag ${column.header || `column ${index + 1}`} to reorder`}
+                  >
+                    <GripVertical className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveColumn(index, index - 1)}
+                    disabled={index === 0}
+                    className="self-end p-2 text-gray-500 hover:bg-gray-200 rounded disabled:opacity-30"
+                    title="Move up"
+                    aria-label={`Move ${column.header || `column ${index + 1}`} up`}
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveColumn(index, index + 1)}
+                    disabled={index === defs.length - 1}
+                    className="self-end p-2 text-gray-500 hover:bg-gray-200 rounded disabled:opacity-30"
+                    title="Move down"
+                    aria-label={`Move ${column.header || `column ${index + 1}`} down`}
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                </div>
                 <label className="flex-1 min-w-[10rem] text-xs font-medium text-gray-600">
                   Header
                   <input
