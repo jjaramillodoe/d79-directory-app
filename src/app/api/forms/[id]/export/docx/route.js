@@ -9,7 +9,7 @@ const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
 const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questionBankUtils');
 const { resolveExportTable, buildDocxTable } = require('../../../../../../lib/exportTables');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ExternalHyperlink } = require('docx');
-const { splitLinkifiedText } = require('../../../../../../lib/linkifyText');
+const { splitFormattedText } = require('../../../../../../lib/linkifyText');
 const path = require('path');
 const fs = require('fs');
 
@@ -58,24 +58,25 @@ function getQuestionTitle(formQuestionsData, stepKey, fieldId) {
 }
 
 function linkifiedDocxRuns(text, { bold = false, prefix = '' } = {}) {
-  const parts = splitLinkifiedText(`${prefix}${text || ''}`);
+  const parts = splitFormattedText(`${prefix}${text || ''}`);
   if (!parts.length) {
     return [new TextRun({ text: prefix || '', bold })];
   }
   return parts.map((part) => {
+    const isBold = bold || Boolean(part.bold);
     if (part.type === 'url') {
       return new ExternalHyperlink({
         children: [
           new TextRun({
             text: part.text,
             style: 'Hyperlink',
-            bold,
+            bold: isBold,
           }),
         ],
         link: part.href,
       });
     }
-    return new TextRun({ text: part.text, bold });
+    return new TextRun({ text: part.text, bold: isBold });
   });
 }
 

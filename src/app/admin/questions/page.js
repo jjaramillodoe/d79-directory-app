@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, Suspense } from 'react';
+import { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
@@ -24,6 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import QuestionPreview from '../../../components/admin/QuestionPreview';
+import QuestionTextToolbar from '../../../components/admin/QuestionTextToolbar';
 import QuestionPrompt from '../../../components/QuestionPrompt';
 import AppFooter from '../../../components/AppFooter';
 import { currentSchoolYear } from '../../../lib/schoolYear';
@@ -761,6 +762,8 @@ function AdminQuestionsPageContent() {
 }
 
 function QuestionFields({ value, onChange }) {
+  const titleRef = useRef(null);
+  const helperRef = useRef(null);
   const update = (field, next) => onChange({ ...value, [field]: next });
 
   return (
@@ -773,30 +776,42 @@ function QuestionFields({ value, onChange }) {
           className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
       </label>
-      <label className="block text-sm font-medium text-gray-700">
-        Heading + instructions
+      <div>
+        <span className="block text-sm font-medium text-gray-700">Heading + instructions</span>
+        <QuestionTextToolbar
+          value={value.title}
+          onChange={(next) => update('title', next)}
+          textareaRef={titleRef}
+        />
         <textarea
+          ref={titleRef}
           value={value.title}
           onChange={(e) => update('title', e.target.value)}
           rows={8}
-          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
-        <span className="mt-1 block font-normal text-gray-500">
-          First short sentence or first line is the heading. Everything after it is the instruction text. Paste https:// links as-is. Wrap a phrase in **double asterisks** to bold it, for example **Please Note:**
+        <span className="mt-1 block text-sm font-normal text-gray-500">
+          First short sentence or first line is the heading. Select a phrase and click Link to attach a URL, for example NYSED Commissioner&apos;s Regulation 100.2(j). Paste https:// links as-is, or use Bold for **Please Note:**
         </span>
-      </label>
-      <label className="block text-sm font-medium text-gray-700">
-        Short helper
+      </div>
+      <div>
+        <span className="block text-sm font-medium text-gray-700">Short helper</span>
+        <QuestionTextToolbar
+          value={value.description}
+          onChange={(next) => update('description', next)}
+          textareaRef={helperRef}
+        />
         <textarea
+          ref={helperRef}
           value={value.description}
           onChange={(e) => update('description', e.target.value)}
           rows={3}
-          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
-        <span className="mt-1 block font-normal text-gray-500">
+        <span className="mt-1 block text-sm font-normal text-gray-500">
           Gray line under the question, like what to include in the answer. Keep this short.
         </span>
-      </label>
+      </div>
       <label className="block text-sm font-medium text-gray-700">
         Placeholder
         <textarea

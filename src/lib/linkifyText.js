@@ -1,6 +1,7 @@
 const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"'`]+/gi;
 const TRAILING_PUNCTUATION = /[),.;:!?]+$/;
 const BOLD_PATTERN = /\*\*([^*]+)\*\*/g;
+const MARKDOWN_LINK_PATTERN = /\[([^\]]+)\]\(\s*((?:https?:\/\/|www\.)[^\s)]+)\s*\)/gi;
 
 function cleanUrlText(value) {
   return String(value || '').replace(/[\u200b\u200c\u200d\u00ad]/g, '');
@@ -17,6 +18,40 @@ function normalizeHref(urlText) {
   } catch {
     return '';
   }
+}
+
+function clampRange(text, start, end) {
+  const len = String(text ?? '').length;
+  const from = Math.max(0, Math.min(Number(start) || 0, len));
+  const to = Math.max(0, Math.min(Number(end) || 0, len));
+  return from <= to ? [from, to] : [to, from];
+}
+
+function wrapSelectionAsBold(text, start, end) {
+  const source = String(text ?? '');
+  const [from, to] = clampRange(source, start, end);
+  if (from === to) return { text: source, start: from, end: to };
+  const wrapped = `**${source.slice(from, to)}**`;
+  return {
+    text: source.slice(0, from) + wrapped + source.slice(to),
+    start: from,
+    end: from + wrapped.length,
+  };
+}
+
+function wrapSelectionAsLink(text, start, end, href, label) {
+  const source = String(text ?? '');
+  const [from, to] = clampRange(source, start, end);
+  const selected = source.slice(from, to);
+  const linkText = (selected || String(label || '')).trim();
+  const safeHref = normalizeHref(href);
+  if (!linkText || !safeHref) return { text: source, start: from, end: to };
+  const wrapped = `[${linkText}](${safeHref})`;
+  return {
+    text: source.slice(0, from) + wrapped + source.slice(to),
+    start: from,
+    end: from + wrapped.length,
+  };
 }
 
 function splitLinkifiedText(text) {
@@ -57,10 +92,34 @@ function splitLinkifiedText(text) {
   return parts;
 }
 
-function splitFormattedText(text) {
-  const source = String(text ?? '');
-  if (!source) return [];
+function splitMarkdownLinkSegments(source) {
+  const segments = [];
+  const linkRe = new RegExp(MARKDOWN_LINK_PATTERN.source, 'gi');
+  let lastIndex = 0;
+  let match = linkRe.exec(source);
 
+  while (match) {
+    if (match.index > lastIndex) {
+      segments.push({ kind: 'text', text: source.slice(lastIndex, match.index) });
+    }
+    const href = normalizeHref(match[2]);
+    if (href) {
+      segments.push({ kind: 'link', text: match[1], href });
+    } else {
+      segments.push({ kind: 'text', text: match[0] });
+    }
+    lastIndex = match.index + match[0].length;
+    match = linkRe.exec(source);
+  }
+
+  if (lastIndex < source.length) {
+    segments.push({ kind: 'text', text: source.slice(lastIndex) });
+  }
+
+  return segments;
+}
+
+function splitBoldChunks(source) {
   const chunks = [];
   const boldRe = new RegExp(BOLD_PATTERN.source, 'g');
   let lastIndex = 0;
@@ -79,18 +138,36 @@ function splitFormattedText(text) {
     chunks.push({ bold: false, text: source.slice(lastIndex) });
   }
 
-  if (!chunks.length) return splitLinkifiedText(source);
+  return chunks;
+}
 
-  return chunks.flatMap((chunk) =>
-    splitLinkifiedText(chunk.text).map((part) => ({
-      ...part,
-      bold: chunk.bold,
-    }))
-  );
+function splitFormattedText(text) {
+  const source = String(text ?? '');
+  if (!source) return [];
+
+  return splitMarkdownLinkSegments(source).flatMap((segment) => {
+    if (segment.kind === 'link') {
+      return [{ type: 'url', text: segment.text, href: segment.href, bold: false }];
+    }
+
+    const chunks = splitBoldChunks(segment.text);
+    if (!chunks.length) {
+      return splitLinkifiedText(segment.text).map((part) => ({ ...part, bold: false }));
+    }
+
+    return chunks.flatMap((chunk) =>
+      splitLinkifiedText(chunk.text).map((part) => ({
+        ...part,
+        bold: chunk.bold,
+      }))
+    );
+  });
 }
 
 module.exports = {
   splitLinkifiedText,
   splitFormattedText,
   normalizeHref,
+  wrapSelectionAsBold,
+  wrapSelectionAsLink,
 };

@@ -8,6 +8,7 @@ const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
 const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
 const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questionBankUtils');
 const { resolveExportTable, drawPdfTable, pdfSafe } = require('../../../../../../lib/exportTables');
+const { splitFormattedText } = require('../../../../../../lib/linkifyText');
 const { Readable } = require('stream');
 const path = require('path');
 const fs = require('fs');
@@ -50,6 +51,31 @@ async function loadFormQuestions(form) {
   }
 
   return { steps: [] };
+}
+
+function writeFormattedPdfText(doc, text, { bold = false } = {}) {
+  const parts = splitFormattedText(text).filter((part) => part.text);
+  if (!parts.length) {
+    doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fillColor('black').text('');
+    return;
+  }
+
+  parts.forEach((part, index) => {
+    const last = index === parts.length - 1;
+    const font = bold || part.bold ? 'Helvetica-Bold' : 'Helvetica';
+    const options = { continued: !last };
+    doc.font(font);
+    if (part.type === 'url') {
+      doc.fillColor('#1d4ed8').text(pdfSafe(part.text) || ' ', {
+        ...options,
+        link: part.href,
+        underline: true,
+      });
+    } else {
+      doc.fillColor('black').text(pdfSafe(part.text) || ' ', options);
+    }
+  });
+  doc.fillColor('black');
 }
 
 // Helper function to get question title by field ID
@@ -248,10 +274,9 @@ async function GET(request, { params }) {
               }
               
               try {
-                const safeLabel = pdfSafe(questionTitle);
                 const questionNum = question.question_number ? `Q${question.question_number}: ` : '';
-                
-                doc.font('Helvetica-Bold').text(`${questionNum}${safeLabel}`, { continued: false });
+
+                writeFormattedPdfText(doc, `${questionNum}${questionTitle}`, { bold: true });
                 if (table) {
                   doc.moveDown(0.3);
                   drawPdfTable(doc, table);
