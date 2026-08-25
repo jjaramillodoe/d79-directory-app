@@ -85,10 +85,53 @@ const TIMELINE_OPTIONS = [
   'Fourth Semester',
 ];
 
+function textColumns(headers) {
+  return headers.map((header) => ({ header, type: 'text', options: [] }));
+}
+
 const PROGRAM_TABLE_PRESET = [
   { header: 'Program Name', type: 'text', options: [] },
   { header: 'Grade Level', type: 'select', options: GRADE_LEVEL_OPTIONS },
   { header: 'Timeline', type: 'select', options: TIMELINE_OPTIONS },
+];
+
+const STAFF_CONTACT_HEADERS = ['First Name', 'Last Name', 'Title', 'Email', 'Telephone'];
+
+const TABLE_COLUMN_PRESETS = [
+  {
+    id: 'staff',
+    label: 'Staff contact',
+    columns: textColumns(STAFF_CONTACT_HEADERS),
+  },
+  {
+    id: 'staffCertified',
+    label: 'Staff + certified',
+    columns: [
+      ...textColumns(STAFF_CONTACT_HEADERS),
+      { header: 'Certified', type: 'select', options: ['Yes', 'No'] },
+      { header: 'Training Date', type: 'text', options: [] },
+    ],
+  },
+  {
+    id: 'staffSchedule',
+    label: 'Staff + room / time',
+    columns: textColumns([...STAFF_CONTACT_HEADERS, 'Room Number', 'Start Time', 'End Time']),
+  },
+  {
+    id: 'programHours',
+    label: 'Program hours',
+    columns: textColumns(['Program', 'Start Time', 'End Time', 'Days']),
+  },
+  {
+    id: 'programGrade',
+    label: 'Program / Grade / Timeline',
+    columns: PROGRAM_TABLE_PRESET,
+  },
+  {
+    id: 'contactNotes',
+    label: 'Contact + notes',
+    columns: CONTACT_TABLE_PRESET,
+  },
 ];
 
 function parseOptions(value) {
@@ -105,22 +148,90 @@ function parseOptions(value) {
   return [];
 }
 
+function tokenizeColumnBlueprint(text) {
+  const lines = String(text || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, MAX_COLS);
+
+  if (lines.length === 1 && lines[0].includes(',') && !lines[0].includes('|')) {
+    return lines[0].split(',').map(cleanCell).filter(Boolean).slice(0, MAX_COLS);
+  }
+  return lines.map(cleanCell).filter(Boolean);
+}
+
+function parseOptionList(raw) {
+  const source = String(raw || '').trim();
+  if (!source) return [];
+  if (source.includes(';')) {
+    return parseOptions(source.split(';'));
+  }
+  return parseOptions(source.split(','));
+}
+
+function parseColumnLine(token) {
+  const source = cleanCell(token);
+  if (!source) return null;
+  const pipe = source.indexOf('|');
+  if (pipe === -1) {
+    return { header: source, type: 'text', options: [] };
+  }
+  const header = cleanCell(source.slice(0, pipe));
+  if (!header) return null;
+  const options = parseOptionList(source.slice(pipe + 1));
+  if (options.length) return { header, type: 'select', options };
+  return { header, type: 'text', options: [] };
+}
+
+function parseColumnBlueprint(text, previous = []) {
+  const previousDefs = Array.isArray(previous) ? previous : [];
+  return tokenizeColumnBlueprint(text)
+    .map((token) => {
+      const parsed = parseColumnLine(token);
+      if (!parsed) return null;
+      if (parsed.type === 'select') return parsed;
+      const match = previousDefs.find(
+        (column) => cleanCell(column?.header).toLowerCase() === parsed.header.toLowerCase()
+      );
+      if (match?.type === 'select' && Array.isArray(match.options) && match.options.length) {
+        return { header: parsed.header, type: 'select', options: [...match.options] };
+      }
+      return parsed;
+    })
+    .filter(Boolean);
+}
+
+function formatColumnBlueprint(columns) {
+  return normalizeColumnDefs(columns)
+    .map((column) => {
+      if (column.type !== 'select' || !column.options.length) return column.header;
+      const joiner = column.options.some((option) => String(option).includes(',')) ? '; ' : ', ';
+      return `${column.header} | ${column.options.join(joiner)}`;
+    })
+    .join('\n');
+}
+
+function cloneColumnPreset(columns) {
+  return normalizeColumnDefs(columns).map((column) => ({
+    header: column.header,
+    type: column.type,
+    options: [...(column.options || [])],
+  }));
+}
+
 function normalizeColumnDefs(columns) {
   if (typeof columns === 'string') {
-    return columns
-      .split(/[\n,]/)
-      .map((item) => cleanCell(item))
-      .filter(Boolean)
-      .slice(0, MAX_COLS)
-      .map((header) => ({ header, type: 'text', options: [] }));
+    return parseColumnBlueprint(columns);
   }
   if (!Array.isArray(columns) || !columns.length) return [];
   return columns
     .slice(0, MAX_COLS)
     .map((column) => {
       if (typeof column === 'string') {
-        const header = cleanCell(column);
-        return header ? { header, type: 'text', options: [] } : null;
+        return parseColumnLine(column);
       }
       const header = cleanCell(column?.header || column?.label || column?.title || '');
       if (!header) return null;
@@ -254,6 +365,10 @@ module.exports = {
   TIMELINE_OPTIONS,
   PROGRAM_TABLE_PRESET,
   CONTACT_TABLE_PRESET,
+  TABLE_COLUMN_PRESETS,
+  parseColumnBlueprint,
+  formatColumnBlueprint,
+  cloneColumnPreset,
   isTableValue,
   isTableAnswered,
   cleanCell,

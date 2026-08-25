@@ -14,7 +14,6 @@ import {
   Pencil,
   ArrowUp,
   ArrowDown,
-  GripVertical,
   Eye,
   EyeOff,
   CheckCircle,
@@ -31,7 +30,7 @@ import QuestionPrompt from '../../../components/QuestionPrompt';
 import FormattedCopy from '../../../components/FormattedCopy';
 import AppFooter from '../../../components/AppFooter';
 import { currentSchoolYear } from '../../../lib/schoolYear';
-import { normalizeColumnDefs, parseOptions, PROGRAM_TABLE_PRESET, CONTACT_TABLE_PRESET } from '../../../lib/tableAnswer';
+import { normalizeColumnDefs, parseOptions, parseColumnBlueprint, formatColumnBlueprint, cloneColumnPreset, TABLE_COLUMN_PRESETS } from '../../../lib/tableAnswer';
 
 const EMPTY_QUESTION = {
   title: '',
@@ -1084,135 +1083,78 @@ function QuestionFields({ value, onChange }) {
   );
 }
 
-function reorderItems(items, from, to) {
-  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
-    return items;
-  }
-  const next = [...items];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return next;
-}
-
 function TableColumnsEditor({ columns, onChange }) {
   const defs = normalizeColumnDefs(columns);
-  const [dragIndex, setDragIndex] = useState(null);
-  const [overIndex, setOverIndex] = useState(null);
+  const [draftText, setDraftText] = useState(null);
+  const text = draftText ?? formatColumnBlueprint(defs);
 
-  const updateColumn = (index, patch) => {
-    onChange(defs.map((column, i) => (i === index ? { ...column, ...patch } : column)));
+  const applyText = (nextText, { keepDraft = true } = {}) => {
+    if (keepDraft) setDraftText(nextText);
+    onChange(parseColumnBlueprint(nextText, defs));
   };
 
-  const moveColumn = (from, to) => {
-    onChange(reorderItems(defs, from, to));
+  const updateColumn = (index, patch) => {
+    const next = defs.map((column, i) => (i === index ? { ...column, ...patch } : column));
+    setDraftText(null);
+    onChange(next);
   };
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium text-gray-700">Table columns</span>
-        <span className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => onChange(CONTACT_TABLE_PRESET.map((column) => ({ ...column, options: [...column.options] })))}
-            className="text-xs font-medium text-blue-700 hover:text-blue-800"
-          >
-            Use Contact Table
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(PROGRAM_TABLE_PRESET.map((column) => ({ ...column, options: [...column.options] })))}
-            className="text-xs font-medium text-blue-700 hover:text-blue-800"
-          >
-            Use Program / Grade / Timeline
-          </button>
-        </span>
+        <button
+          type="button"
+          onClick={() => {
+            setDraftText(null);
+            onChange([]);
+          }}
+          className="text-xs font-medium text-gray-600 hover:text-gray-800"
+        >
+          Clear columns
+        </button>
       </div>
-      {defs.length === 0 ? (
-        <p className="text-xs text-gray-500">
-          Leave empty so staff can paste their own Excel headers. Add columns to lock headers, and set a column to Dropdown for a fixed list.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-xs text-gray-500">Drag the handle or use the arrows to change column order.</p>
+      <div className="flex flex-wrap gap-2">
+        {TABLE_COLUMN_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => {
+              setDraftText(null);
+              onChange(cloneColumnPreset(preset.columns));
+            }}
+            className="px-2 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded-md hover:bg-blue-50"
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+      <label className="block text-sm font-medium text-gray-700">
+        Column names
+        <textarea
+          value={text}
+          onChange={(event) => applyText(event.target.value)}
+          onBlur={() => setDraftText(null)}
+          rows={Math.min(12, Math.max(5, (text ? text.split('\n').length : 0) + 1))}
+          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+          placeholder={'First Name\nLast Name\nTitle\nEmail\nTelephone'}
+        />
+        <span className="mt-1 block font-normal text-gray-500">
+          One column name per line. Change the template by editing this list. For a dropdown, write
+          the name, a pipe, then the choices, for example Certified | Yes, No. Leave this empty so
+          staff can paste their own Excel headers.
+        </span>
+      </label>
+      {defs.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500">
+            Use Text or Dropdown below if you do not want to type the pipe syntax. Reorder columns by
+            moving lines in the box above.
+          </p>
           {defs.map((column, index) => (
-            <div
-              key={`col-${index}`}
-              data-column-row
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'move';
-                if (overIndex !== index) setOverIndex(index);
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                const from = Number(event.dataTransfer.getData('text/plain'));
-                moveColumn(Number.isNaN(from) ? dragIndex : from, index);
-                setDragIndex(null);
-                setOverIndex(null);
-              }}
-              onDragLeave={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setOverIndex((current) => (current === index ? null : current));
-                }
-              }}
-              className={`rounded-lg border p-3 space-y-2 bg-gray-50 ${
-                overIndex === index && dragIndex !== index
-                  ? 'border-blue-400 ring-2 ring-blue-100'
-                  : 'border-gray-200'
-              } ${dragIndex === index ? 'opacity-60' : ''}`}
-            >
-              <div className="flex flex-wrap gap-2">
-                <div className="flex items-end gap-1">
-                  <button
-                    type="button"
-                    draggable
-                    onDragStart={(event) => {
-                      setDragIndex(index);
-                      event.dataTransfer.effectAllowed = 'move';
-                      event.dataTransfer.setData('text/plain', String(index));
-                      const row = event.currentTarget.closest('[data-column-row]');
-                      if (row) event.dataTransfer.setDragImage(row, 24, 24);
-                    }}
-                    onDragEnd={() => {
-                      setDragIndex(null);
-                      setOverIndex(null);
-                    }}
-                    className="self-end p-2 text-gray-500 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing"
-                    title="Drag to reorder"
-                    aria-label={`Drag ${column.header || `column ${index + 1}`} to reorder`}
-                  >
-                    <GripVertical className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveColumn(index, index - 1)}
-                    disabled={index === 0}
-                    className="self-end p-2 text-gray-500 hover:bg-gray-200 rounded disabled:opacity-30"
-                    title="Move up"
-                    aria-label={`Move ${column.header || `column ${index + 1}`} up`}
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveColumn(index, index + 1)}
-                    disabled={index === defs.length - 1}
-                    className="self-end p-2 text-gray-500 hover:bg-gray-200 rounded disabled:opacity-30"
-                    title="Move down"
-                    aria-label={`Move ${column.header || `column ${index + 1}`} down`}
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </button>
-                </div>
-                <label className="flex-1 min-w-[10rem] text-xs font-medium text-gray-600">
-                  Header
-                  <input
-                    value={column.header}
-                    onChange={(e) => updateColumn(index, { header: e.target.value })}
-                    className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                  />
-                </label>
+            <div key={`col-${index}-${column.header}`} className="rounded-lg border border-gray-200 p-3 space-y-2 bg-gray-50">
+              <div className="flex flex-wrap gap-2 items-end">
+                <div className="flex-1 min-w-[10rem] text-sm font-medium text-gray-800">{column.header}</div>
                 <label className="w-40 text-xs font-medium text-gray-600">
                   Input
                   <select
@@ -1231,8 +1173,12 @@ function TableColumnsEditor({ columns, onChange }) {
                 </label>
                 <button
                   type="button"
-                  onClick={() => onChange(defs.filter((_, i) => i !== index))}
-                  className="self-end px-2 py-2 text-xs text-red-700 hover:text-red-800"
+                  onClick={() => {
+                    const next = defs.filter((_, i) => i !== index);
+                    setDraftText(null);
+                    onChange(next);
+                  }}
+                  className="px-2 py-2 text-xs text-red-700 hover:text-red-800"
                 >
                   Remove
                 </button>
@@ -1251,16 +1197,7 @@ function TableColumnsEditor({ columns, onChange }) {
             </div>
           ))}
         </div>
-      )}
-      <button
-        type="button"
-        onClick={() =>
-          onChange([...defs, { header: `Column ${defs.length + 1}`, type: 'text', options: [] }])
-        }
-        className="text-sm font-medium text-blue-700 hover:text-blue-800"
-      >
-        Add column
-      </button>
+      ) : null}
     </div>
   );
 }
