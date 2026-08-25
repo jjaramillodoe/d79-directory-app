@@ -550,3 +550,12 @@ body {
 .app-text-link:hover {
   color: #1e40af;
 }
+
+.app-copy-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.app-copy-list li {
+  margin-bottom: 0.35rem;
+}

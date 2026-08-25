@@ -10,6 +10,7 @@ const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questio
 const { resolveExportTable, buildDocxTable } = require('../../../../../../lib/exportTables');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ExternalHyperlink } = require('docx');
 const { splitFormattedText } = require('../../../../../../lib/linkifyText');
+const { splitCopyBlocks } = require('../../../../../../lib/formattedCopy');
 const path = require('path');
 const fs = require('fs');
 
@@ -77,6 +78,27 @@ function linkifiedDocxRuns(text, { bold = false, prefix = '' } = {}) {
       });
     }
     return new TextRun({ text: part.text, bold: isBold });
+  });
+}
+
+function introDocxParagraphs(intro) {
+  return splitCopyBlocks(intro).flatMap((block) => {
+    if (block.type === 'ul' || block.type === 'ol') {
+      return block.items.map((item, index) =>
+        new Paragraph({
+          children: linkifiedDocxRuns(
+            block.type === 'ol' ? `${index + 1}. ${item}` : `• ${item}`
+          ),
+          spacing: { after: 80 },
+        })
+      );
+    }
+    return [
+      new Paragraph({
+        children: linkifiedDocxRuns(block.text),
+        spacing: { after: 160 },
+      }),
+    ];
   });
 }
 
@@ -184,6 +206,9 @@ async function GET(request, { params }) {
 
       // Step content - show all questions from formQuestions.json
       const stepQuestions = formQuestionsData.steps.find(s => s.key === step.key);
+      if (stepQuestions?.intro) {
+        children.push(...introDocxParagraphs(stepQuestions.intro));
+      }
       const questions = visibleQuestions(stepQuestions?.questions || [], stepData);
       
       if (questions.length > 0) {

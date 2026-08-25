@@ -28,6 +28,7 @@ import {
 import QuestionPreview from '../../../components/admin/QuestionPreview';
 import QuestionTextToolbar from '../../../components/admin/QuestionTextToolbar';
 import QuestionPrompt from '../../../components/QuestionPrompt';
+import FormattedCopy from '../../../components/FormattedCopy';
 import AppFooter from '../../../components/AppFooter';
 import { currentSchoolYear } from '../../../lib/schoolYear';
 import { normalizeColumnDefs, parseOptions, PROGRAM_TABLE_PRESET, CONTACT_TABLE_PRESET } from '../../../lib/tableAnswer';
@@ -62,6 +63,8 @@ function AdminQuestionsPageContent() {
   const [addForm, setAddForm] = useState(EMPTY_QUESTION);
   const [addingStep, setAddingStep] = useState(false);
   const [stepTitle, setStepTitle] = useState('');
+  const [editingStep, setEditingStep] = useState(false);
+  const [stepForm, setStepForm] = useState({ title: '', intro: '' });
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishYear, setPublishYear] = useState(currentSchoolYear());
 
@@ -221,6 +224,46 @@ function AdminQuestionsPageContent() {
     }
   };
 
+  const openEditStep = () => {
+    if (!selectedStep) return;
+    setAdding(false);
+    setAddingStep(false);
+    setEditingQuestion(null);
+    setEditingStep(true);
+    setStepForm({
+      title: selectedStep.title || '',
+      intro: selectedStep.intro || '',
+    });
+  };
+
+  const handleSaveStep = async () => {
+    if (!selectedStep || !stepForm.title.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/admin/questions/step', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepKey: selectedStep.key,
+          updates: {
+            title: stepForm.title.trim(),
+            intro: stepForm.intro,
+          },
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to save section');
+      applyDraft(result.draft);
+      setEditingStep(false);
+      setNotice('Section intro updated in the draft. Publish to make it live on forms.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleToggleRequired = async (question) => {
     const nextRequired = !question.required;
     setSaving(true);
@@ -348,6 +391,7 @@ function AdminQuestionsPageContent() {
 
   const openEdit = (question) => {
     setAdding(false);
+    setEditingStep(false);
     setEditingQuestion(question);
     setEditForm({
       title: question.title || '',
@@ -486,6 +530,7 @@ function AdminQuestionsPageContent() {
                   onClick={() => {
                     setAdding(false);
                     setEditingQuestion(null);
+                    setEditingStep(false);
                     setAddingStep(true);
                     setStepTitle('');
                   }}
@@ -513,6 +558,7 @@ function AdminQuestionsPageContent() {
                       <div className="text-sm font-medium">{step.title}</div>
                       <div className="text-xs text-gray-500 mt-1">
                         {count} questions{inactive ? ` · ${inactive} inactive` : ''}
+                        {step.intro ? ' · Intro' : ''}
                       </div>
                     </button>
                   );
@@ -554,6 +600,7 @@ function AdminQuestionsPageContent() {
                   onClick={() => {
                     setEditingQuestion(null);
                     setAddingStep(false);
+                    setEditingStep(false);
                     setAdding(true);
                     setAddForm(EMPTY_QUESTION);
                   }}
@@ -566,11 +613,23 @@ function AdminQuestionsPageContent() {
             </div>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">{selectedStep?.title || 'Questions'}</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Showing {filteredQuestions.length} of {selectedStep?.questions?.length || 0} questions
-                </p>
+              <div className="px-5 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-gray-900">{selectedStep?.title || 'Questions'}</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Showing {filteredQuestions.length} of {selectedStep?.questions?.length || 0} questions
+                    {selectedStep?.intro ? ' · This section has an intro' : ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={openEditStep}
+                  disabled={!selectedStep}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-800 text-sm font-medium rounded-lg whitespace-nowrap"
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit section intro
+                </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
@@ -720,6 +779,54 @@ function AdminQuestionsPageContent() {
         </div>
       )}
 
+      {editingStep && selectedStep && (
+        <div className="app-modal-drawer">
+          <div className="w-full max-w-xl h-full bg-white shadow-xl overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-gray-200">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Section intro</h3>
+                <p className="text-xs text-gray-500 mt-1">Key: {selectedStep.key} (cannot be changed)</p>
+              </div>
+              <button
+                onClick={() => setEditingStep(false)}
+                className="p-2 hover:bg-gray-100 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <StepIntroFields value={stepForm} onChange={setStepForm} />
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800 mb-2">Form preview</h4>
+                <div className="border border-gray-200 rounded-lg p-4 bg-white once-ui-root">
+                  {String(stepForm.intro || '').trim() ? (
+                    <FormattedCopy text={stepForm.intro} />
+                  ) : (
+                    <p className="text-sm text-gray-500">No intro yet. Principals will go straight to the questions.</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleSaveStep}
+                  disabled={saving || !stepForm.title.trim()}
+                  className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Save to draft
+                </button>
+                <button
+                  onClick={() => setEditingStep(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {(editingQuestion || adding) && (
         <div className="app-modal-drawer">
           <div className="w-full max-w-xl h-full bg-white shadow-xl overflow-y-auto">
@@ -821,6 +928,44 @@ function AdminQuestionsPageContent() {
       </div>
       <AppFooter />
     </div>
+  );
+}
+
+function StepIntroFields({ value, onChange }) {
+  const introRef = useRef(null);
+  const update = (field, next) => onChange({ ...value, [field]: next });
+
+  return (
+    <>
+      <label className="block text-sm font-medium text-gray-700">
+        Section title
+        <input
+          value={value.title}
+          onChange={(e) => update('title', e.target.value)}
+          className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        />
+      </label>
+      <div>
+        <span className="block text-sm font-medium text-gray-700">Section intro</span>
+        <QuestionTextToolbar
+          value={value.intro}
+          onChange={(next) => update('intro', next)}
+          textareaRef={introRef}
+        />
+        <textarea
+          ref={introRef}
+          value={value.intro}
+          onChange={(e) => update('intro', e.target.value)}
+          rows={16}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          placeholder="Shown above the questions in this section. Leave blank if none is needed."
+        />
+        <span className="mt-1 block text-sm font-normal text-gray-500">
+          Select a phrase and click Link, for example Chancellor&apos;s Regulation A-832. Use Bold for emphasis.
+          Start lines with - for bullets or 1. for a numbered list. Put a blank line between paragraphs.
+        </span>
+      </div>
+    </>
   );
 }
 

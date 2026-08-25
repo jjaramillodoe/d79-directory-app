@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Column, Row, Text, Card, Tag } from '@once-ui-system/core';
 import formQuestionsData from '../../data/formQuestions.json';
 import QuestionCard from './QuestionCard';
+import FormattedCopy from '../FormattedCopy';
 
 const FALLBACK_SECTIONS = [
   { num: 1, title: 'Table of Contents', key: 'tableOfContents' },
@@ -29,6 +30,7 @@ const Step1TableOfContents = ({
   allStepData,
   currentStep,
   questions: questionsProp,
+  intro = '',
   formSteps,
   readOnly = false,
 }) => {
@@ -93,6 +95,18 @@ const Step1TableOfContents = ({
 
   return (
     <Column gap="16" fillWidth>
+      {String(intro || '').trim() ? (
+        <Column
+          padding="20"
+          radius="l"
+          fillWidth
+          border="neutral-medium"
+          background="neutral-alpha-weak"
+          className="app-step-intro"
+        >
+          <FormattedCopy text={intro} />
+        </Column>
+      ) : null}
       <Card padding="20" radius="l" fillWidth direction="column">
         <Column gap="12" fillWidth>
           <Text variant="label-strong-s">Plan sections</Text>

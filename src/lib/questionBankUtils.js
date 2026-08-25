@@ -28,6 +28,7 @@ function cloneSteps(steps) {
       if (typeof next.gatesFollowing !== 'boolean') next.gatesFollowing = Boolean(next.gatesFollowing);
       return next;
     });
+    cloned.intro = typeof cloned.intro === 'string' ? cloned.intro : '';
     return cloned;
   });
 }
@@ -240,11 +241,24 @@ function sanitizeQuestionUpdates(updates = {}) {
   return sanitized;
 }
 
+function sanitizeStepUpdates(updates = {}) {
+  const sanitized = {};
+  if (Object.prototype.hasOwnProperty.call(updates, 'title')) {
+    const title = String(updates.title || '').trim();
+    if (title) sanitized.title = title;
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'intro')) {
+    sanitized.intro = String(updates.intro ?? '');
+  }
+  return sanitized;
+}
+
 function stepsSignature(steps) {
   const normalized = cloneSteps(steps).map((step) => ({
     id: step.id,
     key: step.key,
     title: step.title,
+    intro: step.intro || '',
     questions: sortQuestions(step.questions).map((question) => ({
       id: question.id,
       question_number: question.question_number || '',
@@ -329,6 +343,7 @@ module.exports = {
   nextStepKey,
   nextStepId,
   sanitizeQuestionUpdates,
+  sanitizeStepUpdates,
   hasUnpublishedChanges,
   summarizeTemplate,
   toClientTemplate,

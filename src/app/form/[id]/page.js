@@ -1200,6 +1200,7 @@ function FormPageContent() {
           allStepData={stepData}
           currentStep={currentStep}
           questions={stepQuestions}
+          intro={stepConfig?.intro || ''}
           formSteps={FORM_STEPS}
           readOnly={formLocked || userPermissions === 'view'}
         />
@@ -1211,6 +1212,7 @@ function FormPageContent() {
         <GenericFormStep
           stepKey={stepKey}
           stepTitle={stepTitle}
+          intro={stepConfig?.intro || ''}
           questions={stepQuestions}
           stepData={currentStepData}
           updateStepData={updateStepData}

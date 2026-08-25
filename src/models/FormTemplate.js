@@ -21,6 +21,7 @@ const StepSchema = new mongoose.Schema(
     id: { type: Number, required: true },
     key: { type: String, required: true },
     title: { type: String, required: true },
+    intro: { type: String, default: '' },
     questions: { type: [QuestionSchema], default: [] },
   },
   { _id: false, strict: false }

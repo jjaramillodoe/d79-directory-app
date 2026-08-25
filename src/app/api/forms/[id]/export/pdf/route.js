@@ -9,6 +9,7 @@ const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
 const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questionBankUtils');
 const { resolveExportTable, drawPdfTable, pdfSafe } = require('../../../../../../lib/exportTables');
 const { splitFormattedText } = require('../../../../../../lib/linkifyText');
+const { splitCopyBlocks } = require('../../../../../../lib/formattedCopy');
 const { Readable } = require('stream');
 const path = require('path');
 const fs = require('fs');
@@ -76,6 +77,25 @@ function writeFormattedPdfText(doc, text, { bold = false } = {}) {
     }
   });
   doc.fillColor('black');
+}
+
+function writeIntroPdf(doc, intro) {
+  const blocks = splitCopyBlocks(intro);
+  if (!blocks.length) return;
+  doc.fontSize(10).font('Helvetica');
+  blocks.forEach((block) => {
+    if (block.type === 'ul' || block.type === 'ol') {
+      block.items.forEach((item, index) => {
+        const prefix = block.type === 'ol' ? `${index + 1}. ` : '• ';
+        writeFormattedPdfText(doc, `${prefix}${item}`);
+        doc.moveDown(0.15);
+      });
+    } else {
+      writeFormattedPdfText(doc, block.text);
+      doc.moveDown(0.35);
+    }
+  });
+  doc.moveDown(0.5);
 }
 
 // Helper function to get question title by field ID
@@ -231,6 +251,9 @@ async function GET(request, { params }) {
 
         // Get all questions for this step from formQuestions.json
         const stepQuestions = formQuestionsData.steps.find(s => s.key === step.key);
+        if (stepQuestions?.intro) {
+          writeIntroPdf(doc, stepQuestions.intro);
+        }
         const questions = visibleQuestions(stepQuestions?.questions || [], stepData);
         
         doc.fontSize(10).font('Helvetica');

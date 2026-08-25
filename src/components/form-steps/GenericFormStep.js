@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Column, Text } from '@once-ui-system/core';
 import { questionsForDisplay } from '../../lib/questionBankUtils';
 import QuestionCard from './QuestionCard';
+import FormattedCopy from '../FormattedCopy';
 
 export default function GenericFormStep({
   stepKey,
   questions = [],
+  intro = '',
   stepData,
   updateStepData,
   currentStep,
@@ -55,8 +57,9 @@ export default function GenericFormStep({
 
   const displayQuestions = questionsForDisplay(questions, formData);
   const flagMap = new Map((needsUpdate || []).map((item) => [item.questionId, item]));
+  const hasIntro = Boolean(String(intro || '').trim());
 
-  if (displayQuestions.length === 0) {
+  if (displayQuestions.length === 0 && !hasIntro) {
     return (
       <Text onBackground="neutral-weak">No active questions in this section.</Text>
     );
@@ -64,6 +67,18 @@ export default function GenericFormStep({
 
   return (
     <Column gap="16" fillWidth horizontal="stretch" className="app-form-questions" style={{ width: '100%' }}>
+      {hasIntro ? (
+        <Column
+          padding="20"
+          radius="l"
+          fillWidth
+          border="neutral-medium"
+          background="neutral-alpha-weak"
+          className="app-step-intro"
+        >
+          <FormattedCopy text={intro} />
+        </Column>
+      ) : null}
       {displayQuestions.map((question) => (
         <QuestionCard
           key={question.id}

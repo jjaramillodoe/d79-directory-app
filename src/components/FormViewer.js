@@ -19,6 +19,7 @@ import { TableDisplay } from './form-steps/TableAnswerField';
 import { isTableValue } from '../lib/tableAnswer';
 import { visibleQuestions, formatYesNo, isGateQuestion } from '../lib/questionBankUtils';
 import QuestionPrompt from './QuestionPrompt';
+import FormattedCopy from './FormattedCopy';
 
 const FormViewer = ({ form }) => {
   const { questionBank } = useQuestionBank();
@@ -473,6 +474,12 @@ const FormViewer = ({ form }) => {
                 </div>
               </div>
             </div>
+
+            {step.intro ? (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <FormattedCopy text={step.intro} />
+              </div>
+            ) : null}
 
             {/* Step Questions and Answers */}
             <div className="space-y-6">

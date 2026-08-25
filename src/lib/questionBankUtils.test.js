@@ -9,6 +9,7 @@ const {
   questionsForDisplay,
   hasMeaningfulAnswer,
   sanitizeQuestionUpdates,
+  sanitizeStepUpdates,
 } = require('./questionBankUtils');
 
 const questions = [
@@ -132,4 +133,16 @@ test('sanitize keeps gatesFollowing on checkbox questions', () => {
   assert.equal(kept.gatesFollowing, true);
   const cleared = sanitizeQuestionUpdates({ type: 'textarea', gatesFollowing: true });
   assert.equal(cleared.gatesFollowing, false);
+});
+
+test('sanitizeStepUpdates keeps intro text and a non-empty title', () => {
+  const kept = sanitizeStepUpdates({
+    title: '  Respect For All Plan  ',
+    intro: '**Required.** See [A-832](https://www.schools.nyc.gov/).',
+  });
+  assert.equal(kept.title, 'Respect For All Plan');
+  assert.equal(kept.intro.includes('A-832'), true);
+  const emptyTitle = sanitizeStepUpdates({ title: '   ', intro: '' });
+  assert.equal(Object.prototype.hasOwnProperty.call(emptyTitle, 'title'), false);
+  assert.equal(emptyTitle.intro, '');
 });

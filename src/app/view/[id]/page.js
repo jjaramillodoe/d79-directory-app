@@ -201,6 +201,7 @@ export default function FormViewPage() {
           allStepData={stepData}
           currentStep={1}
           questions={stepConfig?.questions || []}
+          intro={stepConfig?.intro || ''}
           formSteps={FORM_STEPS}
           readOnly
         />
@@ -211,6 +212,7 @@ export default function FormViewPage() {
       <GenericFormStep
         stepKey={stepKey}
         stepTitle={`Section ${step.id}: ${step.title}`}
+        intro={stepConfig?.intro || ''}
         questions={stepConfig?.questions || []}
         stepData={currentStepData}
         updateStepData={dummyUpdate}

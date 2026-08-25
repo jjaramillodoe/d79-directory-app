@@ -821,3 +821,17 @@
   color: #1e40af;
 }
 
+.once-ui-root .app-copy-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: inherit;
+}
+
+.once-ui-root .app-copy-list li {
+  margin-bottom: 0.35rem;
+}
+
+.once-ui-root .app-step-intro {
+  width: 100%;
+}
+

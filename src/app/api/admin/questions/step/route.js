@@ -4,14 +4,10 @@ import { getServerSession } from 'next-auth';
 const { authOptions } = require('../../../../../lib/auth');
 const connectDB = require('../../../../../lib/mongodb');
 const { getDraftTemplate, auditRequest } = require('../../../../../lib/questionBank');
-const {
-  nextStepId,
-  nextStepKey,
-  toClientTemplate,
-} = require('../../../../../lib/questionBankUtils');
+const { sanitizeStepUpdates, toClientTemplate } = require('../../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../../lib/auditLogger');
 
-export async function POST(request) {
+export async function PATCH(request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -22,9 +18,14 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const title = String(body?.title || '').trim();
-    if (!title) {
-      return NextResponse.json({ error: 'Step title is required' }, { status: 400 });
+    const { stepKey, updates } = body || {};
+    if (!stepKey) {
+      return NextResponse.json({ error: 'stepKey is required' }, { status: 400 });
+    }
+
+    const sanitized = sanitizeStepUpdates(updates || {});
+    if (Object.keys(sanitized).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
     await connectDB();
@@ -33,15 +34,17 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Draft question bank not found' }, { status: 404 });
     }
 
-    const step = {
-      id: nextStepId(draft.steps),
-      key: nextStepKey(draft.steps, title),
-      title,
-      intro: '',
-      questions: [],
+    const step = draft.steps.find((item) => item.key === stepKey);
+    if (!step) {
+      return NextResponse.json({ error: 'Step not found' }, { status: 404 });
+    }
+
+    const previous = {
+      title: step.title,
+      intro: step.intro || '',
     };
 
-    draft.steps.push(step);
+    Object.assign(step, sanitized);
     draft.updatedBy = session.user.id;
     draft.markModified('steps');
     await draft.save();
@@ -52,8 +55,8 @@ export async function POST(request) {
       userEmail: session.user.email,
       action: 'question_bank_updated',
       targetType: 'system',
-      details: `Added step ${step.key} (${step.title})`,
-      metadata: { stepKey: step.key, stepId: step.id, title: step.title },
+      details: `Updated step ${stepKey}`,
+      metadata: { stepKey, previous, updates: sanitized },
       request: auditRequest(request),
     });
 
@@ -63,7 +66,7 @@ export async function POST(request) {
       draft: toClientTemplate(draft),
     });
   } catch (error) {
-    console.error('Error adding step:', error);
-    return NextResponse.json({ error: 'Failed to add step' }, { status: 500 });
+    console.error('Error updating step:', error);
+    return NextResponse.json({ error: 'Failed to update step' }, { status: 500 });
   }
 }
