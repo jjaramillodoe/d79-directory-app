@@ -107,7 +107,7 @@ const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.pre('save', function (next) {
-  this.updatedAt = Date.now();
+  this.updatedAt = new Date();
   next();
 });
 
@@ -182,4 +182,15 @@ UserSchema.statics.findBySchool = function(schoolName, options = {}) {
   return this.find(query).sort({ name: 1 });
 };
 
-module.exports = mongoose.models.User || mongoose.model('User', UserSchema);
+// See the note in AuditLog.js: naming the type collapses the Model union that otherwise makes
+// every `User.find(...)` call in the app report "This expression is not callable".
+/**
+ * @typedef {import('mongoose').Model<any> & {
+ *   findBySchool: (schoolName: string, options?: { includeInactive?: boolean }) => Promise<any[]>,
+ * }} UserModel
+ */
+
+/** @type {UserModel} */
+const UserModel = mongoose.models.User || mongoose.model('User', UserSchema);
+
+module.exports = UserModel;

@@ -50,5 +50,13 @@ const FormTemplateSchema = new mongoose.Schema(
 FormTemplateSchema.index({ status: 1, version: -1 });
 FormTemplateSchema.index({ version: 1 }, { unique: true });
 
-module.exports =
+// The `mongoose.models.X || mongoose.model(...)` guard keeps Next's dev-time module reloading
+// from redefining the model, but it also gives TypeScript a union of two Model types whose call
+// signatures it cannot reconcile — every `FormTemplate.find(...)` in the app then reports "This
+// expression is not callable". Naming the type collapses the union. Documents stay `any`: the
+// schemas are the real contract and generating interfaces from them is a separate job.
+/** @type {import('mongoose').Model<any>} */
+const FormTemplateModel =
   mongoose.models.FormTemplate || mongoose.model('FormTemplate', FormTemplateSchema);
+
+module.exports = FormTemplateModel;

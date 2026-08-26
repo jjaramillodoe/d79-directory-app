@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "test": "node --test \"src/lib/*.test.js\"",
     "measure:js": "node scripts/measure-initial-js.js dashboard admin/goals admin/users admin/submissions login",
+    "typecheck": "tsc --noEmit",
+    "typecheck:js": "node scripts/typecheck-js.js",
     "migrate-contacts": "node src/scripts/migrate-textarea-contacts.js",
     "seed-users": "node src/scripts/seed-users.js",
     "assign-principals": "node src/scripts/assign-principals-to-forms.js",

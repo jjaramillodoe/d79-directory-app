@@ -45,6 +45,13 @@ const SchoolYearSettingsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports =
-  mongoose.models.SchoolYearSettings ||
-  mongoose.model('SchoolYearSettings', SchoolYearSettingsSchema);
+// The `mongoose.models.X || mongoose.model(...)` guard keeps Next's dev-time module reloading
+// from redefining the model, but it also gives TypeScript a union of two Model types whose call
+// signatures it cannot reconcile — every `SchoolYearSettings.find(...)` in the app then reports "This
+// expression is not callable". Naming the type collapses the union. Documents stay `any`: the
+// schemas are the real contract and generating interfaces from them is a separate job.
+/** @type {import('mongoose').Model<any>} */
+const SchoolYearSettingsModel =
+  mongoose.models.SchoolYearSettings || mongoose.model('SchoolYearSettings', SchoolYearSettingsSchema);
+
+module.exports = SchoolYearSettingsModel;

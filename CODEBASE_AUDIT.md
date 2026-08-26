@@ -832,7 +832,7 @@ The CSP allows `'unsafe-inline'` and `'unsafe-eval'` in `script-src` (`next.conf
 **Type safety**
 
 - [x] Delete `jsconfig.json` (superseded by `tsconfig.json`, and its presence confuses editors). Both declared the identical `@/*` path, so nothing changed.
-- [ ] Enable `checkJs: true` in `tsconfig.json` and fix errors incrementally; then consider `strict: true` for `src/lib/` and `src/models/`.
+- [~] Enable `checkJs: true` in `tsconfig.json` and fix errors incrementally; then consider `strict: true` for `src/lib/` and `src/models/`. Partially done: 497 errors -> 292 via three root-cause fixes, and `npm run typecheck:js` now ratchets the remainder in CI so it can only go down. Not yet enabled in `tsconfig.json` itself, because `ignoreBuildErrors: false` means that would break the build. See the twelfth pass.
 - [x] Either wire `src/types/index.ts` into the codebase via JSDoc `@type` imports or delete it — deleted, because it had gone stale as well as unused. See the sixth pass.
 
 ### Low priority
@@ -842,14 +842,14 @@ The CSP allows `'unsafe-inline'` and `'unsafe-eval'` in `script-src` (`next.conf
 - [ ] Remove the five duplicated secrets from `.env` — this advice replaces "consolidate into one file", which was wrong; see the fifth pass. Neither file is git-tracked, both are gitignored, and `NEXTAUTH_URL` has already drifted.
 - [x] Replace `key={index}` with stable IDs — done for the four sites where it can actually corrupt state (`UserRoleTemplates.js:300`, `PrincipalEmailAutocomplete.js:171`, `admin/users/page.js` audit rows, `UserAnalytics.js:379`). The remaining five are positional-by-definition and were deliberately left; see the seventh pass.
 - [x] Add `export const viewport` to `src/app/layout.js`. Verified in the prerendered HTML; `maximumScale` left unset so pinch-zoom still works.
-- [ ] Standardize on ESM `import` across API routes; several files currently mix `import` and `require` (e.g. `attest/route.js:1-10`).
+- [x] Standardize on ESM `import` across API routes; several files currently mix `import` and `require` (e.g. `attest/route.js:1-10`). All 45 routes converted, plus 12 that exported handlers via `module.exports`. One deliberate `require` remains, in the PDF route, and now explains itself. Verified against a running production server, not just a passing build; see the twelfth pass.
 - [x] ~~Move the `SUPER_ADMIN_APIS` allowlist at `src/proxy.js:12-20` into per-route declarations~~ — not possible as written; middleware cannot import route handlers without pulling the handler graph into the edge bundle. Fixed the underlying problem instead by inverting the default to level 5 and adding a test that fails when a route goes unclassified. Verified there is no gap today: all eight handlers that demand level 5 are covered, and `admin/timeline` enforces level 4 via `requireAdminActor`. This is future-proofing, not a live hole.
-- [ ] Replace `'unsafe-inline'`/`'unsafe-eval'` in the CSP at `next.config.js:61` with nonce-based script allowlisting via the existing proxy middleware.
+- [~] Replace `'unsafe-inline'`/`'unsafe-eval'` in the CSP at `next.config.js:61` with nonce-based script allowlisting via the existing proxy middleware. `'unsafe-eval'` is gone from production, verified by a bundle scan and a headless-browser check. `'unsafe-inline'` remains and needs a decision, because the nonce has two costs the audit did not anticipate. See the twelfth pass.
 - [x] Reconsider `maxPoolSize: 50` at `src/lib/mongodb.js:56` — that ceiling is per serverless instance. Now 10 max / 0 min, env-overridable.
 - [x] ~~Add `experimental.optimizePackageImports` for `recharts` and `lucide-react`~~ — withdrawn, not implemented. Next 16 already optimizes both by default, and the one barrel that isn't covered measured a 0.3% change. See the ninth pass. Wiring up `@next/bundle-analyzer` is still worth doing and is now tracked with the code-splitting item above.
 - [ ] Extract admin CRUD from `admin/questions/page.js` (1,220 lines) and `admin/users/page.js` (1,128 lines) into workspace components, following the `SubmissionsWorkspace.js` pattern that already works well.
-- [ ] Reduce the 311 console statements; route server-side errors through `reportError` and gate client logs behind `NODE_ENV`.
-- [ ] Replace the placeholder images in `docs/` and resolve the `mint.json` / `docs.json` dual config.
+- [x] Reduce the 311 console statements; route server-side errors through `reportError` and gate client logs behind `NODE_ENV`. Now 144, of which 100 are CLI scripts where stdout is the interface. App-code calls went 211 -> 44, every survivor deliberate and documented, and `no-console` is enabled so it cannot creep back. See the twelfth pass.
+- [x] Replace the placeholder images in `docs/` and resolve the `mint.json` / `docs.json` dual config. `mint.json` deleted per Mintlify's own migration guidance; the logo now points at the real `d79logo.png`. The 20 `placehold.co` embeds became source-only notes plus an inventory, because pointing readers at a third-party grey box is worse than showing nothing. See the twelfth pass.
 
 ---
 
@@ -1283,6 +1283,106 @@ Tests 174 passing, lint 0 errors and 64 warnings, build clean, middleware still 
 Caveat: the query and aggregation changes are verified against production data and unit tests,
 not by loading the four admin screens, so the goals, export, rollover, and timeline views
 deserve a click-through.
+
+---
+
+#### Twelfth pass — August 26, 2026 (consistency, logging, types, CSP)
+
+Four of the remaining low-priority items, plus partial progress on two that turned out to
+hide real decisions.
+
+**ESM across the API routes.** All 45 route files now use `import`/`export` only: about 330
+top-level `require` calls converted, 12 files that exported handlers via `module.exports = { GET }`
+switched to `export async function`, and 19 lazy `require` calls inside function bodies hoisted.
+The one survivor is `pdfkit` in the PDF export route, which cannot become an import for two
+independent reasons now recorded at the call site — it has to address the CJS entry directly
+because the ESM one breaks `@swc/helpers` through Turbopack, and it has to sit in a try/catch so
+a broken pdfkit degrades to a reported error instead of taking the route module down at load.
+
+A passing build only proves the imports resolve, not that the CommonJS interop works, and
+`src/lib` and `src/models` are still CommonJS. So this was checked by running the production
+server and hitting the routes: `/api/public/overview` returns 200 with live data, which
+exercises default model imports, named lib imports, mongoose, and Redis in one request. The
+rest correctly return 401 at the middleware.
+
+**Logging.** Added `src/lib/logger.js`, which splits diagnostics from failures: `debug` and
+`warn` minify to empty functions in the production client bundle while `error` keeps its
+`console.error`. That was verified by reading the built chunks rather than assumed, and the
+verification corrected the claim — the call sites and their argument strings survive, so a
+`logger.debug` in a hot loop still costs argument construction. The doc comment says so.
+
+89 `console` calls across 12 client components moved to it. Lib-level failures in
+`activeEditors`, `auth`, `auditLogger`, and `questionBank` now go through `reportError`.
+`redis.js` and `locking.js` deliberately do not: both run on every request or every autosave,
+so an outage would generate one Sentry event per operation and bury the incident it was meant
+to reveal. Both files now say that where a reader will find it.
+
+One real find along the way: `admin/forms/share/route.js` logged the form's school and the
+user's school on every request. Deleted.
+
+`no-console` is now on as a warning allowing `warn` and `error`, so debug tracing cannot come
+back silently. Enabling it surfaced exactly three findings, all legitimate exceptions (the CLI
+measurement script and `logger.js` itself), which is a good sign the app code is clean. Counts:
+311 total at the start of the audit, 144 now, of which 100 are the `src/scripts` CLI tools where
+stdout *is* the interface. App code went 211 to 44, and each of the 44 is deliberate.
+
+Separately, `PrincipalEmailAutocomplete.js` uses four hooks and had no `'use client'`
+directive. It worked only because every current importer is already a client component, so the
+first server-component import would have broken it. Fixed.
+
+**Types.** `checkJs` reported 497 errors. Rather than grinding through them, three root causes
+accounted for 205:
+
+- Every model used `mongoose.models.X || mongoose.model(...)`, which gives TypeScript a union of
+  two `Model` types whose call signatures it cannot reconcile — so all 138 `Model.find(...)`
+  calls in the app reported "This expression is not callable". Naming the type collapses the
+  union. `AuditLog` and `User` also now declare their custom statics, which is documentation as
+  much as typing.
+- `authOptions` had no type, so `strategy: 'jwt'` widened to `string` and every one of the 66
+  routes passing it to `getServerSession` failed. One annotation.
+- `types/next-auth.d.ts` now augments `Session` and `JWT` with the fields this app adds. Worth
+  doing on its own merits: `session.user.level` drives every authorization check in the
+  codebase and was previously untyped and invisible to the editor.
+
+That leaves 292, mostly React prop inference in components. `checkJs` is still off in
+`tsconfig.json`, because `ignoreBuildErrors: false` means turning it on would break the build —
+so instead `npm run typecheck:js` runs it against `tsconfig.checkjs.json` and compares the
+count against a committed baseline, failing if it grows. It also fails when the count *drops*,
+telling you to commit the lower floor, which is what stops the baseline drifting upward. Both
+directions were tested by injecting an error. CI runs it alongside a strict `typecheck` over the
+`.ts` sources, which are clean.
+
+Two errors were investigated as possible bugs and were not: `readAsText` guarantees the
+`FileReader` result is a string, and `acquireLock` includes `degraded` on every path a caller
+reads it from. The `Date.now()` assignments in the save hooks became `new Date()` for clarity;
+mongoose was casting them correctly already.
+
+**CSP, partially.** `'unsafe-eval'` is now development-only. React Refresh needs it; a
+production build does not. Evidence before removing it: zero `new Function(` across all 666
+client chunks and the server build, including the ag-grid, recharts, jspdf, and html2canvas
+chunks, and the four `eval(` hits are keyword strings inside a syntax-highlighter's regexes.
+Then a headless-Chrome run over `/`, `/login`, and `/about` reported no violations. Also added
+`object-src 'none'` and `upgrade-insecure-requests`.
+
+`'unsafe-inline'` stays, and the write-up in the low-priority list was too optimistic about the
+nonce being a middleware change. Two costs it did not anticipate:
+
+1. A nonce must be unique per request, so it cannot be baked into a prerendered page. 16 of
+   this app's 19 pages are prerendered today, including `/`, `/about`, and `/login`. Reading the
+   nonce in the root layout would push all of them into dynamic rendering.
+2. `ThemeInit` from `@once-ui-system/core` injects an inline `<script>` via
+   `dangerouslySetInnerHTML` and accepts no nonce prop. Under a nonce policy the browser blocks
+   it, and because a nonce policy makes the browser ignore `'unsafe-inline'`, there is no way to
+   keep both. Adopting nonces therefore means replacing a third-party component's script with a
+   local nonce-aware copy.
+
+Hashes are not a way out: Next's streaming `self.__next_f.push` scripts differ per page and
+render, so only a nonce can cover them. The remaining question is whether losing static
+rendering on 16 pages is worth closing an XSS amplification path, on an internal app with no
+known injection vector — which is a judgement call for the owner, not a mechanical fix.
+
+Tests 174 passing, lint 0 errors and 64 warnings, `tsc` clean, build clean, production server
+smoke-tested.
 
 ---
 

@@ -9,6 +9,10 @@ if (!process.env.NEXTAUTH_SECRET) {
   throw new Error('NEXTAUTH_SECRET is required');
 }
 
+// Annotated so `strategy: 'jwt'` below is checked against NextAuth's `SessionStrategy` union
+// rather than widening to `string`. Without this, every route that passes `authOptions` to
+// `getServerSession` reports a type error, which was 66 of them.
+/** @type {import('next-auth').AuthOptions} */
 const authOptions = {
   providers: [
     GoogleProvider({

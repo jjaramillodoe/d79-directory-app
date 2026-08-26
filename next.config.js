@@ -58,17 +58,41 @@ const nextConfig = {
     return config;
   },
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    // `'unsafe-eval'` is a development-only allowance. React Refresh and the Turbopack dev
+    // runtime both evaluate code at runtime, so `next dev` needs it; a production build does
+    // not, and leaving it on would hand any future XSS a direct path to eval().
+    //
+    // `'unsafe-inline'` is still here and is the remaining gap. The clean fix is a per-request
+    // nonce, but a nonce cannot be baked into a statically prerendered page, and 16 of this
+    // app's 19 pages are prerendered today — including `/`, `/about`, and `/login`. Adopting
+    // nonces would push all of them into dynamic rendering. That trade is worth making
+    // deliberately rather than as a side effect, so it is written up in CODEBASE_AUDIT.md
+    // instead of being done quietly here.
+    const scriptSrc = [
+      "'self'",
+      "'unsafe-inline'",
+      ...(isDev ? ["'unsafe-eval'"] : []),
+      'https://va.vercel-scripts.com',
+      'https://vitals.vercel-insights.com',
+    ].join(' ');
+
     const contentSecurityPolicy = [
       "default-src 'self'",
       "base-uri 'self'",
       "frame-ancestors 'none'",
       "form-action 'self' https://accounts.google.com",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+      `script-src ${scriptSrc}`,
+      // Once UI ships component styles inline, so this one cannot be dropped without
+      // restyling the design system.
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://accounts.google.com https://vitals.vercel-insights.com https://va.vercel-scripts.com",
       "frame-src https://accounts.google.com",
+      "object-src 'none'",
+      'upgrade-insecure-requests',
     ].join('; ');
 
     return [

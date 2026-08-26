@@ -1,0 +1,14 @@
+{
+  // Turns on type checking for the .js sources, which the main tsconfig deliberately leaves
+  // off. Enabling `checkJs` in tsconfig.json today would break `next build`, because
+  // next.config.js sets `typescript.ignoreBuildErrors: false` and there are still errors
+  // outstanding. This config exists so the remaining errors can be counted, ratcheted down,
+  // and eventually folded into the main config.
+  //
+  // Run it with `npm run typecheck:js`, which compares the count against the committed
+  // baseline and fails if it grows.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "checkJs": true
+  }
+}

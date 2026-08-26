@@ -91,5 +91,14 @@ FormCommentSchema.index({ reviewedBy: 1, reviewedAt: -1 });
 FormCommentSchema.index({ isActive: 1 });
 FormCommentSchema.index({ isFixed: 1 });
 
-module.exports = mongoose.models.FormComment || mongoose.model('FormComment', FormCommentSchema);
+// The `mongoose.models.X || mongoose.model(...)` guard keeps Next's dev-time module reloading
+// from redefining the model, but it also gives TypeScript a union of two Model types whose call
+// signatures it cannot reconcile — every `FormComment.find(...)` in the app then reports "This
+// expression is not callable". Naming the type collapses the union. Documents stay `any`: the
+// schemas are the real contract and generating interfaces from them is a separate job.
+/** @type {import('mongoose').Model<any>} */
+const FormCommentModel =
+  mongoose.models.FormComment || mongoose.model('FormComment', FormCommentSchema);
+
+module.exports = FormCommentModel;
 

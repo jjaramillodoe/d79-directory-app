@@ -171,5 +171,21 @@ AuditLogSchema.statics.countLogs = async function(filters = {}) {
   return this.countDocuments(this.buildQuery(filters));
 };
 
-module.exports = mongoose.models.AuditLog || mongoose.model('AuditLog', AuditLogSchema);
+// The `mongoose.models.X || mongoose.model(...)` guard keeps Next's dev-time module reloading
+// from redefining the model, but it also gives TypeScript a union of two Model types whose call
+// signatures it cannot reconcile. Naming the type collapses the union, and spelling out the
+// statics means callers such as the audit-logs route see them instead of an error.
+/**
+ * @typedef {import('mongoose').Model<any> & {
+ *   createLog: (data: Record<string, any>) => Promise<any>,
+ *   buildQuery: (filters?: Record<string, any>) => Record<string, any>,
+ *   getLogs: (filters?: Record<string, any>) => Promise<any[]>,
+ *   countLogs: (filters?: Record<string, any>) => Promise<number>,
+ * }} AuditLogModel
+ */
+
+/** @type {AuditLogModel} */
+const AuditLogModel = mongoose.models.AuditLog || mongoose.model('AuditLog', AuditLogSchema);
+
+module.exports = AuditLogModel;
 

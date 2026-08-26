@@ -291,7 +291,7 @@ const FormSubmissionSchema = new mongoose.Schema({
 });
 
 FormSubmissionSchema.pre('save', function (next) {
-  this.updatedAt = Date.now();
+  this.updatedAt = new Date();
   
   // Auto-calculate completed steps and update metadata - use correct step mapping
   const stepNumberMap = {
@@ -386,4 +386,13 @@ FormSubmissionSchema.index(
   }
 );
 
-module.exports = mongoose.models.FormSubmission || mongoose.model('FormSubmission', FormSubmissionSchema);
+// The `mongoose.models.X || mongoose.model(...)` guard keeps Next's dev-time module reloading
+// from redefining the model, but it also gives TypeScript a union of two Model types whose call
+// signatures it cannot reconcile — every `FormSubmission.find(...)` in the app then reports "This
+// expression is not callable". Naming the type collapses the union. Documents stay `any`: the
+// schemas are the real contract and generating interfaces from them is a separate job.
+/** @type {import('mongoose').Model<any>} */
+const FormSubmissionModel =
+  mongoose.models.FormSubmission || mongoose.model('FormSubmission', FormSubmissionSchema);
+
+module.exports = FormSubmissionModel;

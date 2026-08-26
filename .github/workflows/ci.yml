@@ -40,6 +40,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Type checking runs twice on purpose. `typecheck` is the strict gate over the .ts
+      # sources, which are clean. `typecheck:js` is a ratchet over the .js sources, which are
+      # not yet: it fails only if the error count moves off the committed baseline in either
+      # direction, so new type errors cannot land and fixes cannot go unrecorded.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Typecheck (JS ratchet)
+        run: npm run typecheck:js
+
       - name: Build
         run: npm run build
 
