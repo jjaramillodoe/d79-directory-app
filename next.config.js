@@ -64,12 +64,19 @@ const nextConfig = {
     // runtime both evaluate code at runtime, so `next dev` needs it; a production build does
     // not, and leaving it on would hand any future XSS a direct path to eval().
     //
-    // `'unsafe-inline'` is still here and is the remaining gap. The clean fix is a per-request
-    // nonce, but a nonce cannot be baked into a statically prerendered page, and 16 of this
-    // app's 19 pages are prerendered today — including `/`, `/about`, and `/login`. Adopting
-    // nonces would push all of them into dynamic rendering. That trade is worth making
-    // deliberately rather than as a side effect, so it is written up in CODEBASE_AUDIT.md
-    // instead of being done quietly here.
+    // `'unsafe-inline'` stays, as a decision rather than an oversight. The clean fix is a
+    // per-request nonce, which costs two things here:
+    //
+    //   1. A nonce cannot be baked into a prerendered page, and 16 of this app's 19 pages are
+    //      prerendered — including `/`, `/about`, and `/login`. Reading a nonce in the root
+    //      layout pushes all of them into dynamic rendering.
+    //   2. `ThemeInit` from @once-ui-system/core injects an inline script and takes no nonce
+    //      prop. A nonce policy makes the browser ignore `'unsafe-inline'`, so there is no way
+    //      to keep both — adopting nonces means replacing that third-party script locally.
+    //
+    // Hashes are not an escape: Next's streaming `self.__next_f.push` scripts differ per page
+    // and per render. Weighed against no known injection vector, the owner declined the trade
+    // on 2026-08-26. Revisit if user-supplied content ever reaches the DOM unescaped.
     const scriptSrc = [
       "'self'",
       "'unsafe-inline'",
