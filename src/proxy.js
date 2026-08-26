@@ -46,6 +46,21 @@ export async function proxy(request) {
     return NextResponse.next();
   }
 
+  // The client error sink has to work without a session, because a broken deploy strands people
+  // on the sign-in page. Rate limited here rather than in the route so a flood is rejected at
+  // the edge, using the same `failClosed` rule as the auth limiter above: an unauthenticated
+  // write endpoint should not accept traffic it cannot meter, and production already depends on
+  // Redis for that reason. Ten per five minutes is generous for a reporter that caps itself at
+  // five per page load, and tight enough that this cannot be used as a log-injection channel.
+  if (pathname === '/api/client-errors') {
+    if (request.method !== 'POST') {
+      return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+    }
+    const limited = await rateLimit(`rl:clienterr:${clientIp(request)}`, 10, 300, { failClosed });
+    if (!limited.ok) return tooMany(limited.retryAfter);
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,

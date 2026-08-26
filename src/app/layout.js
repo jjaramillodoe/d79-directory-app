@@ -7,6 +7,7 @@ import { Providers } from './providers'
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeInit } from '@once-ui-system/core';
 import { style, dataStyle } from '../resources/once-ui.config';
+import ClientErrorReporter from '../components/ClientErrorReporter';
 
 export const metadata = {
   title: 'District 79 - Consolidated School Plan',
@@ -101,6 +102,8 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body style={{ margin: 0 }} suppressHydrationWarning>
+        {/* Outside Providers so it still reports if a provider is what threw. */}
+        <ClientErrorReporter />
         <Providers>
           {children}
         </Providers>

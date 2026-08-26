@@ -822,7 +822,7 @@ The CSP allows `'unsafe-inline'` and `'unsafe-eval'` in `script-src` (`next.conf
 - [x] Fix `refreshLock`'s strict comparison at `src/lib/locking.js:226` to use the same `sameUser()` helper as release (line 187). The in-memory fallback and auto-expire timer had it too.
 - [x] ~~Make lock acquisition fail closed~~ — resolved by surfacing degraded mode instead; failing closed was the wrong call, see the fifth pass below.
 - [x] Expand `reportError` coverage beyond the current 8 of 47 routes — now 45 of 46, the holdout being the NextAuth catch-all, which has no error handling of its own. Applied as a mechanical, semantics-preserving swap; see the eleventh pass.
-- [ ] Add client-side error reporting. Deliberately left open rather than half-done: the two implementations differ enough to be a real decision, and `SENTRY_DSN` is currently blank so nothing is being captured on the server either. See the eleventh pass for the trade-off.
+- [x] Add client-side error reporting. Built as the zero-dependency option: `window` handlers posting to a rate-limited `/api/client-errors` that funnels into the same `reportError` the server uses, so provisioning `SENTRY_DSN` later starts capturing browser errors with no further changes. Verified in a real browser, including the two guards that stop a render loop becoming a request flood. See the thirteenth pass.
 
 **Testing**
 
@@ -1383,6 +1383,46 @@ known injection vector — which is a judgement call for the owner, not a mechan
 
 Tests 174 passing, lint 0 errors and 64 warnings, `tsc` clean, build clean, production server
 smoke-tested.
+
+---
+
+#### Thirteenth pass — August 26, 2026 (client-side error reporting)
+
+Took the zero-dependency option over `@sentry/nextjs`. The reasoning from the eleventh pass
+still holds — Sentry's browser SDK costs roughly 35 KB gzipped on every page, which works
+against the code-splitting work, and `SENTRY_DSN` is blank so it would capture nothing today —
+but the deciding factor is that this choice is not exclusive. `/api/client-errors` funnels into
+the same `reportError` the server already uses, so provisioning a DSN later starts capturing
+browser errors through the existing path with no further changes. Until then the reports land in
+the platform logs, which is still the difference between knowing and not knowing.
+
+The hard part of a client error reporter is not sending the error, it is not making a bad
+situation worse: a component throwing in a render loop can throw thousands of times a second.
+Three guards, and both of the ones that matter were tested rather than reasoned about:
+
+- An in-flight flag, so a failure inside the reporting path cannot recurse.
+- Signature dedupe, which is what actually kills the render-loop case.
+- A five-per-page-load budget, as a backstop for errors that vary slightly each time.
+
+Driving a real headless browser: one uncaught error and one unhandled rejection each produced
+one report; the same error thrown 50 more times produced none; six distinct errors after that
+produced exactly three, stopping at the budget of five. Five entries reached the server with
+their stacks intact. `sendBeacon` is used where available so a report survives the navigation or
+tab close that often follows a crash.
+
+The endpoint is unauthenticated on purpose, because the sign-in page is exactly where a broken
+deploy strands people. That makes it a public write endpoint, so it is metered in the middleware
+at ten per five minutes per IP before it reaches the route, and every field is truncated. Also
+verified: 405 on non-POST, 204 on success, 429 once the window is exhausted, and 204 with
+nothing reported for a payload with no message.
+
+One correction during the work: the limiter was first written `failClosed: true`, which would
+have rejected every report in a deployment without Redis. It now uses the same `failClosed` rule
+as the auth limiter directly above it, so the behavior matches the rest of the app instead of
+inventing a stricter rule in one place.
+
+Tests 174 passing, lint 0 errors and 64 warnings, `tsc` clean, `checkJs` baseline unchanged at
+292, build clean.
 
 ---
 
