@@ -5,9 +5,11 @@ const User = require('../models/User');
 const { denyToken, isTokenDenied } = require('./redis');
 const { reportError } = require('./reportError');
 
-if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error('NEXTAUTH_SECRET is required');
-}
+// Do not throw at import time. `next build --webpack` evaluates every API route while
+// collecting page data, which loads this module. Preview deployments often have
+// NEXTAUTH_SECRET only at runtime (or only on Production), so a throw here fails the
+// Vercel build after a successful compile. NextAuth still refuses to mint sessions
+// without `secret` at request time.
 
 // Annotated so `strategy: 'jwt'` below is checked against NextAuth's `SessionStrategy` union
 // rather than widening to `string`. Without this, every route that passes `authOptions` to

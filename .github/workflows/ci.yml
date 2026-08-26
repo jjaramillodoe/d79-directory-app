@@ -16,8 +16,8 @@ jobs:
     timeout-minutes: 15
 
     env:
-      # src/lib/auth.js throws at import time without this, which would fail the build
-      # before it compiled anything. This is a throwaway value for CI only.
+      # Throwaway value so NextAuth has a secret if a test or the build evaluates
+      # authOptions. Preview/production must set the real secret in Vercel.
       NEXTAUTH_SECRET: ci-placeholder-secret-not-used-for-real-sessions
       # No database or Redis is reachable from CI. Both clients degrade rather than
       # throw, so the build still completes; these keep the failure paths predictable.

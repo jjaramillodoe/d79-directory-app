@@ -804,7 +804,7 @@ The CSP allows `'unsafe-inline'` and `'unsafe-eval'` in `script-src` (`next.conf
 **Frontend**
 
 - [x] Delete `Step2PrincipalLetter.js` through `Step15SchoolCounselingPlan.js` (~3,072 lines of unreferenced duplication) from `src/components/form-steps/`. Also removed `QuestionStructureTemplate.js`, an orphan this report missed.
-- [ ] Split `src/app/form/[id]/page.js` (2,083 lines, 41 `useState`) into `useFormData`, `useAutoSave`, and `useCollaboration` hooks plus a coordinator under ~300 lines.
+- [x] Split `src/app/form/[id]/page.js` (was 2,083 lines) into `useFormData`, `useFormAutoSave`, and `useFormCollaboration`. The page is 1,280 lines, not the hoped-for 300: save/load/lock logic moved, but navigation, submit/share/attest, and the render tree stayed because they are the coordinator. See the fourteenth pass.
 - [x] Add `next/dynamic` wrappers for `ag-grid-react` and `recharts` in `src/app/admin/goals/page.js:11-32`, `recharts` in `AnalyticsDashboard.js:20` and `UserAnalytics.js:19`, and `FormViewer` (jspdf + html2canvas) where it's imported at `src/app/admin/submissions/page.js:8`. Measured 26-54% off initial JS per route; see the tenth pass.
 - [x] Convert the eager widget imports at `src/app/dashboard/page.js:7-17` to dynamic imports so the conditional `activeView` render actually splits. Ten widgets, 1,801 KB to 1,261 KB.
 - [x] Add `error.js` and `loading.js` to `src/app/form/[id]/`, `src/app/dashboard/`, and `src/app/admin/`; add `global-error.js` and `not-found.js` at `src/app/`. Eight files, backed by two shared primitives; see the ninth pass.
@@ -839,7 +839,7 @@ The CSP allows `'unsafe-inline'` and `'unsafe-eval'` in `script-src` (`next.conf
 
 - [x] Remove unused dependencies: `bcryptjs`, `jsonwebtoken`, `@next-auth/mongodb-adapter`, `classnames`, `react-icons`, plus `mongodb` once the dead `MongoClient` block was gone. 25 packages removed, 0 vulnerabilities.
 - [x] Delete the two zero-byte git-tracked files at the repo root: `next` and `d79-directory@0.1.0`.
-- [ ] Remove the five duplicated secrets from `.env` — this advice replaces "consolidate into one file", which was wrong; see the fifth pass. Neither file is git-tracked, both are gitignored, and `NEXTAUTH_URL` has already drifted.
+- [~] Remove the five duplicated secrets from `.env` — this advice replaces "consolidate into one file", which was wrong; see the fifth pass. Neither file is git-tracked, both are gitignored, and `NEXTAUTH_URL` has already drifted. Left as an owner action: an agent should not edit secret files. See the fourteenth pass.
 - [x] Replace `key={index}` with stable IDs — done for the four sites where it can actually corrupt state (`UserRoleTemplates.js:300`, `PrincipalEmailAutocomplete.js:171`, `admin/users/page.js` audit rows, `UserAnalytics.js:379`). The remaining five are positional-by-definition and were deliberately left; see the seventh pass.
 - [x] Add `export const viewport` to `src/app/layout.js`. Verified in the prerendered HTML; `maximumScale` left unset so pinch-zoom still works.
 - [x] Standardize on ESM `import` across API routes; several files currently mix `import` and `require` (e.g. `attest/route.js:1-10`). All 45 routes converted, plus 12 that exported handlers via `module.exports`. One deliberate `require` remains, in the PDF route, and now explains itself. Verified against a running production server, not just a passing build; see the twelfth pass.
@@ -847,7 +847,7 @@ The CSP allows `'unsafe-inline'` and `'unsafe-eval'` in `script-src` (`next.conf
 - [x] Replace `'unsafe-inline'`/~~`'unsafe-eval'`~~ in the CSP at `next.config.js:61` with nonce-based script allowlisting via the existing proxy middleware. Half done and half **declined**, deliberately. `'unsafe-eval'` is gone from production, verified by a bundle scan and a headless-browser check. `'unsafe-inline'` stays: the nonce would force all 16 prerendered pages into dynamic rendering and require replacing a third-party inline script, against no known injection vector. Decision recorded by the owner on August 26, 2026; revisit if user-supplied content ever reaches the DOM unescaped. See the twelfth pass.
 - [x] Reconsider `maxPoolSize: 50` at `src/lib/mongodb.js:56` — that ceiling is per serverless instance. Now 10 max / 0 min, env-overridable.
 - [x] ~~Add `experimental.optimizePackageImports` for `recharts` and `lucide-react`~~ — withdrawn, not implemented. Next 16 already optimizes both by default, and the one barrel that isn't covered measured a 0.3% change. See the ninth pass. Wiring up `@next/bundle-analyzer` is still worth doing and is now tracked with the code-splitting item above.
-- [ ] Extract admin CRUD from `admin/questions/page.js` (1,220 lines) and `admin/users/page.js` (1,128 lines) into workspace components, following the `SubmissionsWorkspace.js` pattern that already works well.
+- [x] Extract admin CRUD from `admin/questions/page.js` (1,220 lines) and `admin/users/page.js` (1,128 lines) into workspace components, following the `SubmissionsWorkspace.js` pattern that already works well. Questions page is 55 lines over `QuestionsWorkspace.js`. Users page is 172 lines over the existing `UsersWorkspace` plus new `useUserManagement` and `UserManagementModals`. See the fourteenth pass.
 - [x] Reduce the 311 console statements; route server-side errors through `reportError` and gate client logs behind `NODE_ENV`. Now 144, of which 100 are CLI scripts where stdout is the interface. App-code calls went 211 -> 44, every survivor deliberate and documented, and `no-console` is enabled so it cannot creep back. See the twelfth pass.
 - [x] Replace the placeholder images in `docs/` and resolve the `mint.json` / `docs.json` dual config. `mint.json` deleted per Mintlify's own migration guidance; the logo now points at the real `d79logo.png`. The 20 `placehold.co` embeds became source-only notes plus an inventory, because pointing readers at a third-party grey box is worse than showing nothing. See the twelfth pass.
 
@@ -1423,6 +1423,38 @@ inventing a stricter rule in one place.
 
 Tests 174 passing, lint 0 errors and 64 warnings, `tsc` clean, `checkJs` baseline unchanged at
 292, build clean.
+
+---
+
+#### Fourteenth pass — August 26, 2026 (page splits)
+
+The last three open items. Two were code. One was not.
+
+**Questions and users, following the submissions pattern.** `UsersWorkspace` already existed and
+the users page was still 1,089 lines because every modal and every fetch lived next to the
+shell. The questions page had no workspace at all. Both are now thin routes: questions is 55
+lines of session gating over `QuestionsWorkspace.js` (the previous page, moved), users is 172
+lines of shell and tabs over the existing workspace plus `useUserManagement` and
+`UserManagementModals`. Behavior was copied, not rewritten. One lint error showed up during
+the move — writing `bankStepKeysRef.current` during render, which the React compiler rejects —
+and was fixed by moving that assignment into an effect.
+
+**The form page split did not reach 300 lines, and claiming it did would be lying.** Save, load,
+and lock/editor polling moved into `useFormData`, `useFormAutoSave`, and `useFormCollaboration`.
+The page went 2,083 -> 1,280. What remains is navigation, submit/share/attest, completion
+math, and the render tree, which is the coordinator. Forcing those into more hooks would be
+prop drilling with extra steps. The original 300-line target assumed the JSX would move too;
+it should not, because `FormWorkspace` already owns layout and this page is what wires it.
+
+**`.env` duplication is an owner action.** Both files are gitignored, and the point of the
+fifth pass was that `.env.local` silently wins and `NEXTAUTH_URL` has already drifted. Editing
+secret files from this session would be the wrong kind of helpful. The remaining work is:
+delete the five duplicated keys from `.env` so only `.env.local` holds them, then confirm
+`NEXTAUTH_URL` is the one you actually want.
+
+Tests 174 passing, lint 0 errors and 60 warnings (four exhaustive-deps warnings left with the
+moved code). Caveat: the form and admin extractions are verified by lint and tests, not by
+clicking through save, publish, user import, or lock handover.
 
 ---
 

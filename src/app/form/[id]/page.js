@@ -21,6 +21,9 @@ import FormConfirmModal from '../../../components/form-steps/FormConfirmModal';
 import ScrollToTop from '../../../components/ScrollToTop';
 import useQuestionBank from '../../../hooks/useQuestionBank';
 import useAppToast from '../../../hooks/useAppToast';
+import useFormData from '../../../hooks/useFormData';
+import useFormAutoSave from '../../../hooks/useFormAutoSave';
+import useFormCollaboration from '../../../hooks/useFormCollaboration';
 import { Spinner, Column, Row, Text, Button } from '@once-ui-system/core';
 import * as logger from '../../../lib/logger';
 
@@ -34,10 +37,12 @@ function FormPageContent() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const currentStepRef = useRef(1);
-  const formHydratedRef = useRef(false);
+  const bankStepKeysRef = useRef([]);
   const lockDegradedNotifiedRef = useRef(false);
+  const redirectTimeoutRef = useRef(null);
+  const redirectCountdownRef = useRef(null);
+  const saveReminderTimeoutRef = useRef(null);
 
-  // Autosave fires often, so warn once per visit instead of on every save.
   const notifyLockDegraded = useCallback(() => {
     if (lockDegradedNotifiedRef.current) return;
     lockDegradedNotifiedRef.current = true;
@@ -45,10 +50,37 @@ function FormPageContent() {
       'Your work is saving normally, but we cannot currently tell you if a colleague is editing the same section. Check with your team before making large changes.'
     );
   }, [toast]);
-  const [formData, setFormData] = useState({
-    schoolName: '',
-    status: 'draft'
+
+  const form = useFormData({
+    formId,
+    session,
+    router,
+    toast,
+    bankStepKeysRef,
+    currentStepRef,
+    setCurrentStep,
   });
+  const {
+    formData,
+    collaborationInfo,
+    userPermissions,
+    stepData,
+    setStepData,
+    loading,
+    needsUpdate,
+    setNeedsUpdate,
+    formLocked,
+    yearArchived,
+    allowEditsWhenArchived,
+    formDeadlines,
+    attestation,
+    setAttestation,
+    duplicatedFrom,
+    comments,
+    setComments,
+    loadFormData,
+  } = form;
+
   const isDraftForm = (formData.status || 'draft') === 'draft';
   const isSuperAdminActor =
     Number(session?.user?.level) === 5 || Number(session?.actorLevel) === 5;
@@ -59,26 +91,59 @@ function FormPageContent() {
     draft: previewDraftBank,
     preferPublished: isDraftForm && !previewDraftBank,
   });
-  const [collaborationInfo, setCollaborationInfo] = useState(null);
-  const [userPermissions, setUserPermissions] = useState(null); // 'owner', 'edit', 'view', or null
-  const [stepData, setStepData] = useState({});
-  const [loading, setLoading] = useState(true);
+
+  const FORM_STEPS = (questionBank.steps || []).map((step, index) => ({
+    id: index + 1,
+    title: step.title,
+    key: step.key,
+  }));
+  const bankStepKeys = FORM_STEPS.map((step) => step.key);
+  const getStepKey = (step) => FORM_STEPS[step - 1]?.key || null;
+  const getStepNumberFromKey = (stepKey) => {
+    const index = bankStepKeys.indexOf(stepKey);
+    return index >= 0 ? index + 1 : 0;
+  };
+
+  const collaboration = useFormCollaboration({
+    formId,
+    session,
+    currentStep,
+    getStepKey,
+  });
+  const { activeLocks, activeEditors, setCurrentLockedStep } = collaboration;
+
+  const autosave = useFormAutoSave({
+    formId,
+    currentStep,
+    getStepKey,
+    getStepNumberFromKey,
+    bankStepKeys,
+    stepData,
+    setStepData,
+    userPermissions,
+    formLocked,
+    notifyLockDegraded,
+    setCurrentLockedStep,
+    saveReminderTimeoutRef,
+  });
+  const {
+    autoSaving,
+    lastSaved,
+    setLastSaved,
+    showSaveReminder,
+    setShowSaveReminder,
+    saveError,
+    setSaveError,
+    saveCurrentStep,
+    updateStepData,
+    getCurrentStepData,
+  } = autosave;
+
   const [saving, setSaving] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(0);
-  // Timer handles, never read while rendering. As state they forced re-renders and, worse,
-  // made the unmount cleanup below depend on them, so it re-ran on every change instead of
-  // only on unmount.
-  const redirectTimeoutRef = useRef(null);
-  const redirectCountdownRef = useRef(null);
-  const saveReminderTimeoutRef = useRef(null);
-  const [autoSaving, setAutoSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState(null);
-  const [showSaveReminder, setShowSaveReminder] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  const [comments, setComments] = useState([]); // All comments for this form
-  const [showCommentModal, setShowCommentModal] = useState(false); // For super admin to add comments
+  const [showCommentModal, setShowCommentModal] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentStatus, setCommentStatus] = useState('under_review');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -87,28 +152,15 @@ function FormPageContent() {
   const [submitConfirm, setSubmitConfirm] = useState(null);
   const [unshareEmail, setUnshareEmail] = useState('');
   const [attestName, setAttestName] = useState('');
-  const [needsUpdate, setNeedsUpdate] = useState([]);
-  const [formLocked, setFormLocked] = useState(false);
-  const [yearArchived, setYearArchived] = useState(false);
-  const [allowEditsWhenArchived, setAllowEditsWhenArchived] = useState(false);
-  const [formDeadlines, setFormDeadlines] = useState([]);
-  const [attestation, setAttestation] = useState(null);
-  const [duplicatedFrom, setDuplicatedFrom] = useState(null);
   const [shareEmails, setShareEmails] = useState('');
   const [sharePermissions, setSharePermissions] = useState('view');
   const [sharedWithEmails, setSharedWithEmails] = useState([]);
   const [sharing, setSharing] = useState(false);
-  const [activeLocks, setActiveLocks] = useState({}); // { stepKey: { lockedBy: { userName, email }, lockedAt, expiresAt } }
-  const [currentLockedStep, setCurrentLockedStep] = useState(null); // Track which step we have locked
-  const [activeEditors, setActiveEditors] = useState([]); // Array of active editors: [{ userId, userName, email, stepKey, lastSeen }]
 
-  // Check if this is a print view
   const isPrintView = searchParams.get('print') === 'true';
 
-  // Handle print functionality
   useEffect(() => {
     if (isPrintView) {
-      // Hide navigation elements for print
       const style = document.createElement('style');
       style.textContent = `
         @media print {
@@ -120,8 +172,6 @@ function FormPageContent() {
         }
       `;
       document.head.appendChild(style);
-      
-      // Auto-print when page loads
       setTimeout(() => {
         window.print();
       }, 1000);
@@ -132,7 +182,10 @@ function FormPageContent() {
     currentStepRef.current = currentStep;
   }, [currentStep]);
 
-  // Load form data when session and formId are available
+  useEffect(() => {
+    bankStepKeysRef.current = bankStepKeys;
+  }, [bankStepKeys]);
+
   useEffect(() => {
     if (session?.user && formId && formId !== 'undefined' && formId !== 'null') {
       loadFormData();
@@ -141,31 +194,20 @@ function FormPageContent() {
       toast.error('Invalid form ID. Redirecting to dashboard…');
       setTimeout(() => router.push('/dashboard'), 500);
     }
-    // session object identity changes often; only reload when the user or form changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.email, formId]);
 
-  // Handle authentication
   useEffect(() => {
-    if (status === 'loading') return; // Still loading
-    
+    if (status === 'loading') return;
     if (!session) {
       router.push('/login');
       return;
     }
-
-    // Check if user has permission (Level 1+ can view forms they're assigned to)
     if (session.user.level < 1) {
       router.push('/dashboard');
-      return;
     }
   }, [session, status, router]);
 
-  // Clear every outstanding timer on unmount. Empty deps so this runs only then; the
-  // previous version listed the timer handles as dependencies, so it fired mid-life and
-  // cancelled the pending auto-save whenever `redirecting` changed. It also set state from
-  // a cleanup function, which does nothing on an unmounting component, and it never
-  // cleared the countdown intervals at all -- those kept ticking after navigation.
   useEffect(() => {
     return () => {
       clearInterval(redirectCountdownRef.current);
@@ -177,7 +219,6 @@ function FormPageContent() {
     };
   }, []);
 
-  // Function to cancel redirect
   const cancelRedirect = () => {
     clearTimeout(redirectTimeoutRef.current);
     clearInterval(redirectCountdownRef.current);
@@ -185,94 +226,6 @@ function FormPageContent() {
     redirectCountdownRef.current = null;
     setRedirecting(false);
     setRedirectCountdown(0);
-  };
-
-  // Function to fetch active editors for the form
-  const fetchActiveEditors = async () => {
-    try {
-      const response = await fetch(`/api/forms/${formId}/editors`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.editors) {
-          setActiveEditors(data.editors);
-        }
-      }
-    } catch (error) {
-      logger.error('Error fetching active editors:', error);
-    }
-  };
-
-  // Function to register as active editor for current step
-  const registerAsActiveEditor = async (step = currentStep) => {
-    if (!formId || !session) return;
-    
-    const stepKey = getStepKey(step);
-    try {
-      await fetch(`/api/forms/${formId}/editors/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ stepKey }),
-      });
-    } catch (error) {
-      logger.error('Error registering as active editor:', error);
-    }
-  };
-
-  // Function to fetch active locks for the form
-  const fetchActiveLocks = async () => {
-    try {
-      const response = await fetch(`/api/forms/${formId}/locks`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.locks) {
-          const locksMap = {};
-          data.locks.forEach(lock => {
-            locksMap[lock.stepKey] = lock;
-          });
-          setActiveLocks(locksMap);
-        }
-      }
-    } catch (error) {
-      logger.error('Error fetching locks:', error);
-    }
-  };
-
-  // Function to release the current lock
-  const releaseCurrentLock = async () => {
-    if (!currentLockedStep || !formId) return;
-    
-    try {
-      const response = await fetch(`/api/forms/${formId}/step/${currentLockedStep.stepNumber}/unlock`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        setCurrentLockedStep(null);
-        logger.debug('Lock released successfully');
-      }
-    } catch (error) {
-      logger.error('Error releasing lock:', error);
-      // Don't throw - this is cleanup, failure is okay
-    }
-  };
-
-  const FORM_STEPS = (questionBank.steps || []).map((step, index) => ({
-    id: index + 1,
-    title: step.title,
-    key: step.key,
-  }));
-  const bankStepKeys = FORM_STEPS.map((step) => step.key);
-
-  const getStepKey = (step) => FORM_STEPS[step - 1]?.key || null;
-
-  const getStepNumberFromKey = (stepKey) => {
-    const index = bankStepKeys.indexOf(stepKey);
-    return index >= 0 ? index + 1 : 0;
   };
 
   const persistCurrentStep = (stepNumber) => {
@@ -293,264 +246,6 @@ function FormPageContent() {
     const pane = document.querySelector('[data-form-step-scroll]');
     if (pane) pane.scrollTop = 0;
   };
-
-  // Register as active editor and poll for active editors when step changes
-  useEffect(() => {
-    if (!formId || !session) return;
-    
-    // Register as active editor for current step
-    const stepKey = getStepKey(currentStep);
-    registerAsActiveEditor();
-    
-    // Fetch active editors
-    fetchActiveEditors();
-    
-    // Poll for active editors every 5 seconds (heartbeat)
-    const editorInterval = setInterval(() => {
-      registerAsActiveEditor(); // Re-register to refresh TTL
-      fetchActiveEditors(); // Fetch all active editors
-    }, 5000); // Poll every 5 seconds
-    
-    return () => clearInterval(editorInterval);
-  }, [formId, session, currentStep]);
-
-  // Enhanced save function with retry logic for connection issues
-  const saveCurrentStep = async (retries = 3, mergeStrategy = 'reject') => {
-    // Check permissions before attempting to save
-    if (userPermissions === 'view') {
-      const error = new Error('You only have view permissions on this form. Please contact an administrator to grant edit access.');
-      setSaveError(error.message);
-      throw error;
-    }
-    if (formLocked) {
-      const error = new Error('This school year is archived and read-only.');
-      setSaveError(error.message);
-      throw error;
-    }
-    
-    const currentStepData = getCurrentStepData();
-    const hasData = Object.keys(currentStepData).length > 0;
-    
-    // Don't save if there's no data to save
-    if (!hasData) {
-      return { success: true, message: 'No data to save' };
-    }
-    
-    // Get step key and number
-    const stepKey = getStepKey(currentStep);
-    const stepNumber = currentStep;
-    
-    if (!stepKey || !stepNumber) {
-      throw new Error('Unknown step');
-    }
-    
-    // Get current step's lastUpdated timestamp for conflict detection
-    const currentStepDataObj = stepData[stepKey];
-    const lastUpdated = currentStepDataObj?.lastUpdated || null;
-    
-    // Use step-level API endpoint for atomic updates with conflict detection
-    const apiPayload = {
-      stepData: currentStepData,
-      lastUpdated: lastUpdated,
-      revisionCount: currentStepDataObj?.revisionCount ?? 0,
-      mergeStrategy: mergeStrategy
-    };
-
-    // Log that we're using the new step-level API (for debugging)
-    if (process.env.NODE_ENV === 'development') {
-      logger.debug(`💾 Using step-level API: /api/forms/${formId}/step/${stepNumber}`, {
-        stepKey,
-        stepNumber,
-        hasData,
-        lastUpdated: lastUpdated ? new Date(lastUpdated).toISOString() : 'null',
-        mergeStrategy
-      });
-    }
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        // Create timeout controller for fetch request
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-        
-        const response = await fetch(`/api/forms/${formId}/step/${stepNumber}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiPayload),
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId); // Clear timeout if request completes
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          let errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
-          
-          // Handle 423 Locked - step is currently being edited by another user
-          if (response.status === 423 && errorData.lockedBy) {
-            const lockedMessage = errorData.message || `This step is currently being edited by ${errorData.lockedBy.userName || errorData.lockedBy.email}. Please wait and try again.`;
-            setSaveError(lockedMessage);
-            throw new Error(lockedMessage);
-          }
-          
-          // Handle 409 Conflict - data was modified by another user
-          if (response.status === 409 && errorData.conflict) {
-            // Show conflict warning to user
-            const conflictMessage = errorData.message || 'This step was modified by another user. Please refresh to see the latest changes.';
-            
-            // If merge strategy is 'merge', try to merge and retry
-            if (mergeStrategy === 'merge' && attempt < retries) {
-              // Merge client data with server data
-              const mergedData = { ...errorData.serverData };
-              Object.keys(currentStepData).forEach(key => {
-                // Only merge if field wasn't changed on server
-                if (!mergedData[key] || JSON.stringify(mergedData[key]) === JSON.stringify(errorData.serverData[key])) {
-                  mergedData[key] = currentStepData[key];
-                }
-              });
-              
-              // Update local state with merged data
-              setStepData(prev => ({
-                ...prev,
-                [stepKey]: {
-                  ...prev[stepKey],
-                  data: mergedData,
-                  lastUpdated: errorData.serverLastUpdated,
-                  revisionCount: errorData.serverRevision
-                }
-              }));
-              
-              // Retry with merged data
-              apiPayload.stepData = mergedData;
-              apiPayload.lastUpdated = errorData.serverLastUpdated;
-              apiPayload.revisionCount = errorData.serverRevision;
-              await new Promise(resolve => setTimeout(resolve, 500));
-              continue;
-            }
-            
-            // For 'last-write-wins' or 'reject', show error
-            setSaveError(conflictMessage);
-            throw new Error(conflictMessage);
-          }
-          
-          // Check if it's a retryable error (database connection issue)
-          const isRetryable = response.status === 503 || 
-                             errorData.retryable === true ||
-                             errorMessage.toLowerCase().includes('connection') ||
-                             errorMessage.toLowerCase().includes('database') ||
-                             errorMessage.toLowerCase().includes('timeout');
-          
-          // If it's retryable and we have retries left, retry
-          if (isRetryable && attempt < retries) {
-            const delay = 1000 * (attempt + 1); // Exponential backoff: 1s, 2s, 3s
-            logger.debug(`Save failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue; // Retry
-          }
-          
-          // Provide more helpful error messages for permission issues
-          if (response.status === 403) {
-            // Check if it's actually a database connection issue masquerading as permission error
-            if (errorMessage.toLowerCase().includes('unable to verify') || 
-                errorMessage.toLowerCase().includes('connection') ||
-                errorMessage.toLowerCase().includes('database')) {
-              errorMessage = 'Database connection issue: Unable to verify permissions. Please try again in a moment.';
-            } else {
-              errorMessage = errorData.message || 'Access denied: You do not have permission to edit this form. Please contact an administrator to grant edit access.';
-            }
-          }
-          
-          const error = new Error(errorMessage);
-          setSaveError(errorMessage);
-          throw error;
-        }
-
-        const result = await response.json();
-        
-        // Clear any previous errors on successful save
-        setSaveError(null);
-
-        // The save is still protected by the revision check, but the "being edited by"
-        // indicator cannot be trusted right now, so say so once rather than every save.
-        if (result.lockDegraded) {
-          notifyLockDegraded();
-        }
-        
-        // Update local state with server response (includes lastUpdated, revisionCount, etc.)
-        if (result.stepData) {
-          setStepData(prev => ({
-            ...prev,
-                [stepKey]: {
-                  ...prev[stepKey],
-                  ...result.stepData,
-                  data: result.stepData?.data || currentStepData,
-                  lastUpdated: result.lastUpdated,
-                  revisionCount: result.revisionCount
-                }
-          }));
-        } else {
-          // Fallback: update with what we know
-          setStepData(prev => ({
-            ...prev,
-            [stepKey]: {
-              ...prev[stepKey],
-              completed: hasData,
-              data: currentStepData,
-              lastUpdated: result.lastUpdated || new Date(),
-              revisionCount: result.revisionCount
-            }
-          }));
-        }
-
-        // Update last saved timestamp
-        setLastSaved(new Date());
-        
-        // Track that we have a lock on this step (lock is acquired by the API on save)
-        setCurrentLockedStep({ stepKey, stepNumber });
-        
-        return result;
-      } catch (fetchError) {
-        // Handle network errors, timeouts, and connection issues
-        const isNetworkError = fetchError.name === 'AbortError' ||
-                              fetchError.name === 'TypeError' ||
-                              fetchError.message?.includes('fetch') ||
-                              fetchError.message?.includes('network') ||
-                              fetchError.message?.includes('timeout');
-        
-        if (isNetworkError && attempt < retries) {
-          const delay = 1000 * (attempt + 1); // Exponential backoff
-          logger.debug(`Network error (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue; // Retry
-        }
-        
-        // If all retries failed or it's not a network error, throw
-        const errorMessage = isNetworkError 
-          ? 'Unable to connect to server. Please check your internet connection and try again.'
-          : fetchError.message || 'Failed to save form data';
-        
-        setSaveError(errorMessage);
-        throw new Error(errorMessage);
-      }
-    }
-  };
-
-  // Check if current step has unsaved changes
-  const hasUnsavedChanges = () => {
-    const currentStepData = getCurrentStepData();
-    return Object.keys(currentStepData).length > 0;
-  };
-
-  // Enhanced navigation with unsaved changes warning
-  // Release lock when navigating to a different step
-  useEffect(() => {
-    if (currentLockedStep && currentLockedStep.stepKey !== getStepKey(currentStep)) {
-      // User navigated to a different step, release the previous step's lock
-      releaseCurrentLock();
-    }
-  }, [currentStep, currentLockedStep]);
 
   const handleNext = async () => {
     if (currentStep < FORM_STEPS.length) {
@@ -638,508 +333,6 @@ function FormPageContent() {
       }
       
       goToStep(currentStep - 1);
-    }
-  };
-
-  // Enhanced updateStepData with optimized auto-save capability
-  const updateStepData = (stepKey, data) => {
-    const actualStepKey = bankStepKeys.includes(stepKey) ? stepKey : getStepKey(currentStep);
-    
-    setStepData(prev => {
-      const newStepData = {
-        ...prev,
-        [actualStepKey]: {
-          ...prev[actualStepKey],
-          data: data, // Use the entire data object passed from the component
-          completed: Object.keys(data).length > 0,
-          lastUpdated: new Date().toISOString()
-        }
-      };
-      
-      return newStepData;
-    });
-
-    // Clear any existing save reminder
-    clearTimeout(saveReminderTimeoutRef.current);
-
-    // Show save reminder after 3 minutes of inactivity
-    saveReminderTimeoutRef.current = setTimeout(() => {
-      setShowSaveReminder(true);
-    }, 360000); // 6 minutes
-
-    // Debounced auto-save after 3 seconds of inactivity
-    const stepKeyToSave = actualStepKey;
-    const dataToSave = { ...data };
-    
-    if (window.autoSaveTimeout) {
-      clearTimeout(window.autoSaveTimeout);
-      window.autoSaveTimeout = null;
-    }
-    
-    if (window.autoSaveInProgress) {
-      window.pendingAutoSaveData = { stepKey: stepKeyToSave, data: dataToSave };
-      return;
-    }
-
-    const flushAutoSave = (saveData) => {
-      if (!saveData?.data || Object.keys(saveData.data).length === 0) return;
-      window.autoSaveInProgress = true;
-      saveStepDataDirectly(saveData.stepKey, saveData.data, true)
-        .then(() => {
-          window.autoSaveInProgress = false;
-          const pending = window.pendingAutoSaveData;
-          window.pendingAutoSaveData = null;
-          if (pending) {
-            window.autoSaveTimeout = setTimeout(() => flushAutoSave(pending), 3000);
-          }
-        })
-        .catch((error) => {
-          logger.error('Auto-save failed:', error);
-          window.autoSaveInProgress = false;
-        });
-    };
-    
-    window.autoSaveTimeout = setTimeout(() => {
-      const saveData = window.pendingAutoSaveData || { stepKey: stepKeyToSave, data: dataToSave };
-      window.pendingAutoSaveData = null;
-      flushAutoSave(saveData);
-    }, 3000);
-  };
-
-  const getCurrentStepData = () => {
-    const stepKey = getStepKey(currentStep);
-    const data = stepData[stepKey]?.data || {};
-    
-    // Ensure we always return the data, even if it's empty
-    return data;
-  };
-
-  // Helper function to save step data directly using step-level API (prevents overwrites)
-  const saveStepDataDirectly = async (stepKey, stepDataToSave, silent = true, mergeStrategy = 'merge') => {
-    if (!stepDataToSave || Object.keys(stepDataToSave).length === 0) {
-      return { success: true, message: 'No data to save' };
-    }
-    
-    // Check permissions before attempting to save
-    if (userPermissions === 'view') {
-      if (!silent) {
-        const error = new Error('You only have view permissions on this form. Please contact an administrator to grant edit access.');
-        setSaveError(error.message);
-        throw error;
-      }
-      return { success: false, message: 'View-only permissions' };
-    }
-    
-    const stepNumber = getStepNumberFromKey(stepKey);
-    
-    if (!stepNumber) {
-      logger.error('Unknown step key:', stepKey);
-      return { success: false, message: 'Unknown step' };
-    }
-    
-    // Get current step's lastUpdated timestamp for conflict detection
-    const currentStepData = stepData[stepKey];
-    const lastUpdated = currentStepData?.lastUpdated || null;
-    
-    // Use step-level API endpoint for atomic updates
-    const apiPayload = {
-      stepData: stepDataToSave,
-      lastUpdated: lastUpdated,
-      revisionCount: currentStepData?.revisionCount ?? 0,
-      mergeStrategy: mergeStrategy
-    };
-    
-    const retries = 3;
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-        
-        const response = await fetch(`/api/forms/${formId}/step/${stepNumber}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(apiPayload),
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          
-          // Handle 409 Conflict - data was modified by another user
-          if (response.status === 409 && errorData.conflict) {
-            if (!silent) {
-              // Show conflict warning to user
-              const conflictMessage = errorData.message || 'This step was modified by another user. Please refresh to see the latest changes.';
-              setSaveError(conflictMessage);
-              
-              // Optionally, we could merge the data here
-              // For now, we'll just show the error and let user refresh
-              logger.warn('Conflict detected:', errorData);
-            }
-            
-            // If merge strategy is 'merge', try to merge and retry
-            if (mergeStrategy === 'merge' && attempt < retries) {
-              // Merge client data with server data
-              const mergedData = { ...errorData.serverData };
-              Object.keys(stepDataToSave).forEach(key => {
-                // Only merge if field wasn't changed on server
-                if (!mergedData[key] || JSON.stringify(mergedData[key]) === JSON.stringify(errorData.serverData[key])) {
-                  mergedData[key] = stepDataToSave[key];
-                }
-              });
-              
-              // Update local state with merged data
-              setStepData(prev => ({
-                ...prev,
-                [stepKey]: {
-                  ...prev[stepKey],
-                  data: mergedData,
-                  lastUpdated: errorData.serverLastUpdated,
-                  revisionCount: errorData.serverRevision
-                }
-              }));
-              
-              // Retry with merged data
-              apiPayload.stepData = mergedData;
-              apiPayload.lastUpdated = errorData.serverLastUpdated;
-              apiPayload.revisionCount = errorData.serverRevision;
-              await new Promise(resolve => setTimeout(resolve, 500));
-              continue;
-            }
-            
-            return { 
-              success: false, 
-              message: errorData.message || 'Conflict detected',
-              conflict: true,
-              serverData: errorData.serverData
-            };
-          }
-          
-          // Handle 429 (Too Many Requests) specifically
-          if (response.status === 429) {
-            const retryAfter = errorData.retryAfter || 5;
-            logger.warn(`Rate limited (429), waiting ${retryAfter} seconds before retry`);
-            
-            if (attempt < retries) {
-              const delay = retryAfter * 1000;
-              await new Promise(resolve => setTimeout(resolve, delay));
-              continue;
-            }
-            
-            const errorMessage = 'Too many requests. Please wait a moment and try again.';
-            if (!silent) {
-              setSaveError(errorMessage);
-              throw new Error(errorMessage);
-            }
-            return { success: false, message: errorMessage };
-          }
-          
-          const isRetryable = response.status === 503 || 
-                             errorData.retryable === true ||
-                             errorData.message?.toLowerCase().includes('connection') ||
-                             errorData.message?.toLowerCase().includes('database') ||
-                             errorData.message?.toLowerCase().includes('timeout');
-          
-          if (isRetryable && attempt < retries) {
-            const delay = 1000 * (attempt + 1);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
-          }
-          
-          if (!silent) {
-            const errorMessage = errorData.message || errorData.error || `HTTP error! status: ${response.status}`;
-            setSaveError(errorMessage);
-            throw new Error(errorMessage);
-          }
-          return { success: false, message: errorData.message || 'Save failed' };
-        }
-        
-        const result = await response.json();
-
-        if (result.lockDegraded) {
-          notifyLockDegraded();
-        }
-        
-        // Update local state with server response
-        if (result.stepData) {
-          setStepData(prev => ({
-            ...prev,
-            [stepKey]: {
-              ...prev[stepKey],
-              ...result.stepData,
-              lastUpdated: result.lastUpdated,
-              revisionCount: result.revisionCount
-            }
-          }));
-        }
-        
-        if (!silent) {
-          setSaveError(null);
-          setLastSaved(new Date());
-        }
-        return result;
-      } catch (fetchError) {
-        const isNetworkError = fetchError.name === 'AbortError' ||
-                              fetchError.name === 'TypeError' ||
-                              fetchError.message?.includes('fetch') ||
-                              fetchError.message?.includes('network') ||
-                              fetchError.message?.includes('timeout');
-        
-        if (isNetworkError && attempt < retries) {
-          const delay = 1000 * (attempt + 1);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-        
-        if (!silent) {
-          const errorMessage = isNetworkError 
-            ? 'Unable to connect to server. Please check your internet connection and try again.'
-            : fetchError.message || 'Failed to save form data';
-          setSaveError(errorMessage);
-          throw new Error(errorMessage);
-        }
-        return { success: false, message: fetchError.message || 'Save failed' };
-      }
-    }
-    
-    return { success: false, message: 'Save failed after retries' };
-  };
-
-  // Auto-save function that can be called periodically or on blur
-  const autoSave = async (silent = true) => {
-    const currentStepData = getCurrentStepData();
-    if (Object.keys(currentStepData).length > 0) {
-      try {
-        // Only show indicator if not silent (for manual saves)
-        if (!silent) {
-          setAutoSaving(true);
-        }
-        await saveCurrentStep();
-        setLastSaved(new Date());
-        // Auto-save completed successfully - silent, no alerts
-      } catch (error) {
-        logger.error('Auto-save failed:', error);
-        // Don't show alert for auto-save failures to avoid interrupting user
-      } finally {
-        if (!silent) {
-          setAutoSaving(false);
-        }
-      }
-    }
-  };
-
-  // Backup periodic save in case debounce is skipped while a save is in flight
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (window.autoSaveInProgress || window.autoSaveTimeout) {
-        return;
-      }
-      
-      const stepKey = getStepKey(currentStep);
-      const currentStepData = stepData[stepKey]?.data || {};
-      if (Object.keys(currentStepData).length > 0) {
-        window.autoSaveInProgress = true;
-        saveStepDataDirectly(stepKey, currentStepData, true)
-          .then(() => {
-            window.autoSaveInProgress = false;
-          })
-          .catch(() => {
-            window.autoSaveInProgress = false;
-          });
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [currentStep, stepData]);
-
-  // Warn user before leaving page with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (hasUnsavedChanges()) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-        return 'You have unsaved changes. Are you sure you want to leave?';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [currentStep, stepData]);
-
-  // Load shared emails when form loads (for Level 5 users)
-  useEffect(() => {
-    if (session?.user?.level === 5 && formId) {
-      loadSharedEmails();
-    }
-  }, [session, formId]);
-
-  // Enhanced loadFormData with better error handling
-  const loadFormData = async ({ silent = false } = {}) => {
-    if (!silent && !formHydratedRef.current) setLoading(true);
-    try {
-      const response = await fetch(`/api/forms/${formId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
-        logger.error('Error loading form:', errorMessage, response.status);
-        
-        // If it's a permission error, redirect to dashboard
-        if (response.status === 403 || response.status === 401) {
-          toast.error(`Access denied: ${errorMessage}`);
-          router.push('/dashboard');
-          return;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      
-      if (!data.form) {
-        logger.error('No form data in response:', data);
-        throw new Error('Form data not found in response');
-      }
-      
-      if (data.form) {
-        setFormData({
-          schoolName: data.form.schoolName || '',
-          status: data.form.status || 'draft',
-          schoolYear: data.form.schoolYear || '',
-          createdAt: data.form.createdAt,
-          questionBankVersion: data.form.questionBankVersion || null,
-        });
-        setFormLocked(Boolean(data.form.locked));
-        setYearArchived(Boolean(data.form.yearArchived));
-        setAllowEditsWhenArchived(Boolean(data.form.allowEditsWhenArchived));
-        setNeedsUpdate(data.form.needsUpdate || []);
-        setFormDeadlines(data.form.deadlines || []);
-        setAttestation(data.form.attestation || null);
-        setDuplicatedFrom(data.form.duplicatedFrom || null);
-        const serverStep = Number(data.form.currentStep) || 1;
-        if (!formHydratedRef.current) {
-          formHydratedRef.current = true;
-          if (currentStepRef.current === 1 && serverStep > 1) {
-            currentStepRef.current = serverStep;
-            setCurrentStep(serverStep);
-          }
-        }
-        // Register as active editor when form loads
-        if (formId && session) {
-          const stepKey = getStepKey(data.form.currentStep || 1);
-          registerAsActiveEditor();
-        }
-        
-        // Set collaboration info if available
-        if (data.collaborationInfo) {
-          setCollaborationInfo(data.collaborationInfo);
-        }
-        
-        // Use permission from API response if available, otherwise calculate it
-        if (data.userPermission) {
-          setUserPermissions(data.userPermission);
-        } else {
-          // Fallback: Determine user permissions from form data
-          const formUserId = data.form.userId?._id?.toString() || data.form.userId?.toString();
-          const currentUserId = session?.user?.id || session?.user?._id;
-          const isOwner = formUserId === currentUserId;
-          const isSuperAdmin = session?.user?.level === 5;
-          const isPrincipal = session?.user?.level === 4;
-          const isLevel2 = session?.user?.level === 2;
-          const isAssistantPrincipal = session?.user?.level === 3;
-          // Level 2 and Level 4 users can edit forms from their school
-          const isSameSchool = (isPrincipal || isLevel2) && session?.user?.schoolName && data.form.schoolName && 
-                             session.user.schoolName === data.form.schoolName;
-          
-          let permissions = null;
-          if (isOwner || isSuperAdmin) {
-            permissions = 'owner';
-          } else if (isSameSchool) {
-            permissions = 'edit';
-          } else if (data.collaborationInfo) {
-            // Level 3 users assigned for collaboration can always edit
-            if (isAssistantPrincipal) {
-              permissions = 'edit';
-            } else {
-              permissions = data.collaborationInfo.permissions || 'view';
-            }
-          } else {
-            permissions = 'view';
-          }
-          
-          setUserPermissions(permissions);
-        }
-        
-        // Ensure stepData is properly initialized with all steps
-        const loadedStepData = data.form.formData || {};
-        const stepKeys = bankStepKeys.length ? bankStepKeys : [
-          'tableOfContents', 'childAbuseIntervention',
-          'sexualHarassment', 'respectForAll', 'suicidePrevention',
-          'attendancePlan', 'temporaryHousing', 'serviceInSchools',
-          'planningInterviews', 'militaryRecruitment', 'schoolCulture',
-          'afterSchoolPrograms', 'cellPhonePolicy', 'counselingPlan'
-        ];
-        
-        // Initialize missing steps with empty data structure and fix nested data
-        const initializedStepData = {};
-        stepKeys.forEach(key => {
-          const stepInfo = loadedStepData[key];
-          let stepData = {};
-          
-          // Fix nested data structure - extract the actual question data
-          if (stepInfo?.data && typeof stepInfo.data === 'object') {
-            // Check if data is nested (e.g., { childAbuseIntervention: { question1: "..." } })
-            const nestedKey = Object.keys(stepInfo.data)[0];
-            if (nestedKey === key && stepInfo.data[nestedKey]) {
-              // Extract the nested data
-              stepData = stepInfo.data[nestedKey];
-            } else {
-              // Data is already flat
-              stepData = stepInfo.data;
-            }
-          } else if (stepInfo && !stepInfo.data) {
-            // Handle case where step exists but has no data property (like counselingPlan)
-            stepData = {};
-          }
-          
-          initializedStepData[key] = {
-            completed: Boolean(stepInfo?.completed) || Object.keys(stepData).length > 0,
-            data: stepData,
-            startedAt: stepInfo?.startedAt || null,
-            lastUpdated: stepInfo?.lastUpdated || null,
-            timeSpent: stepInfo?.timeSpent || 0,
-            revisionCount: stepInfo?.revisionCount || 0
-          };
-        });
-        
-        
-        setStepData(initializedStepData);
-        
-        // Load comments if available
-        if (data.comments) {
-          setComments(data.comments);
-        }
-      }
-    } catch (error) {
-      logger.error('Error loading form:', error);
-      const errorMessage = error.message || 'Unknown error occurred';
-      
-      // Show error to user before redirecting
-      toast.error(`Failed to load form: ${errorMessage}`);
-      
-      // Redirect back to dashboard after showing error
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
-    } finally {
-      setLoading(false);
     }
   };
 

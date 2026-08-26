@@ -7,7 +7,9 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --test \"src/lib/*.test.js\"",
+    "test": "npm run test:unit && npm run test:component",
+    "test:unit": "node --test \"src/lib/*.test.js\"",
+    "test:component": "vitest run",
     "measure:js": "node scripts/measure-initial-js.js dashboard admin/goals admin/users admin/submissions login",
     "typecheck": "tsc --noEmit",
     "typecheck:js": "node scripts/typecheck-js.js",
@@ -39,13 +41,19 @@
     "sass": "^1.100.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.6",
     "@types/node": "24.10.1",
     "@types/react": "^19.2.16",
+    "@vitejs/plugin-react": "^6.1.0",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.3",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^4.1.11"
   }
 }
