@@ -4,6 +4,7 @@ import { authOptions } from '../../../../lib/auth';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
 import userAccess from '../../../../lib/userAccess';
+const { reportError } = require('../../../../lib/reportError');
 
 const { enforceRateLimit, requireAdminActor } = userAccess;
 
@@ -143,7 +144,7 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Bulk import error:', error);
+    reportError(error, { route: '/api/users/bulk-import', detail: 'Bulk import error' });
     return NextResponse.json({ 
       error: 'Internal server error during bulk import' 
     }, { status: 500 });

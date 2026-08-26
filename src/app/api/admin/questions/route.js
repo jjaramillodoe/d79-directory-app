@@ -7,6 +7,7 @@ const FormTemplate = require('../../../../models/FormTemplate');
 const { getAdminQuestionBank, getDraftTemplate, auditRequest } = require('../../../../lib/questionBank');
 const { sanitizeQuestionUpdates, toClientTemplate } = require('../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../lib/auditLogger');
+const { reportError } = require('../../../../lib/reportError');
 
 async function requireSuperAdmin() {
   const session = await getServerSession(authOptions);
@@ -27,7 +28,7 @@ export async function GET() {
     const data = await getAdminQuestionBank();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error loading question bank:', error);
+    reportError(error, { route: '/api/admin/questions', detail: 'Error loading question bank' });
     return NextResponse.json({ error: 'Failed to load question bank' }, { status: 500 });
   }
 }
@@ -97,7 +98,7 @@ export async function PATCH(request) {
       draft: toClientTemplate(draft),
     });
   } catch (error) {
-    console.error('Error updating question:', error);
+    reportError(error, { route: '/api/admin/questions', detail: 'Error updating question' });
     return NextResponse.json({ error: 'Failed to update question' }, { status: 500 });
   }
 }

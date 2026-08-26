@@ -8,6 +8,7 @@ const { logAction } = require('../../../../../lib/auditLogger');
 const { auditRequest } = require('../../../../../lib/questionBank');
 const { reportError } = require('../../../../../lib/reportError');
 const { isValidSchoolYear, currentSchoolYear } = require('../../../../../lib/schoolYear');
+const { clientSafeMessage } = require('../../../../../lib/userAccess');
 const {
   listMigratableQuestions,
   previewContactMigration,
@@ -41,7 +42,7 @@ export async function GET(request) {
     return NextResponse.json({ year, questions });
   } catch (error) {
     reportError(error, { route: 'GET /api/admin/forms/migrate-contacts' });
-    return NextResponse.json({ error: error.message || 'Could not scan answers' }, { status: error.status || 500 });
+    return NextResponse.json({ error: clientSafeMessage(error, 'Could not scan answers') }, { status: error.status || 500 });
   }
 }
 
@@ -88,6 +89,6 @@ export async function POST(request) {
     return NextResponse.json({ success: true, apply: true, ...result });
   } catch (error) {
     reportError(error, { route: 'POST /api/admin/forms/migrate-contacts' });
-    return NextResponse.json({ error: error.message || 'Could not convert answers' }, { status: error.status || 500 });
+    return NextResponse.json({ error: clientSafeMessage(error, 'Could not convert answers') }, { status: error.status || 500 });
   }
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Column, Row, Text, Heading, Button, Card, Tag } from '@once-ui-system/core';
 import DashboardSection from '../dashboard/DashboardSection';
 import useAppToast from '../../hooks/useAppToast';
+import Modal from '../ui/Modal';
 
 function formatDueDate(value) {
   if (!value) return 'No date yet';
@@ -98,10 +99,14 @@ export default function SetupNextYear({ onCreated }) {
     </DashboardSection>
 
       {confirming && cycle && (
-        <div className="app-modal-backdrop app-modal-md">
+        <Modal
+          onClose={saving ? undefined : () => setConfirming(false)}
+          size="md"
+          labelledBy="setup-next-year-title"
+        >
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '36rem' }}>
             <Column gap="16">
-              <Heading variant="heading-strong-m">Set up {nextYear}?</Heading>
+              <Heading id="setup-next-year-title" variant="heading-strong-m">Set up {nextYear}?</Heading>
               <Text variant="body-default-s" onBackground="neutral-weak">
                 The latest year in the system is {cycle.sourceYear}. {nextYear} will be created as a live cycle. Historical plans stay as they are.
               </Text>
@@ -150,7 +155,7 @@ export default function SetupNextYear({ onCreated }) {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
     </>
   );

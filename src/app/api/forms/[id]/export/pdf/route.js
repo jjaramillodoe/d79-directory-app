@@ -5,14 +5,16 @@ const connectDB = require('../../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
 const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
-const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
-const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questionBankUtils');
-const { resolveExportTable, drawPdfTable, pdfSafe } = require('../../../../../../lib/exportTables');
+const { visibleQuestions } = require('../../../../../../lib/questionBankUtils');
+const { resolveExportTable, resolveExportAnswer, drawPdfTable, pdfSafe } = require('../../../../../../lib/exportTables');
 const { splitFormattedText } = require('../../../../../../lib/linkifyText');
 const { splitCopyBlocks } = require('../../../../../../lib/formattedCopy');
+const { canViewForm } = require('../../../../../../lib/formAccess');
+const { enforceRateLimit } = require('../../../../../../lib/userAccess');
 const { Readable } = require('stream');
 const path = require('path');
 const fs = require('fs');
+const { reportError } = require('../../../../../../lib/reportError');
 
 // Require PDFKit at module level - should be externalized by webpack config
 // This is a Node.js-only package, so it should not be bundled
@@ -21,7 +23,7 @@ try {
   // CJS build — the ESM entry pulls fontkit through Turbopack and breaks @swc/helpers.
   PDFDocument = require('pdfkit/js/pdfkit.js');
 } catch (e) {
-  console.error('Failed to require pdfkit:', e);
+  reportError(e, { route: '/api/forms/[id]/export/pdf', detail: 'Failed to require pdfkit' });
 }
 
 // Helper function to load form questions
@@ -48,7 +50,7 @@ async function loadFormQuestions(form) {
       }
     }
   } catch (error) {
-    console.error('Error loading form questions JSON fallback:', error);
+    reportError(error, { route: '/api/forms/[id]/export/pdf', detail: 'Error loading form questions JSON fallback' });
   }
 
   return { steps: [] };
@@ -140,25 +142,11 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check permissions
-    const formUserId = form.userId?._id?.toString() || form.userId?.toString();
-    const isOwner = formUserId === user._id.toString();
-    const isSuperAdmin = user.level === 5;
-    const isPrincipal = user.level === 4;
-    const isAssistantPrincipal = user.level === 3;
-    // Level 4 users can access forms from their school
-    const isSameSchool = isPrincipal && user.schoolName && form.schoolName && 
-                         user.schoolName === form.schoolName;
-    // Level 3 users can access if assigned to the form
-    const isAssigned = user.assignedForms.some(assignment => 
-      assignment.formId.toString() === form._id.toString()
-    );
-    // Check if form is shared with this user's email
-    const isSharedWithEmail = form.sharedWithEmails && form.sharedWithEmails.some(
-      share => share.email.toLowerCase() === user.email.toLowerCase()
-    );
+    // PDF generation is the most expensive operation in the app; cap it per user.
+    const limited = await enforceRateLimit(`rl:export-pdf:${user._id}`, 10, 60);
+    if (limited) return limited;
 
-    if (!isOwner && !isSuperAdmin && !isSameSchool && !isAssigned && !isSharedWithEmail) {
+    if (!canViewForm(user, form)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -207,7 +195,7 @@ async function GET(request, { params }) {
       
       doc.on('error', (err) => {
         pdfError = err;
-        console.error('PDF generation error:', err);
+        reportError(err, { route: '/api/forms/[id]/export/pdf', detail: 'PDF generation error' });
         reject(err);
       });
       
@@ -265,36 +253,9 @@ async function GET(request, { params }) {
               const questionId = question.id;
               const questionTitle = question.title || questionId;
               const value = stepData[questionId];
-              const table = resolveExportTable(value, question.columns, {
-                always: question.type === 'table',
+              const { table, hasData, displayValue } = resolveExportAnswer(question, value, {
+                maxLength: 5000,
               });
-              const hasData = table
-                ? isTableAnswered(table)
-                : question.type === 'yesno' || question.type === 'checkbox'
-                  ? Boolean(formatYesNo(value))
-                  : value !== undefined && value !== null && value !== '';
-              
-              let displayValue = '';
-              
-              if (!table && hasData) {
-                if (question.type === 'yesno' || question.type === 'checkbox') {
-                  displayValue = formatYesNo(value);
-                } else if (typeof value === 'object' && value !== null) {
-                  if (Array.isArray(value)) {
-                    displayValue = value.join(', ');
-                  } else {
-                    displayValue = JSON.stringify(value, null, 2);
-                  }
-                } else {
-                  displayValue = String(value || '');
-                }
-                
-                if (displayValue.length > 5000) {
-                  displayValue = displayValue.substring(0, 5000) + '... (truncated)';
-                }
-              } else if (!table) {
-                displayValue = '_______________________________________________________';
-              }
               
               try {
                 const questionNum = question.question_number ? `Q${question.question_number}: ` : '';
@@ -321,7 +282,7 @@ async function GET(request, { params }) {
                     doc.moveDown(0.8);
                   }
                 } catch (fallbackError) {
-                  console.error(`Fallback text rendering also failed:`, fallbackError);
+                  reportError(fallbackError, { route: '/api/forms/[id]/export/pdf', detail: `Fallback text rendering also failed:` });
                   // Skip this question if even fallback fails
                 }
               }
@@ -362,7 +323,7 @@ async function GET(request, { params }) {
         }
       });
     } catch (contentError) {
-      console.error('Error adding content to PDF:', contentError);
+      reportError(contentError, { route: '/api/forms/[id]/export/pdf', detail: 'Error adding content to PDF' });
       pdfError = contentError;
       // If there's an error, reject the promise immediately
       if (pdfReject) {
@@ -397,7 +358,7 @@ async function GET(request, { params }) {
       },
     });
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    reportError(error, { route: '/api/forms/[id]/export/pdf', detail: 'Error generating PDF' });
     console.error('Error stack:', error.stack);
     console.error('Error details:', {
       message: error.message,
@@ -406,11 +367,11 @@ async function GET(request, { params }) {
       formSchoolName: form?.schoolName
     });
     
-    // Return more detailed error in development
+    // Detail stays in the server log; only development gets it over the wire.
     const errorResponse = {
       error: 'Failed to generate PDF',
-      message: error.message,
       ...(process.env.NODE_ENV === 'development' && {
+        message: error.message,
         stack: error.stack,
         details: {
           name: error.name,

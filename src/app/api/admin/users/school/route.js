@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../../../lib/auth';
 import connectDB from '../../../../../lib/mongodb';
 import User from '../../../../../models/User';
+const { reportError } = require('../../../../../lib/reportError');
 
 // GET: school users for collaboration (relative imports — Turbopack does not resolve @/)
 export async function GET(request) {
@@ -61,7 +62,7 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    console.error('Error fetching school users:', error);
+    reportError(error, { route: '/api/admin/users/school', detail: 'Error fetching school users' });
     return NextResponse.json(
       { error: 'Failed to fetch users' },
       { status: 500 }
@@ -86,11 +87,24 @@ export async function POST(request) {
     const body = await request.json();
     const { name, email, title, level = 3, canCollaborate = true, collaborationLevel = 'edit' } = body;
 
-    // Level 4 (Principal) users can only create Level 1-3 users
-    // Only Level 5 (Super Admin) can create Level 4-5 users
-    if (session.user.level === 4 && (level === 4 || level === 5)) {
+    const newLevel = Number(level);
+    if (!Number.isInteger(newLevel) || newLevel < 1 || newLevel > 5) {
+      return NextResponse.json({ error: 'Level must be between 1 and 5' }, { status: 400 });
+    }
+
+    // Nobody may mint an account at or above their own level, so a Super Admin
+    // cannot create another Super Admin here.
+    if (newLevel >= Number(session.user.level)) {
       return NextResponse.json(
-        { error: 'You can only create users with Level 1, 2, or 3. Only Super Admins can create Level 4 or 5 users.' },
+        { error: 'You cannot create a user at or above your own level.' },
+        { status: 403 }
+      );
+    }
+
+    // Level 4 (Principal) users can only create Level 1-3 users
+    if (Number(session.user.level) === 4 && newLevel > 3) {
+      return NextResponse.json(
+        { error: 'You can only create users with Level 1, 2, or 3. Only Super Admins can create Level 4 users.' },
         { status: 403 }
       );
     }
@@ -155,7 +169,7 @@ export async function POST(request) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error creating user:', error);
+    reportError(error, { route: '/api/admin/users/school', detail: 'Error creating user' });
     return NextResponse.json(
       { error: 'Failed to create user' },
       { status: 500 }

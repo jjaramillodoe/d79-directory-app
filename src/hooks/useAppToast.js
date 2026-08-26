@@ -16,5 +16,12 @@ export default function useAppToast() {
     [addToast]
   );
 
-  return { success, error };
+  // For conditions the user should know about where nothing has actually failed, so
+  // 'danger' would misrepresent them.
+  const warning = useCallback(
+    (message) => addToast({ variant: 'warning', message }),
+    [addToast]
+  );
+
+  return { success, error, warning };
 }

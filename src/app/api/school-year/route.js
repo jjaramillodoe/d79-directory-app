@@ -10,6 +10,7 @@ const { currentSchoolYear, isValidSchoolYear } = require('../../../lib/schoolYea
 const { getYearSettings, upsertYearSettings, getYearPlanCounts, previewNextSchoolYear, initializeNextSchoolYear } = require('../../../lib/schoolYearSettings');
 const { FALLBACK_STEP_KEYS } = require('../../../lib/formSteps');
 const { reportError } = require('../../../lib/reportError');
+const { clientSafeMessage } = require('../../../lib/userAccess');
 
 export async function GET(request) {
   try {
@@ -81,7 +82,7 @@ export async function PUT(request) {
     return NextResponse.json({ success: true, ...settings });
   } catch (error) {
     reportError(error, { route: 'PUT /api/school-year' });
-    return NextResponse.json({ error: error.message || 'Failed to save school year settings' }, { status: error.status || 500 });
+    return NextResponse.json({ error: clientSafeMessage(error, 'Failed to save school year settings') }, { status: error.status || 500 });
   }
 }
 
@@ -133,7 +134,7 @@ export async function POST(request) {
     reportError(error, { route: 'POST /api/school-year' });
     return NextResponse.json(
       {
-        error: error.message || 'Failed to set up the next school year',
+        error: clientSafeMessage(error, 'Failed to set up the next school year'),
         existingYear: error.existingYear || undefined,
       },
       { status: error.status || 500 }

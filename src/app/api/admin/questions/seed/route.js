@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth';
 const { authOptions } = require('../../../../../lib/auth');
 const { seedFromJson, auditRequest } = require('../../../../../lib/questionBank');
 const { logAction } = require('../../../../../lib/auditLogger');
+const { clientSafeMessage } = require('../../../../../lib/userAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request) {
   try {
@@ -34,7 +36,7 @@ export async function POST(request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error seeding question bank:', error);
-    return NextResponse.json({ error: error.message || 'Failed to seed question bank' }, { status: 500 });
+    reportError(error, { route: '/api/admin/questions/seed', detail: 'Error seeding question bank' });
+    return NextResponse.json({ error: clientSafeMessage(error, 'Failed to seed question bank') }, { status: 500 });
   }
 }

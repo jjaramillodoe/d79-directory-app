@@ -9,8 +9,21 @@ function jsonError(status, error, extraHeaders = {}) {
   });
 }
 
+// Errors raised deliberately by this codebase carry a 4xx `status`, and their message is
+// written to be read by the user ("A 2027-2028 plan already exists"). An error without
+// one is unexpected -- Mongoose validation, cast errors, driver failures -- and its
+// message can disclose schema internals and field values, so it is replaced.
+function clientSafeMessage(error, fallback) {
+  const status = Number(error?.status);
+  if (Number.isInteger(status) && status >= 400 && status < 500 && error?.message) {
+    return error.message;
+  }
+  return fallback;
+}
+
+// Defined in ./redis so that proxy.js middleware can share it without pulling in Mongoose.
 function productionFailClosed() {
-  return process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+  return require('./redis').productionFailClosed();
 }
 
 async function enforceRateLimit(key, limit, windowSeconds, failClosed = productionFailClosed()) {
@@ -38,6 +51,13 @@ async function requireAdminActor(session) {
   return { actor };
 }
 
+// Super Admins see the whole district; everyone else is confined to their own school.
+// Use for any query that would otherwise read across schools (reports, timelines, audit logs).
+function schoolScopeFilter(actor, field = 'schoolName') {
+  if (Number(actor?.level) >= 5) return {};
+  return { [field]: actor?.schoolName ?? null };
+}
+
 function bulkTargetFilter(actor, userIds = []) {
   const ids = (userIds || [])
     .map((id) => String(id || '').trim())
@@ -58,10 +78,12 @@ function bulkTargetFilter(actor, userIds = []) {
 
 module.exports = {
   jsonError,
+  clientSafeMessage,
   enforceRateLimit,
   productionFailClosed,
   requireAdminActor,
   canManageTarget,
   schoolUserListFilter,
+  schoolScopeFilter,
   bulkTargetFilter,
 };

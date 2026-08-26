@@ -16,6 +16,7 @@ import FormConfirmModal from './form-steps/FormConfirmModal';
 import useAppToast from '../hooks/useAppToast';
 import { inferSchoolYear } from '../lib/schoolYear';
 import { completedStepCount, stepProgressPercent, TOTAL_STEPS } from '../lib/formProgress';
+import Modal from './ui/Modal';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All statuses' },
@@ -416,24 +417,26 @@ export default function BulkOperations({ forms, onUpdateForms }) {
       </DashboardSection>
 
       {showEmailComposer && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowEmailComposer(false)} labelledBy="bulk-email-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
             <Column gap="16">
-              <Text variant="heading-strong-m">Email selected schools</Text>
+              <Text id="bulk-email-title" variant="heading-strong-m">Email selected schools</Text>
               <Text variant="body-default-s" onBackground="neutral-weak">
                 {selectedCount} recipient{selectedCount === 1 ? '' : 's'}
               </Text>
               <Column gap="8">
-                <Text variant="label-default-s">Subject</Text>
+                <Text as="label" htmlFor="bulk-email-subject" variant="label-default-s">Subject</Text>
                 <input
+                  id="bulk-email-subject"
                   className="app-field"
                   value={emailSubject}
                   onChange={(event) => setEmailSubject(event.target.value)}
                 />
               </Column>
               <Column gap="8">
-                <Text variant="label-default-s">Message</Text>
+                <Text as="label" htmlFor="bulk-email-message" variant="label-default-s">Message</Text>
                 <textarea
+                  id="bulk-email-message"
                   className="app-field"
                   rows={6}
                   value={emailMessage}
@@ -450,7 +453,7 @@ export default function BulkOperations({ forms, onUpdateForms }) {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
 
       {showDeleteConfirm && (

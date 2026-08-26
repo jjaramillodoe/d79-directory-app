@@ -5,6 +5,7 @@ const connectDB = require('../../../lib/mongodb');
 const FormSubmission = require('../../../models/FormSubmission');
 const FormComment = require('../../../models/FormComment');
 const User = require('../../../models/User');
+const { reportError } = require('../../../lib/reportError');
 
 // GET /api/notifications - Get user's notifications
 async function GET(request) {
@@ -57,7 +58,7 @@ async function GET(request) {
 
     return NextResponse.json({ notifications });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    reportError(error, { route: '/api/notifications', detail: 'Error fetching notifications' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -92,7 +93,7 @@ async function POST(request) {
       message: 'Notification marked as read' 
     });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    reportError(error, { route: '/api/notifications', detail: 'Error marking notification as read' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

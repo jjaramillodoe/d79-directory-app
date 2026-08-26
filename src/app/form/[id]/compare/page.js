@@ -24,14 +24,22 @@ export default function YearComparePage() {
 
   useEffect(() => {
     if (!formId || !session) return;
+    let cancelled = false;
     fetch(`/api/forms/${formId}/compare`)
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || 'Could not compare');
-        setData(payload);
+        if (!cancelled) setData(payload);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [formId, session]);
 
   const rows = useMemo(() => {

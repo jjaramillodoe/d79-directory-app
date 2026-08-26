@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, ChevronDown } from 'lucide-react';
 
 const PrincipalEmailAutocomplete = ({
+  id,
   value,
   onChange,
   placeholder = "Enter principal email",
@@ -10,6 +11,7 @@ const PrincipalEmailAutocomplete = ({
   required = false,
   onSelect = null
 }) => {
+  const listboxId = id ? `${id}-listbox` : undefined;
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -113,7 +115,12 @@ const PrincipalEmailAutocomplete = ({
     <div className={`relative ${className}`} ref={wrapperRef}>
       <div className="relative">
         <input
+          id={id}
           type="text"
+          role="combobox"
+          aria-expanded={showSuggestions && suggestions.length > 0}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={() => {
@@ -166,9 +173,9 @@ const PrincipalEmailAutocomplete = ({
               Loading...
             </div>
           ) : suggestions.length > 0 ? (
-            <ul>
-              {suggestions.map((suggestion, index) => (
-                <li key={index}>
+            <ul id={listboxId} role="listbox">
+              {suggestions.map((suggestion) => (
+                <li key={suggestion.email} role="option" aria-selected={false}>
                   <button
                     type="button"
                     onClick={() => handleSuggestionClick(suggestion)}

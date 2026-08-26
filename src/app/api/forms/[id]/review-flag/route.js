@@ -7,6 +7,8 @@ const FormSubmission = require('../../../../../models/FormSubmission');
 const User = require('../../../../../models/User');
 const { inferSchoolYear } = require('../../../../../lib/schoolYear');
 const { isFormLocked } = require('../../../../../lib/schoolYearSettings');
+const { canEditForm } = require('../../../../../lib/formAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request, { params }) {
   try {
@@ -26,6 +28,9 @@ export async function POST(request, { params }) {
     if (!form) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
+    if (!canEditForm(user, form)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
     if (await isFormLocked(form)) {
       return NextResponse.json({ error: 'This school year is archived and read-only' }, { status: 403 });
     }
@@ -42,7 +47,7 @@ export async function POST(request, { params }) {
 
     return NextResponse.json({ success: true, needsUpdate: form.needsUpdate });
   } catch (error) {
-    console.error('Error reviewing question flag:', error);
+    reportError(error, { route: '/api/forms/[id]/review-flag', detail: 'Error reviewing question flag' });
     return NextResponse.json({ error: 'Failed to update flag' }, { status: 500 });
   }
 }

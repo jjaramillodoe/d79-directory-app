@@ -8,6 +8,8 @@ const User = require('../../../../../models/User');
 const { inferSchoolYear, previousSchoolYear } = require('../../../../../lib/schoolYear');
 const { getPublishedOrJson } = require('../../../../../lib/questionBank');
 const { compareStepAnswers, getYearSettings } = require('../../../../../lib/schoolYearSettings');
+const { canViewForm } = require('../../../../../lib/formAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function GET(request, { params }) {
   try {
@@ -28,11 +30,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    const canView =
-      user.level === 5 ||
-      user.schoolName === current.schoolName ||
-      String(current.userId) === String(user._id);
-    if (!canView) {
+    if (!canViewForm(user, current)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -64,7 +62,7 @@ export async function GET(request, { params }) {
       changedCount: rows.filter((row) => row.changed).length,
     });
   } catch (error) {
-    console.error('Error comparing forms:', error);
+    reportError(error, { route: '/api/forms/[id]/compare', detail: 'Error comparing forms' });
     return NextResponse.json({ error: 'Failed to compare forms' }, { status: 500 });
   }
 }

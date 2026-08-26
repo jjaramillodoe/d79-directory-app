@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 
 // Import form step components
@@ -34,6 +34,16 @@ function FormPageContent() {
   const [currentStep, setCurrentStep] = useState(1);
   const currentStepRef = useRef(1);
   const formHydratedRef = useRef(false);
+  const lockDegradedNotifiedRef = useRef(false);
+
+  // Autosave fires often, so warn once per visit instead of on every save.
+  const notifyLockDegraded = useCallback(() => {
+    if (lockDegradedNotifiedRef.current) return;
+    lockDegradedNotifiedRef.current = true;
+    toast.warning(
+      'Your work is saving normally, but we cannot currently tell you if a colleague is editing the same section. Check with your team before making large changes.'
+    );
+  }, [toast]);
   const [formData, setFormData] = useState({
     schoolName: '',
     status: 'draft'
@@ -56,11 +66,15 @@ function FormPageContent() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(0);
-  const [redirectTimeout, setRedirectTimeout] = useState(null);
+  // Timer handles, never read while rendering. As state they forced re-renders and, worse,
+  // made the unmount cleanup below depend on them, so it re-ran on every change instead of
+  // only on unmount.
+  const redirectTimeoutRef = useRef(null);
+  const redirectCountdownRef = useRef(null);
+  const saveReminderTimeoutRef = useRef(null);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [showSaveReminder, setShowSaveReminder] = useState(false);
-  const [saveReminderTimeout, setSaveReminderTimeout] = useState(null);
   const [saveError, setSaveError] = useState(null);
   const [comments, setComments] = useState([]); // All comments for this form
   const [showCommentModal, setShowCommentModal] = useState(false); // For super admin to add comments
@@ -146,36 +160,28 @@ function FormPageContent() {
     }
   }, [session, status, router]);
 
-  // Cleanup redirect countdown on unmount
+  // Clear every outstanding timer on unmount. Empty deps so this runs only then; the
+  // previous version listed the timer handles as dependencies, so it fired mid-life and
+  // cancelled the pending auto-save whenever `redirecting` changed. It also set state from
+  // a cleanup function, which does nothing on an unmounting component, and it never
+  // cleared the countdown intervals at all -- those kept ticking after navigation.
   useEffect(() => {
     return () => {
-      // Clear any remaining countdown intervals and timeouts
-      if (redirecting) {
-        setRedirecting(false);
-        setRedirectCountdown(0);
-        if (redirectTimeout) {
-          clearTimeout(redirectTimeout);
-        }
-      }
-      
-      // Clear auto-save timeout
+      clearInterval(redirectCountdownRef.current);
+      clearTimeout(redirectTimeoutRef.current);
+      clearTimeout(saveReminderTimeoutRef.current);
       if (window.autoSaveTimeout) {
         clearTimeout(window.autoSaveTimeout);
       }
-      
-      // Clear save reminder timeout
-      if (saveReminderTimeout) {
-        clearTimeout(saveReminderTimeout);
-      }
     };
-  }, [redirecting, redirectTimeout, saveReminderTimeout]);
+  }, []);
 
   // Function to cancel redirect
   const cancelRedirect = () => {
-    if (redirectTimeout) {
-      clearTimeout(redirectTimeout);
-      setRedirectTimeout(null);
-    }
+    clearTimeout(redirectTimeoutRef.current);
+    clearInterval(redirectCountdownRef.current);
+    redirectTimeoutRef.current = null;
+    redirectCountdownRef.current = null;
     setRedirecting(false);
     setRedirectCountdown(0);
   };
@@ -464,6 +470,12 @@ function FormPageContent() {
         
         // Clear any previous errors on successful save
         setSaveError(null);
+
+        // The save is still protected by the revision check, but the "being edited by"
+        // indicator cannot be trusted right now, so say so once rather than every save.
+        if (result.lockDegraded) {
+          notifyLockDegraded();
+        }
         
         // Update local state with server response (includes lastUpdated, revisionCount, etc.)
         if (result.stepData) {
@@ -647,16 +659,12 @@ function FormPageContent() {
     });
 
     // Clear any existing save reminder
-    if (saveReminderTimeout) {
-      clearTimeout(saveReminderTimeout);
-      setSaveReminderTimeout(null);
-    }
+    clearTimeout(saveReminderTimeoutRef.current);
 
     // Show save reminder after 3 minutes of inactivity
-    const reminderTimeout = setTimeout(() => {
+    saveReminderTimeoutRef.current = setTimeout(() => {
       setShowSaveReminder(true);
     }, 360000); // 6 minutes
-    setSaveReminderTimeout(reminderTimeout);
 
     // Debounced auto-save after 3 seconds of inactivity
     const stepKeyToSave = actualStepKey;
@@ -848,6 +856,10 @@ function FormPageContent() {
         }
         
         const result = await response.json();
+
+        if (result.lockDegraded) {
+          notifyLockDegraded();
+        }
         
         // Update local state with server response
         if (result.stepData) {
@@ -916,12 +928,6 @@ function FormPageContent() {
       }
     }
   };
-
-  // Auto-save when user leaves a step (component unmounts or step changes)
-  useEffect(() => {
-    // Don't auto-save during step navigation - it's causing state issues
-    // Auto-save will happen through the navigation functions instead
-  }, [currentStep, stepData]);
 
   // Backup periodic save in case debounce is skipped while a save is in flight
   useEffect(() => {
@@ -1256,10 +1262,10 @@ function FormPageContent() {
         setRedirecting(true);
         setRedirectCountdown(3);
         
-        const countdownInterval = setInterval(() => {
+        redirectCountdownRef.current = setInterval(() => {
           setRedirectCountdown(prev => {
             if (prev <= 1) {
-              clearInterval(countdownInterval);
+              clearInterval(redirectCountdownRef.current);
               return 0;
             }
             return prev - 1;
@@ -1267,10 +1273,9 @@ function FormPageContent() {
         }, 1000);
         
         // Set a separate timeout for the actual redirect
-        const timeoutRef = setTimeout(() => {
+        redirectTimeoutRef.current = setTimeout(() => {
           router.push('/dashboard');
         }, 3000);
-        setRedirectTimeout(timeoutRef);
       } else {
         throw new Error(result.message || 'Save failed');
       }
@@ -1355,19 +1360,18 @@ function FormPageContent() {
         toast.success(`Submitted ${formData.schoolName} for review. Redirecting…`);
         setRedirecting(true);
         setRedirectCountdown(5);
-        const countdownInterval = setInterval(() => {
+        redirectCountdownRef.current = setInterval(() => {
           setRedirectCountdown((prev) => {
             if (prev <= 1) {
-              clearInterval(countdownInterval);
+              clearInterval(redirectCountdownRef.current);
               return 0;
             }
             return prev - 1;
           });
         }, 1000);
-        const timeoutRef = setTimeout(() => {
+        redirectTimeoutRef.current = setTimeout(() => {
           router.push('/dashboard');
         }, 5000);
-        setRedirectTimeout(timeoutRef);
       } else {
         throw new Error(result.message || 'Submission failed');
       }
@@ -1834,7 +1838,7 @@ function FormPageContent() {
     performSubmit();
   };
 
-  const canManageSharing = session?.user?.level === 5 || session?.user?.email?.toLowerCase() === 'jjaramillo7@gmail.com';
+  const canManageSharing = session?.user?.level === 5;
 
   // Don't render until session and form data are loaded
   if (status === 'loading' || !session || loading || questionBankLoading || questionBank.source === 'loading') {

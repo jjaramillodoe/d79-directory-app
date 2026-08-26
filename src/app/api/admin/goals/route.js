@@ -4,6 +4,8 @@ const { authOptions } = require('../../../../lib/auth');
 const connectDB = require('../../../../lib/mongodb');
 const FormSubmission = require('../../../../models/FormSubmission');
 const { getPublishedOrJson } = require('../../../../lib/questionBank');
+const { schoolYearQuery } = require('../../../../lib/schoolYear');
+const { reportError } = require('../../../../lib/reportError');
 
 // NLP patterns to detect N/A responses
 const NA_PATTERNS = [
@@ -486,14 +488,14 @@ export async function GET(request) {
     // Load form questions
     const formQuestions = await getPublishedOrJson({ schoolYear: schoolYearFilter || undefined });
 
-    // Get all forms
-    let forms = await FormSubmission.find({})
+    // `schoolYearQuery` returns null for 'all' and for anything malformed, which collapses
+    // to the previous unfiltered behavior. Previously every form was loaded and populated
+    // before being thrown away in JS.
+    const yearQuery =
+      schoolYearFilter && schoolYearFilter !== 'all' ? schoolYearQuery(schoolYearFilter) : null;
+    const forms = await FormSubmission.find(yearQuery || {})
       .populate('userId', 'name email schoolName')
       .lean();
-    if (schoolYearFilter && schoolYearFilter !== 'all') {
-      const { inferSchoolYear } = require('../../../../lib/schoolYear');
-      forms = forms.filter((form) => inferSchoolYear(form) === schoolYearFilter);
-    }
 
     const questions = getAllQuestions(formQuestions);
     
@@ -615,9 +617,9 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    console.error('Error analyzing forms:', error);
+    reportError(error, { route: '/api/admin/goals', detail: 'Error analyzing forms' });
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

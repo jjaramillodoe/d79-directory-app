@@ -7,6 +7,7 @@ const { getDraftTemplate, getPublishedTemplate, auditRequest } = require('../../
 const { cloneSteps, toClientTemplate } = require('../../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../../lib/auditLogger');
 const { invalidateQuestionBankCache } = require('../../../../../lib/redis');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request) {
   try {
@@ -51,7 +52,7 @@ export async function POST(request) {
       published: toClientTemplate(published),
     });
   } catch (error) {
-    console.error('Error discarding draft:', error);
+    reportError(error, { route: '/api/admin/questions/discard', detail: 'Error discarding draft' });
     return NextResponse.json({ error: 'Failed to discard draft' }, { status: 500 });
   }
 }

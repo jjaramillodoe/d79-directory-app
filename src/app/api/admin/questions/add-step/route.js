@@ -10,6 +10,7 @@ const {
   toClientTemplate,
 } = require('../../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../../lib/auditLogger');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request) {
   try {
@@ -63,7 +64,7 @@ export async function POST(request) {
       draft: toClientTemplate(draft),
     });
   } catch (error) {
-    console.error('Error adding step:', error);
+    reportError(error, { route: '/api/admin/questions/add-step', detail: 'Error adding step' });
     return NextResponse.json({ error: 'Failed to add step' }, { status: 500 });
   }
 }

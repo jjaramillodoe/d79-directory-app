@@ -4,7 +4,7 @@
  * Uses Redis if available, falls back to in-memory Map for single-server deployments
  */
 
-const { getRedis, scanKeys } = require('./redis');
+const { getRedis, scanKeys, redisConfigured } = require('./redis');
 
 let inMemoryLocks = new Map(); // Fallback: { lockKey: { userId, userName, email, lockedAt, expiresAt } }
 
@@ -108,7 +108,11 @@ async function acquireLock(formId, stepKey, userId, userName, userEmail, ttlSeco
       }
     }
 
-    // Fallback to in-memory locking
+    // Fallback to in-memory locking. This map is per process, so it only tells the whole
+    // truth when there is a single instance. With no REDIS_URL at all that is the expected
+    // local setup and nothing is wrong; if Redis is configured but unreachable, the app is
+    // probably running multiple instances and this lock can no longer see its peers.
+    const degraded = redisConfigured() && !redisClient;
     const existingLock = inMemoryLocks.get(lockKey);
     
     if (existingLock) {
@@ -123,7 +127,7 @@ async function acquireLock(formId, stepKey, userId, userName, userEmail, ttlSeco
           existingLock.userName = userName;
           existingLock.email = userEmail;
           inMemoryLocks.set(lockKey, existingLock);
-          return { success: true, lockedBy: existingLock };
+          return { success: true, lockedBy: existingLock, degraded };
         }
         return {
           success: false,
@@ -145,23 +149,33 @@ async function acquireLock(formId, stepKey, userId, userName, userEmail, ttlSeco
     inMemoryLocks.set(lockKey, lockInfo);
     
     // Auto-expire the lock after TTL
-    setTimeout(() => {
+    // Unref'd for the same reason as the sweep interval below: expiry is also enforced by
+    // the expiresAt comparison on read, so this timer is an optimisation and must not keep
+    // the process alive for the whole TTL after the request has finished.
+    const expiry = setTimeout(() => {
       const currentLock = inMemoryLocks.get(lockKey);
-      if (currentLock && currentLock.userId === userId) {
+      if (currentLock && sameUser(currentLock.userId, userId)) {
         inMemoryLocks.delete(lockKey);
       }
     }, ttlSeconds * 1000);
+    if (typeof expiry?.unref === 'function') expiry.unref();
 
     return {
       success: true,
       lockedBy: lockInfo,
+      degraded,
     };
   } catch (error) {
     console.error('Error acquiring lock:', error);
-    // On error, allow the operation (fail open)
+    // Deliberately fails open. These locks are advisory: they drive the "being edited by
+    // X" indicator, while lost updates are prevented independently by the revisionCount
+    // guard on the conditional update in the step-save route. Failing closed here would
+    // stop all editing during a Redis outage without buying any correctness, so instead
+    // the caller is told the collaboration signal is untrustworthy.
     return {
       success: true,
       lockedBy: { userId, userName, email: userEmail, lockedAt, expiresAt },
+      degraded: true,
       warning: 'Lock service unavailable, proceeding without lock',
     };
   }
@@ -223,7 +237,10 @@ async function refreshLock(formId, stepKey, userId, ttlSeconds = 300) {
       const currentLock = await redisClient.get(lockKey);
       if (currentLock) {
         const lockInfo = JSON.parse(currentLock);
-        if (lockInfo.userId === userId) {
+        // Must match releaseLock's comparison: a stored ObjectId and an incoming string
+        // are the same user, and a strict === here would stop the rightful owner from
+        // refreshing, silently dropping their lock mid-edit.
+        if (sameUser(lockInfo.userId, userId)) {
           lockInfo.expiresAt = expiresAt.toISOString();
           await redisClient.set(lockKey, JSON.stringify(lockInfo), 'EX', ttlSeconds);
           return true;
@@ -234,7 +251,7 @@ async function refreshLock(formId, stepKey, userId, ttlSeconds = 300) {
 
     // In-memory fallback
     const existingLock = inMemoryLocks.get(lockKey);
-    if (existingLock && existingLock.userId === userId) {
+    if (existingLock && sameUser(existingLock.userId, userId)) {
       existingLock.expiresAt = expiresAt;
       inMemoryLocks.set(lockKey, existingLock);
       return true;
@@ -369,9 +386,13 @@ async function cleanupExpiredLocks() {
   }
 }
 
-// Run cleanup every 5 minutes
+// Run cleanup every 5 minutes. Unref'd because this starts merely by importing the module:
+// a ref'd interval would keep the event loop alive forever, holding a serverless instance
+// awake and stopping any process that touches locking from ever exiting on its own.
+// Sweeping expired locks is only housekeeping, so it should never be the reason we stay up.
 if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupExpiredLocks, 5 * 60 * 1000);
+  const sweep = setInterval(cleanupExpiredLocks, 5 * 60 * 1000);
+  if (typeof sweep?.unref === 'function') sweep.unref();
 }
 
 module.exports = {

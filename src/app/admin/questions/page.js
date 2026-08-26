@@ -29,6 +29,7 @@ import QuestionTextToolbar from '../../../components/admin/QuestionTextToolbar';
 import QuestionPrompt from '../../../components/QuestionPrompt';
 import FormattedCopy from '../../../components/FormattedCopy';
 import AppFooter from '../../../components/AppFooter';
+import Modal from '../../../components/ui/Modal';
 import { currentSchoolYear } from '../../../lib/schoolYear';
 import { normalizeColumnDefs, parseOptions, parseColumnBlueprint, formatColumnBlueprint, cloneColumnPreset, TABLE_COLUMN_PRESETS } from '../../../lib/tableAnswer';
 
@@ -726,11 +727,11 @@ function AdminQuestionsPageContent() {
       </div>
 
       {addingStep && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setAddingStep(false)} labelledBy="add-step-title">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Add a step</h3>
+                <h3 id="add-step-title" className="text-lg font-semibold text-gray-900">Add a step</h3>
                 <p className="text-sm text-gray-600 mt-1">
                   A step is a section of the school plan, like Attendance or Counseling. Add questions after you create it, then publish.
                 </p>
@@ -775,15 +776,19 @@ function AdminQuestionsPageContent() {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {editingStep && selectedStep && (
-        <div className="app-modal-drawer">
+        <Modal
+          onClose={() => setEditingStep(false)}
+          variant="drawer"
+          labelledBy="section-intro-title"
+        >
           <div className="w-full max-w-xl h-full bg-white shadow-xl overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Section intro</h3>
+                <h3 id="section-intro-title" className="text-lg font-semibold text-gray-900">Section intro</h3>
                 <p className="text-xs text-gray-500 mt-1">Key: {selectedStep.key} (cannot be changed)</p>
               </div>
               <button
@@ -823,15 +828,22 @@ function AdminQuestionsPageContent() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {(editingQuestion || adding) && (
-        <div className="app-modal-drawer">
+        <Modal
+          onClose={() => {
+            setEditingQuestion(null);
+            setAdding(false);
+          }}
+          variant="drawer"
+          labelledBy="question-editor-title"
+        >
           <div className="w-full max-w-xl h-full bg-white shadow-xl overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-200">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{adding ? 'Add question' : 'Edit question'}</h3>
+                <h3 id="question-editor-title" className="text-lg font-semibold text-gray-900">{adding ? 'Add question' : 'Edit question'}</h3>
                 {editingQuestion && <p className="text-xs text-gray-500 mt-1">ID: {editingQuestion.id} (cannot be changed)</p>}
               </div>
               <button
@@ -884,13 +896,13 @@ function AdminQuestionsPageContent() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {showPublishModal && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowPublishModal(false)} labelledBy="publish-bank-title">
           <div className="bg-white rounded-xl max-w-lg w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Publish question bank?</h3>
+            <h3 id="publish-bank-title" className="text-xl font-bold text-gray-900 mb-2">Publish question bank?</h3>
             <p className="text-gray-600 mb-4">
               This updates the live form questions. Existing answers stay under their original question IDs. Pin the published set to a school year so last year’s forms keep last year’s questions.
             </p>
@@ -922,7 +934,7 @@ function AdminQuestionsPageContent() {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
       </div>
       <AppFooter />

@@ -4,6 +4,8 @@ const { authOptions } = require('../../../../lib/auth');
 const connectDB = require('../../../../lib/mongodb');
 const FormSubmission = require('../../../../models/FormSubmission');
 const User = require('../../../../models/User');
+const { schoolScopeFilter } = require('../../../../lib/userAccess');
+const { reportError } = require('../../../../lib/reportError');
 
 // POST /api/admin/reports - Generate CSV report
 async function POST(request) {
@@ -17,14 +19,14 @@ async function POST(request) {
     await connectDB();
 
     const user = await User.findOne({ email: session.user.email });
-    if (!user || user.level !== 4) {
+    if (!user || user.isActive === false || user.level < 4) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const { startDate, endDate, status } = await request.json();
 
-    // Build query
-    const query = {};
+    // Principals only ever export their own school; Super Admins get the district.
+    const query = { ...schoolScopeFilter(user) };
     
     if (startDate && endDate) {
       query.createdAt = {
@@ -93,7 +95,7 @@ async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Error generating report:', error);
+    reportError(error, { route: '/api/admin/reports', detail: 'Error generating report' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

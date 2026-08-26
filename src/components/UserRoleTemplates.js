@@ -17,6 +17,13 @@ import {
   Edit
 } from 'lucide-react';
 import useAppToast from '../hooks/useAppToast';
+import Modal from './ui/Modal';
+
+// Editable rows need an identity that survives a delete. Row content cannot supply one:
+// name and email are being typed, so keying on them would remount the row on every
+// keystroke and drop focus. A counter is stable for the life of the row instead.
+let rowIdCounter = 0;
+const nextRowId = () => `row-${rowIdCounter++}`;
 
 const UserRoleTemplates = ({ onCreateUsers }) => {
   const toast = useAppToast();
@@ -87,7 +94,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
     setCustomTemplate({
       name: template.name,
       description: template.description,
-      users: template.users.map(user => ({ ...user }))
+      users: template.users.map(user => ({ ...user, rowId: nextRowId() }))
     });
     setShowModal(true);
   };
@@ -104,7 +111,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
   const addUser = () => {
     setCustomTemplate(prev => ({
       ...prev,
-      users: [...prev.users, { name: '', email: '', level: 2, title: '', schoolName: '' }]
+      users: [...prev.users, { rowId: nextRowId(), name: '', email: '', level: 2, title: '', schoolName: '' }]
     }));
   };
 
@@ -133,13 +140,15 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
       const results = [];
       for (const user of validUsers) {
         try {
+          // rowId is a client-side render key; it is not part of the user record.
+          const { rowId, ...userPayload } = user;
           const response = await fetch('/api/users/create', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              ...user,
+              ...userPayload,
               isActive: true
             }),
           });
@@ -263,15 +272,20 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
 
       {/* Template Setup Modal */}
       {showModal && (
-        <div className="app-modal-backdrop app-modal-xl">
+        <Modal
+          onClose={isCreating ? undefined : () => setShowModal(false)}
+          size="xl"
+          labelledBy="role-template-title"
+        >
           <div className="bg-white rounded-lg p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
+              <h3 id="role-template-title" className="text-2xl font-semibold text-gray-900 flex items-center">
                 <BookOpen className="w-6 h-6 mr-2 text-indigo-600" />
                 Setup: {customTemplate.name}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
+                aria-label="Close dialog"
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-6 h-6" />
@@ -297,7 +311,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
 
               <div className="space-y-3">
                 {customTemplate.users.map((user, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div key={user.rowId} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h5 className="font-medium text-gray-900">User {index + 1}</h5>
                       {customTemplate.users.length > 1 && (
@@ -408,7 +422,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

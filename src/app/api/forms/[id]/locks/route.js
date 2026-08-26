@@ -5,6 +5,8 @@ const connectDB = require('../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../models/FormSubmission');
 const User = require('../../../../../models/User');
 const { getFormLocks, getLockInfo } = require('../../../../../lib/locking');
+const { canViewForm } = require('../../../../../lib/formAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
 // GET /api/forms/[id]/locks - Get all active locks for a form
 async function GET(request, { params }) {
@@ -28,19 +30,7 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    const formUserId = form.userId?.toString();
-    const userId = user._id?.toString();
-    const isOwner = formUserId === userId;
-    const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
-    const isSuperAdmin = user.level === 5;
-    const isSameSchool =
-      Boolean(user.schoolName && form.schoolName && user.schoolName === form.schoolName) &&
-      (user.level === 2 || user.level === 3 || user.level === 4);
-    const hasEditAccess = form.editAccess?.some(ea => ea.userId?.toString() === userId);
-    const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some(at => at.userId?.toString() === userId);
-    const shareEntry = form.sharedWithEmails?.find(share => share.email?.toLowerCase() === user.email?.toLowerCase());
-
-    if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool && !hasEditAccess && !isAssignedLevel3 && !shareEntry) {
+    if (!canViewForm(user, form)) {
       return NextResponse.json({ 
         error: 'Access denied',
         message: 'You do not have permission to view this form.'
@@ -65,11 +55,8 @@ async function GET(request, { params }) {
       })),
     });
   } catch (error) {
-    console.error('Error getting form locks:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error.message 
-    }, { status: 500 });
+    reportError(error, { route: '/api/forms/[id]/locks', detail: 'Error getting form locks' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -4,6 +4,7 @@ const { authOptions } = require('../../../../../lib/auth');
 const connectDB = require('../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../models/FormSubmission');
 const User = require('../../../../../models/User');
+const { reportError } = require('../../../../../lib/reportError');
 
 // POST /api/forms/[id]/share - Share form with email addresses (Level 5 only)
 async function POST(request, { params }) {
@@ -21,9 +22,8 @@ async function POST(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Only Level 5 (Super Admin) or specific authorized email can share forms by email
-    const isAuthorizedEmail = user.email.toLowerCase() === 'jjaramillo7@gmail.com';
-    if (user.level !== 5 && !isAuthorizedEmail) {
+    // Only Level 5 (Super Admin) can share forms by email
+    if (user.level !== 5) {
       return NextResponse.json({ error: 'Only Super Admins can share forms by email' }, { status: 403 });
     }
 
@@ -44,7 +44,7 @@ async function POST(request, { params }) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
+      reportError(parseError, { route: '/api/forms/[id]/share', detail: 'Error parsing request body' });
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
@@ -107,11 +107,8 @@ async function POST(request, { params }) {
       sharedWithEmails: form.sharedWithEmails,
     });
   } catch (error) {
-    console.error('Error sharing form:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: error.message || 'An unexpected error occurred',
-    }, { status: 500 });
+    reportError(error, { route: '/api/forms/[id]/share', detail: 'Error sharing form' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -131,9 +128,8 @@ async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Only Level 5 (Super Admin) or specific authorized email can unshare forms
-    const isAuthorizedEmail = user.email.toLowerCase() === 'jjaramillo7@gmail.com';
-    if (user.level !== 5 && !isAuthorizedEmail) {
+    // Only Level 5 (Super Admin) can unshare forms
+    if (user.level !== 5) {
       return NextResponse.json({ error: 'Only Super Admins can unshare forms' }, { status: 403 });
     }
 
@@ -192,11 +188,8 @@ async function DELETE(request, { params }) {
       sharedWithEmails: form.sharedWithEmails,
     });
   } catch (error) {
-    console.error('Error unsharing form:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: error.message || 'An unexpected error occurred',
-    }, { status: 500 });
+    reportError(error, { route: '/api/forms/[id]/share', detail: 'Error unsharing form' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -216,9 +209,8 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Only Level 5 (Super Admin) or specific authorized email can view shared emails
-    const isAuthorizedEmail = user.email.toLowerCase() === 'jjaramillo7@gmail.com';
-    if (user.level !== 5 && !isAuthorizedEmail) {
+    // Only Level 5 (Super Admin) can view shared emails
+    if (user.level !== 5) {
       return NextResponse.json({ error: 'Only Super Admins can view shared emails' }, { status: 403 });
     }
 
@@ -241,11 +233,8 @@ async function GET(request, { params }) {
       sharedWithEmails: form.sharedWithEmails || [],
     });
   } catch (error) {
-    console.error('Error fetching shared emails:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: error.message || 'An unexpected error occurred',
-    }, { status: 500 });
+    reportError(error, { route: '/api/forms/[id]/share', detail: 'Error fetching shared emails' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

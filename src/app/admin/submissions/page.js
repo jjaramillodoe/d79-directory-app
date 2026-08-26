@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import ScrollToTop from '../../../components/ScrollToTop';
 import PrincipalEmailAutocomplete from '../../../components/PrincipalEmailAutocomplete';
-import FormViewer from '../../../components/FormViewer';
 import DashboardShell from '../../../components/dashboard/DashboardShell';
 import DashboardSidebar from '../../../components/dashboard/DashboardSidebar';
 import DashboardHeader from '../../../components/dashboard/DashboardHeader';
@@ -14,6 +14,20 @@ import DuplicateFormModal from '../../../components/admin/DuplicateFormModal';
 import { Spinner, Column, Row, Text, Heading, Button, Card } from '@once-ui-system/core';
 import { currentSchoolYear } from '../../../lib/schoolYear';
 import useAppToast from '../../../hooks/useAppToast';
+import Modal from '../../../components/ui/Modal';
+
+// FormViewer drags in jspdf and html2canvas, the two largest client dependencies in the app,
+// and it renders only inside the print dialog. `ssr: false` because html2canvas needs a real
+// DOM to rasterize against.
+const FormViewer = dynamic(() => import('../../../components/FormViewer'), {
+  ssr: false,
+  loading: () => (
+    <Column fillWidth horizontal="center" vertical="center" paddingY="48" gap="12">
+      <Spinner size="m" />
+      <Text onBackground="neutral-weak">Preparing document...</Text>
+    </Column>
+  ),
+});
 
 export default function AdminSubmissionsPage() {
   const router = useRouter();
@@ -674,10 +688,10 @@ export default function AdminSubmissionsPage() {
       )}
 
       {showReviewModal && selectedSubmission && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowReviewModal(false)} labelledBy="review-submission-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
             <Column gap="16">
-              <Heading variant="heading-strong-m">Review submission</Heading>
+              <Heading id="review-submission-title" variant="heading-strong-m">Review submission</Heading>
               <Column gap="4">
                 <Text variant="body-default-s">School: {selectedSubmission.schoolName}</Text>
                 <Text variant="body-default-s">Principal: {selectedSubmission.principalName}</Text>
@@ -722,17 +736,18 @@ export default function AdminSubmissionsPage() {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
 
       {showReportModal && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowReportModal(false)} labelledBy="generate-report-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
             <Column gap="16">
-              <Heading variant="heading-strong-m">Generate report</Heading>
+              <Heading id="generate-report-title" variant="heading-strong-m">Generate report</Heading>
               <Column gap="8">
-                <Text variant="label-default-s">Start date</Text>
+                <Text as="label" htmlFor="report-start-date" variant="label-default-s">Start date</Text>
                 <input
+                  id="report-start-date"
                   className="app-field"
                   type="date"
                   value={reportData.startDate}
@@ -740,8 +755,9 @@ export default function AdminSubmissionsPage() {
                 />
               </Column>
               <Column gap="8">
-                <Text variant="label-default-s">End date</Text>
+                <Text as="label" htmlFor="report-end-date" variant="label-default-s">End date</Text>
                 <input
+                  id="report-end-date"
                   className="app-field"
                   type="date"
                   value={reportData.endDate}
@@ -749,8 +765,9 @@ export default function AdminSubmissionsPage() {
                 />
               </Column>
               <Column gap="8">
-                <Text variant="label-default-s">Status</Text>
+                <Text as="label" htmlFor="report-status" variant="label-default-s">Status</Text>
                 <select
+                  id="report-status"
                   className="app-field"
                   value={reportData.status}
                   onChange={(e) => setReportData({ ...reportData, status: e.target.value })}
@@ -771,14 +788,14 @@ export default function AdminSubmissionsPage() {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
 
       {showDeleteModal && submissionToDelete && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowDeleteModal(false)} labelledBy="delete-submission-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
             <Column gap="16">
-              <Heading variant="heading-strong-m">Delete submission</Heading>
+              <Heading id="delete-submission-title" variant="heading-strong-m">Delete submission</Heading>
               <Text onBackground="neutral-weak">
                 This cannot be undone. The school plan for {submissionToDelete.schoolName} will be permanently removed.
               </Text>
@@ -805,14 +822,14 @@ export default function AdminSubmissionsPage() {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
 
       {showTransferModal && submissionToTransfer && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowTransferModal(false)} labelledBy="transfer-ownership-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
             <Column gap="16">
-              <Heading variant="heading-strong-m">Transfer ownership</Heading>
+              <Heading id="transfer-ownership-title" variant="heading-strong-m">Transfer ownership</Heading>
               <Text onBackground="neutral-weak">
                 The new owner will have full control of this form and must be a Level 4 principal.
               </Text>
@@ -826,8 +843,9 @@ export default function AdminSubmissionsPage() {
                 </Text>
               </Column>
               <Column gap="8">
-                <Text variant="label-default-s">New owner email</Text>
+                <Text as="label" htmlFor="transfer-new-owner" variant="label-default-s">New owner email</Text>
                 <PrincipalEmailAutocomplete
+                  id="transfer-new-owner"
                   value={transferData.newOwnerEmail}
                   onChange={(email) => setTransferData({ newOwnerEmail: email })}
                   placeholder="Enter principal email"
@@ -854,11 +872,11 @@ export default function AdminSubmissionsPage() {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
 
       {showPrintModal && printSubmission && (
-        <div className="app-modal-backdrop app-modal-wide">
+        <Modal onClose={() => setShowPrintModal(false)} size="wide" labelledBy="print-preview-title">
           <Card
             padding="0"
             radius="l"
@@ -872,7 +890,7 @@ export default function AdminSubmissionsPage() {
               padding="20"
               style={{ borderBottom: '1px solid var(--neutral-alpha-medium)' }}
             >
-              <Heading variant="heading-strong-m">
+              <Heading id="print-preview-title" variant="heading-strong-m">
                 Print view · {printSubmission.schoolName}
               </Heading>
               <Button
@@ -890,7 +908,7 @@ export default function AdminSubmissionsPage() {
               <FormViewer form={printSubmission} />
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
 
       <ScrollToTop />

@@ -8,6 +8,8 @@ const User = require('../../../../../models/User');
 const { logAction } = require('../../../../../lib/auditLogger');
 const { inferSchoolYear } = require('../../../../../lib/schoolYear');
 const { isFormLocked } = require('../../../../../lib/schoolYearSettings');
+const { canEditForm } = require('../../../../../lib/formAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request, { params }) {
   try {
@@ -29,6 +31,9 @@ export async function POST(request, { params }) {
     const form = await FormSubmission.findById(id);
     if (!form) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+    }
+    if (!canEditForm(user, form)) {
+      return NextResponse.json({ error: 'You cannot attest to this school plan' }, { status: 403 });
     }
     if (await isFormLocked(form)) {
       return NextResponse.json({ error: 'This school year is archived and read-only' }, { status: 403 });
@@ -61,7 +66,7 @@ export async function POST(request, { params }) {
 
     return NextResponse.json({ success: true, attestation: form.attestation });
   } catch (error) {
-    console.error('Error saving attestation:', error);
+    reportError(error, { route: '/api/forms/[id]/attest', detail: 'Error saving attestation' });
     return NextResponse.json({ error: 'Failed to save attestation' }, { status: 500 });
   }
 }

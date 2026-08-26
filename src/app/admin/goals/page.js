@@ -8,28 +8,7 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  ZAxis
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import {
   Spinner,
   Column,
@@ -49,8 +28,29 @@ import StatCard from '../../../components/dashboard/StatCard';
 import DashboardSection from '../../../components/dashboard/DashboardSection';
 import { currentSchoolYear } from '../../../lib/schoolYear';
 
-// Register AG Grid modules
-ModuleRegistry.registerModules([AllCommunityModule]);
+// ag-grid and recharts are the two heaviest dependencies on this page and neither is
+// reachable from the default "overview" tab, so both load on demand. `ssr: false` because
+// both measure the DOM to size themselves and have nothing useful to render on the server.
+const ChartFallback = ({ height }) => (
+  <Column fillWidth horizontal="center" vertical="center" style={{ height }}>
+    <Spinner size="m" />
+  </Column>
+);
+
+const DataGrid = dynamic(() => import('../../../components/admin/DataGrid'), {
+  ssr: false,
+  loading: () => <ChartFallback height={200} />,
+});
+
+const GoalsChartsPanel = dynamic(() => import('../../../components/admin/GoalsChartsPanel'), {
+  ssr: false,
+  loading: () => <ChartFallback height={280} />,
+});
+
+const ClusterScatterChart = dynamic(() => import('../../../components/admin/ClusterScatterChart'), {
+  ssr: false,
+  loading: () => <ChartFallback height={420} />,
+});
 
 function AdminGoalsPageContent() {
   const router = useRouter();
@@ -460,7 +460,7 @@ function AdminGoalsPageContent() {
           }
         >
           <div className="legacy-ui ag-theme-alpine w-full" style={{ height: 600 }}>
-            <AgGridReact
+            <DataGrid
               columnDefs={questionColumnDefs}
               rowData={filteredQuestions}
               onGridReady={onGridReady}
@@ -476,7 +476,7 @@ function AdminGoalsPageContent() {
         <Column gap="24" fillWidth>
           <DashboardSection title="Top N/A by count">
             <div className="legacy-ui ag-theme-alpine w-full" style={{ height: 400 }}>
-              <AgGridReact
+              <DataGrid
                 columnDefs={questionColumnDefs}
                 rowData={topNA}
                 pagination={true}
@@ -486,7 +486,7 @@ function AdminGoalsPageContent() {
           </DashboardSection>
           <DashboardSection title="Top N/A by percentage" description="At least 3 responses">
             <div className="legacy-ui ag-theme-alpine w-full" style={{ height: 400 }}>
-              <AgGridReact
+              <DataGrid
                 columnDefs={questionColumnDefs}
                 rowData={highestNA}
                 pagination={true}
@@ -498,95 +498,7 @@ function AdminGoalsPageContent() {
       )}
 
       {activeTab === 'graphs' && data?.chartData && (
-        <Column gap="24" fillWidth>
-          <Grid columns="2" gap="16" fillWidth s={{ columns: '1' }}>
-            <DashboardSection title="Form status">
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={data.chartData.statusDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={88}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}
-                  >
-                    {data.chartData.statusDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </DashboardSection>
-            <DashboardSection title="Answer mix">
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Answered', value: data.chartData.questionStatusDistribution.answered },
-                      { name: 'N/A', value: data.chartData.questionStatusDistribution.na },
-                      { name: 'Empty', value: data.chartData.questionStatusDistribution.empty },
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={88}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}
-                  >
-                    <Cell fill="#10b981" />
-                    <Cell fill="#f59e0b" />
-                    <Cell fill="#6b7280" />
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </DashboardSection>
-          </Grid>
-          <DashboardSection title="Step completion">
-            <ResponsiveContainer width="100%" height={360}>
-              <BarChart data={data.chartData.stepCompletion} layout="vertical" margin={{ left: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
-                <XAxis type="number" domain={[0, 100]} />
-                <YAxis dataKey="step" type="category" width={110} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(value) => [`${value}%`, 'Completion']} />
-                <Bar dataKey="percentage" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </DashboardSection>
-          <DashboardSection title="N/A by step">
-            <ResponsiveContainer width="100%" height={360}>
-              <BarChart data={data.chartData.naByStep}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
-                <XAxis dataKey="step" angle={-35} textAnchor="end" height={90} tick={{ fontSize: 11 }} />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="naCount" fill="#f59e0b" name="N/A" />
-                <Bar dataKey="totalCount" fill="#cbd5e1" name="Total" />
-              </BarChart>
-            </ResponsiveContainer>
-          </DashboardSection>
-          {data.chartData.trends?.length > 0 && (
-            <DashboardSection title="Completion over time">
-              <ResponsiveContainer width="100%" height={320}>
-                <LineChart data={data.chartData.trends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="avgCompletion" stroke="#3b82f6" strokeWidth={2} name="Avg completion %" />
-                  <Line type="monotone" dataKey="forms" stroke="#10b981" strokeWidth={2} name="Forms updated" />
-                </LineChart>
-              </ResponsiveContainer>
-            </DashboardSection>
-          )}
-        </Column>
+        <GoalsChartsPanel chartData={data.chartData} />
       )}
 
       {activeTab === 'clustering' && data?.clustering && (
@@ -686,28 +598,7 @@ function AdminGoalsPageContent() {
           </DashboardSection>
 
           <DashboardSection title="Cluster scatter" description="Completion vs N/A rate">
-            <ResponsiveContainer width="100%" height={420}>
-              <ScatterChart>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--neutral-alpha-medium)" />
-                <XAxis type="number" dataKey="completionRate" name="Completion" unit="%" domain={[0, 100]} />
-                <YAxis type="number" dataKey="naRate" name="N/A" unit="%" domain={[0, 100]} />
-                <ZAxis type="number" dataKey="stepProgress" range={[50, 400]} />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Legend />
-                {data.clustering.forms.clusters.map((cluster, idx) => (
-                  <Scatter
-                    key={idx}
-                    name={`Cluster ${idx + 1}`}
-                    data={cluster.forms.map((f) => ({
-                      completionRate: parseFloat(f.completionRate),
-                      naRate: parseFloat(f.naRate),
-                      stepProgress: parseFloat(f.stepProgress),
-                    }))}
-                    fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][idx % 5]}
-                  />
-                ))}
-              </ScatterChart>
-            </ResponsiveContainer>
+            <ClusterScatterChart clusters={data.clustering.forms.clusters} />
           </DashboardSection>
         </Column>
       )}

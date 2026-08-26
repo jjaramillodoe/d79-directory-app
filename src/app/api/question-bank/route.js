@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 const { authOptions } = require('../../../lib/auth');
 const { getPublishedOrJson, getDraftTemplate } = require('../../../lib/questionBank');
 const { toClientTemplate } = require('../../../lib/questionBankUtils');
+const { reportError } = require('../../../lib/reportError');
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,7 @@ export async function GET(request) {
     });
     return NextResponse.json(bank, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    console.error('Error loading published question bank:', error);
+    reportError(error, { route: '/api/question-bank', detail: 'Error loading published question bank' });
     return NextResponse.json({ error: 'Failed to load question bank' }, { status: 500 });
   }
 }

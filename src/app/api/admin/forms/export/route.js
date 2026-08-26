@@ -5,9 +5,11 @@ const { authOptions } = require('../../../../../lib/auth');
 const connectDB = require('../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../models/FormSubmission');
 const User = require('../../../../../models/User');
-const { inferSchoolYear, isValidSchoolYear, currentSchoolYear } = require('../../../../../lib/schoolYear');
+const { isValidSchoolYear, currentSchoolYear, schoolYearQuery } = require('../../../../../lib/schoolYear');
 const { getPublishedOrJson } = require('../../../../../lib/questionBank');
 const { COMPARE_STEPS, formatAnswer, getYearSettings } = require('../../../../../lib/schoolYearSettings');
+const { enforceRateLimit } = require('../../../../../lib/userAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
 function csvCell(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -26,6 +28,10 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
     }
 
+    // District-wide export scans every plan; cap it per user.
+    const limited = await enforceRateLimit(`rl:export-district:${user._id}`, 5, 60);
+    if (limited) return limited;
+
     const { searchParams } = new URL(request.url);
     const schoolYear = String(searchParams.get('schoolYear') || currentSchoolYear()).trim();
     const format = String(searchParams.get('format') || 'csv').toLowerCase();
@@ -33,9 +39,9 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Enter a school year like 2026-2027' }, { status: 400 });
     }
 
-    const forms = (await FormSubmission.find({}).sort({ schoolName: 1 }).lean()).filter(
-      (form) => inferSchoolYear(form) === schoolYear
-    );
+    const forms = await FormSubmission.find(schoolYearQuery(schoolYear))
+      .sort({ schoolName: 1 })
+      .lean();
     const settings = await getYearSettings(schoolYear);
     const bank = await getPublishedOrJson({
       schoolYear,
@@ -134,7 +140,7 @@ export async function GET(request) {
       },
     });
   } catch (error) {
-    console.error('Error exporting school year forms:', error);
+    reportError(error, { route: '/api/admin/forms/export', detail: 'Error exporting school year forms' });
     return NextResponse.json({ error: 'Failed to export school year forms' }, { status: 500 });
   }
 }

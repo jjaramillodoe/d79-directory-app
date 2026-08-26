@@ -6,6 +6,7 @@ const User = require('../../../../../../../models/User');
 const { releaseLock } = require('../../../../../../../lib/locking');
 const { getPublishedOrJson } = require('../../../../../../../lib/questionBank');
 const { getStepKeyByNumber } = require('../../../../../../../lib/formSteps');
+const { reportError } = require('../../../../../../../lib/reportError');
 
 // POST /api/forms/[id]/step/[stepNumber]/unlock - Release lock for a step
 async function POST(request, { params }) {
@@ -44,11 +45,8 @@ async function POST(request, { params }) {
       });
     }
   } catch (error) {
-    console.error('Error releasing lock:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error.message 
-    }, { status: 500 });
+    reportError(error, { route: '/api/forms/[id]/step/[stepNumber]/unlock', detail: 'Error releasing lock' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -30,6 +30,14 @@ export default function QuestionCard({
   const flagged = Boolean(flag);
   const inactive = question.active === false;
 
+  // The visible prompt is the field's real label, but it renders as headings and body text
+  // rather than a <label>, so point the control at it by id instead. QuestionPrompt renders
+  // nothing when the question carries no copy, in which case there is no label to link to.
+  const promptId = `${question.id}-prompt`;
+  const labelProps = question.title || question.description
+    ? { 'aria-labelledby': promptId }
+    : {};
+
   return (
     <Column
       padding="20"
@@ -47,6 +55,7 @@ export default function QuestionCard({
           <Column gap="4" fillWidth style={{ minWidth: 0, width: '100%' }}>
             {!showAsCheckbox && !isYesNo && (
               <QuestionPrompt
+                id={promptId}
                 question={question}
                 requiredSuffix={
                   question.required && question.active !== false && !readOnly ? ' · Required' : null
@@ -75,6 +84,7 @@ export default function QuestionCard({
         {isYesNo && !showAsCheckbox ? (
           <Column gap="8" fillWidth>
             <QuestionPrompt
+              id={promptId}
               question={question}
               requiredSuffix={question.required && question.active !== false && !readOnly ? ' · Required' : null}
             />
@@ -111,9 +121,11 @@ export default function QuestionCard({
                 disabled={readOnly}
                 onChange={(event) => onChange(event.target.checked)}
                 className="app-checkbox"
+                {...labelProps}
               />
               <Column gap="4" fillWidth style={{ minWidth: 0 }}>
                 <QuestionPrompt
+                  id={promptId}
                   question={question}
                   headingVariant="body-default-m"
                   requiredSuffix={question.required && !readOnly ? ' · Required' : null}
@@ -131,6 +143,7 @@ export default function QuestionCard({
             placeholder={question.placeholder}
             className="app-field"
             style={{ width: '100%', display: 'block', boxSizing: 'border-box' }}
+            {...labelProps}
           />
         ) : isTable ? (
           <div className="app-question-answer">
@@ -152,6 +165,7 @@ export default function QuestionCard({
             rows={5}
             className="app-field app-field-area"
             style={{ width: '100%', display: 'block', boxSizing: 'border-box' }}
+            {...labelProps}
           />
         )}
     </Column>

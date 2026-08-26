@@ -12,6 +12,7 @@ const {
   ALLOWED_TYPES,
 } = require('../../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../../lib/auditLogger');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request) {
   try {
@@ -88,7 +89,7 @@ export async function POST(request) {
       draft: toClientTemplate(draft),
     });
   } catch (error) {
-    console.error('Error adding question:', error);
+    reportError(error, { route: '/api/admin/questions/add', detail: 'Error adding question' });
     return NextResponse.json({ error: 'Failed to add question' }, { status: 500 });
   }
 }

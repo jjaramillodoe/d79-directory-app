@@ -4,19 +4,28 @@ const { getServerSession } = require('next-auth/next');
 const { authOptions } = require('../../../../lib/auth');
 const AuditLog = require('../../../../models/AuditLog');
 const User = require('../../../../models/User');
+const { requireAdminActor } = require('../../../../lib/userAccess');
+const { reportError } = require('../../../../lib/reportError');
 
 async function GET(request) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session || session.user.level < 4) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const auth = await requireAdminActor(session);
+    if (auth.error) return auth.error;
+    const { actor } = auth;
 
     await connectDB();
+
+    // Audit entries carry no school of their own, so a principal is scoped to the
+    // actors on their own roster. Super Admins see the whole district.
+    let scopedEmails = null;
+    if (Number(actor.level) < 5) {
+      const schoolUsers = await User.find({ schoolName: actor.schoolName })
+        .select('email')
+        .lean();
+      scopedEmails = schoolUsers.map((entry) => entry.email);
+    }
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -32,6 +41,7 @@ async function GET(request) {
     const filters = {
       action: action || null,
       userEmail: userEmail || null,
+      userEmails: scopedEmails,
       targetType: targetType || null,
       startDate: startDate || null,
       endDate: endDate || null,
@@ -44,7 +54,11 @@ async function GET(request) {
 
     // Also get logs from User activityLog arrays (for backward compatibility)
     const userActivityLogs = [];
-    const users = await User.find({ 'activityLog.0': { $exists: true } })
+    const activityQuery = { 'activityLog.0': { $exists: true } };
+    if (scopedEmails) {
+      activityQuery.schoolName = actor.schoolName;
+    }
+    const users = await User.find(activityQuery)
       .select('name email activityLog')
       .lean();
 
@@ -81,13 +95,7 @@ async function GET(request) {
       .slice(skip, skip + limit);
 
     // Get total count for pagination
-    const totalCount = await AuditLog.countDocuments(
-      Object.fromEntries(
-        Object.entries(filters).filter(([key, value]) => 
-          value !== null && !['limit', 'skip'].includes(key)
-        )
-      )
-    ) + userActivityLogs.length;
+    const totalCount = (await AuditLog.countLogs(filters)) + userActivityLogs.length;
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -101,8 +109,8 @@ async function GET(request) {
     });
 
   } catch (error) {
-    console.error('Fetch audit logs error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
+    reportError(error, { route: '/api/users/audit-logs', detail: 'Fetch audit logs error' });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

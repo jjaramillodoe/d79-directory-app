@@ -7,7 +7,9 @@ const FormSubmission = require('../../../../../models/FormSubmission');
 const User = require('../../../../../models/User');
 const { logAction } = require('../../../../../lib/auditLogger');
 const { duplicateForm } = require('../../../../../lib/formDuplicate');
-const { inferSchoolYear, isValidSchoolYear } = require('../../../../../lib/schoolYear');
+const { isValidSchoolYear, schoolYearQuery } = require('../../../../../lib/schoolYear');
+const { clientSafeMessage } = require('../../../../../lib/userAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request) {
   try {
@@ -34,13 +36,19 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Choose a different target school year' }, { status: 400 });
     }
 
-    const forms = await FormSubmission.find({}).sort({ updatedAt: -1 });
-    const bySchool = new Map();
+    // Was `find({})` with no projection, no `.lean()`, and the year filter applied in JS,
+    // so a rollover hydrated every form in the collection as a full Mongoose document to
+    // keep one per school for a single year. `.lean()` is safe here because `duplicateForm`
+    // reads plain fields and `cloneFormData` already handles a non-document source.
+    const forms = await FormSubmission.find(schoolYearQuery(sourceYear))
+      .sort({ updatedAt: -1 })
+      .lean();
 
+    // Still deduplicated in JS: the intent is the most recently updated form per school,
+    // and the sort above already puts that one first.
+    const bySchool = new Map();
     forms.forEach((form) => {
-      if (inferSchoolYear(form) !== sourceYear) return;
-      const key = form.schoolName;
-      if (!bySchool.has(key)) bySchool.set(key, form);
+      if (!bySchool.has(form.schoolName)) bySchool.set(form.schoolName, form);
     });
 
     const created = [];
@@ -62,7 +70,7 @@ export async function POST(request) {
       } catch (error) {
         const entry = {
           school: source.schoolName,
-          error: error.message,
+          error: clientSafeMessage(error, 'Could not create this plan.'),
           existingFormId: error.existingFormId || null,
         };
         if (error.status === 409) skipped.push(entry);
@@ -110,7 +118,7 @@ export async function POST(request) {
       archivedYear: sourceYear,
     });
   } catch (error) {
-    console.error('Error rolling over forms:', error);
+    reportError(error, { route: '/api/admin/forms/rollover', detail: 'Error rolling over forms' });
     return NextResponse.json({ error: 'Failed to roll over forms' }, { status: 500 });
   }
 }

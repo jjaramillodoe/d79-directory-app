@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../../lib/auth';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
+const { reportError } = require('../../../../lib/reportError');
 
 export async function GET(request) {
   try {
@@ -41,7 +42,7 @@ export async function GET(request) {
 
     return NextResponse.json({ success: true, principals: suggestions });
   } catch (error) {
-    console.error('Error fetching principals:', error);
+    reportError(error, { route: '/api/admin/principals', detail: 'Error fetching principals' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Column, Row, Text, Heading, Button, Card } from '@once-ui-system/core';
+import Modal from '../ui/Modal';
 
 export default function FormConfirmModal({
   title,
@@ -13,10 +14,10 @@ export default function FormConfirmModal({
   busy = false,
 }) {
   return (
-    <div className="app-modal-backdrop">
+    <Modal onClose={busy ? undefined : onClose} labelledBy="confirm-modal-title">
       <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
         <Column gap="16">
-          <Heading variant="heading-strong-m">{title}</Heading>
+          <Heading id="confirm-modal-title" variant="heading-strong-m">{title}</Heading>
           {description && (
             <Text variant="body-default-s" onBackground="neutral-weak">
               {description}
@@ -41,6 +42,6 @@ export default function FormConfirmModal({
           </Row>
         </Column>
       </Card>
-    </div>
+    </Modal>
   );
 }

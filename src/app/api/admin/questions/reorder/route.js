@@ -6,6 +6,7 @@ const connectDB = require('../../../../../lib/mongodb');
 const { getDraftTemplate, auditRequest } = require('../../../../../lib/questionBank');
 const { toClientTemplate } = require('../../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../../lib/auditLogger');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function POST(request) {
   try {
@@ -79,7 +80,7 @@ export async function POST(request) {
       draft: toClientTemplate(draft),
     });
   } catch (error) {
-    console.error('Error reordering questions:', error);
+    reportError(error, { route: '/api/admin/questions/reorder', detail: 'Error reordering questions' });
     return NextResponse.json({ error: 'Failed to reorder questions' }, { status: 500 });
   }
 }

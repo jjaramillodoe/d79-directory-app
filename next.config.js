@@ -12,6 +12,11 @@ const nextConfig = {
   // Keep pdfkit/fontkit out of the Turbopack/webpack graph. Their ESM builds
   // import applyDecoratedDescriptor from @swc/helpers, which Next 16 does not export.
   serverExternalPackages: [...PDF_EXTERNALS, 'ioredis'],
+  // No `experimental.optimizePackageImports` here, deliberately. Next 16 already optimizes
+  // `lucide-react` and `recharts` by default, and adding `@once-ui-system/core` (65 importers,
+  // no `sideEffects` flag) measured 7760 KB -> 7736 KB of client chunks, a 0.3% change. Not
+  // worth an experimental flag the Next docs say is not recommended for production. Revisit
+  // only with bundle-analyzer evidence that the barrel is actually costing something.
   turbopack: {
     root: path.join(__dirname),
     resolveAlias: {

@@ -211,7 +211,7 @@ async function POST(request) {
         error: 'A plan already exists for this school and year.',
       }, { status: 409 });
     }
-    console.error('Error creating form:', error);
+    reportError(error, { route: '/api/forms', detail: 'Error creating form' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

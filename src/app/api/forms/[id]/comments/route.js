@@ -5,6 +5,7 @@ const connectDB = require('../../../../../lib/mongodb');
 const FormComment = require('../../../../../models/FormComment');
 const FormSubmission = require('../../../../../models/FormSubmission');
 const User = require('../../../../../models/User');
+const { reportError } = require('../../../../../lib/reportError');
 
 // POST /api/forms/[id]/comments - Add a new comment (Level 5 only)
 async function POST(request, { params }) {
@@ -45,7 +46,7 @@ async function POST(request, { params }) {
     try {
       body = await request.json();
     } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
+      reportError(parseError, { route: '/api/forms/[id]/comments', detail: 'Error parsing request body' });
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
     
@@ -97,17 +98,17 @@ async function POST(request, { params }) {
       message: 'Comment added successfully' 
     });
   } catch (error) {
-    console.error('Error adding comment:', error);
+    reportError(error, { route: '/api/forms/[id]/comments', detail: 'Error adding comment' });
     // Ensure we always return JSON, even on errors
     try {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Internal server error',
-        message: error.message || 'An unexpected error occurred',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        // Stack traces stay out of production responses.
+        ...(process.env.NODE_ENV === 'development' && { details: error.stack }),
       }, { status: 500 });
     } catch (jsonError) {
       // Fallback if JSON.stringify fails
-      console.error('Failed to create JSON response:', jsonError);
+      reportError(jsonError, { route: '/api/forms/[id]/comments', detail: 'Failed to create JSON response' });
       return new NextResponse(
         JSON.stringify({ 
           error: 'Internal server error',

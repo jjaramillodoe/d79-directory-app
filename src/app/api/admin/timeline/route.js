@@ -3,20 +3,22 @@ const { getServerSession } = require('next-auth/next');
 const { authOptions } = require('../../../../lib/auth');
 const connectDB = require('../../../../lib/mongodb');
 const FormSubmission = require('../../../../models/FormSubmission');
+const { requireAdminActor, schoolScopeFilter } = require('../../../../lib/userAccess');
+const { reportError } = require('../../../../lib/reportError');
 
 async function GET() {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session || session.user.level !== 4) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminActor(session);
+    if (auth.error) return auth.error;
+    const { actor } = auth;
 
     // Connect to database
     try {
       await connectDB();
     } catch (dbError) {
-      console.error('Database connection failed:', dbError);
+      reportError(dbError, { route: '/api/admin/timeline', detail: 'Database connection failed' });
       return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
     }
 
@@ -26,104 +28,111 @@ async function GET() {
       return NextResponse.json({ error: 'FormSubmission model not available' }, { status: 500 });
     }
 
-    // Test basic collection access
-    try {
-      const count = await FormSubmission.countDocuments();
-    } catch (countError) {
-      console.error('Error counting documents:', countError);
-      return NextResponse.json({ error: 'Cannot access FormSubmission collection' }, { status: 500 });
-    }
-
-    // Get current date and calculate date ranges
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-    const twentyDaysAgo = new Date(now.getTime() - (20 * 24 * 60 * 60 * 1000));
-    const tenDaysAgo = new Date(now.getTime() - (10 * 24 * 60 * 60 * 1000));
-    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    const dayMs = 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * dayMs);
+    const twentyDaysAgo = new Date(now.getTime() - 20 * dayMs);
+    const tenDaysAgo = new Date(now.getTime() - 10 * dayMs);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * dayMs);
 
-    // Simple approach: get all submissions and filter in memory
-    let allSubmissions;
+    // Counted in the database rather than in JS. This route used to read every submission
+    // the actor can see and tally it in a forEach; the counts are now accumulated in a
+    // single grouping stage, so the documents never leave the server.
+    //
+    // Note the bucket names are inherited and misleading: '10_days_ago' holds the most
+    // recent ten days, not the tenth day back. Preserved verbatim because the dashboard
+    // reads these keys.
+    const STATUS_FIELDS = [
+      ['submitted', 'submitted'],
+      ['approved', 'approved'],
+      ['under_review', 'underReview'],
+    ];
+
+    const countWhere = (conditions) => ({
+      $sum: { $cond: [{ $and: conditions }, 1, 0] },
+    });
+
+    // Half-open ranges, matching the original nested if/else exactly: each submission lands
+    // in at most one bucket, and anything older than 30 days lands in none.
+    const buckets = {
+      '10_days_ago': [{ $gte: ['$createdAt', tenDaysAgo] }],
+      '20_days_ago': [
+        { $gte: ['$createdAt', twentyDaysAgo] },
+        { $lt: ['$createdAt', tenDaysAgo] },
+      ],
+      '30_days_ago': [
+        { $gte: ['$createdAt', thirtyDaysAgo] },
+        { $lt: ['$createdAt', twentyDaysAgo] },
+      ],
+    };
+
+    const accumulators = { total: { $sum: 1 } };
+    for (const [status, key] of STATUS_FIELDS) {
+      accumulators[`total__${key}`] = countWhere([{ $eq: ['$status', status] }]);
+    }
+    for (const [bucket, range] of Object.entries(buckets)) {
+      for (const [status, key] of STATUS_FIELDS) {
+        accumulators[`${bucket}__${key}`] = countWhere([
+          ...range,
+          { $eq: ['$status', status] },
+        ]);
+      }
+    }
+    accumulators.weekly__submitted = countWhere([
+      { $gte: ['$createdAt', sevenDaysAgo] },
+      { $eq: ['$status', 'submitted'] },
+    ]);
+    accumulators.weekly__approved = countWhere([
+      { $gte: ['$createdAt', sevenDaysAgo] },
+      { $eq: ['$status', 'approved'] },
+    ]);
+
+    let counts;
     try {
-      allSubmissions = await FormSubmission.find({}).lean();
+      const [row] = await FormSubmission.aggregate([
+        { $match: schoolScopeFilter(actor) },
+        { $group: { _id: null, ...accumulators } },
+      ]);
+      // $group yields no row at all when nothing matches, which is a real case for a
+      // principal at a school with no plans yet.
+      counts = row || {};
     } catch (findError) {
-      console.error('Error finding submissions:', findError);
+      reportError(findError, { route: '/api/admin/timeline', detail: 'Error aggregating submissions' });
       return NextResponse.json({ error: 'Failed to retrieve submissions' }, { status: 500 });
     }
 
-    // Calculate timeline data manually
-    const timelineData = {
-      '30_days_ago': { submitted: 0, approved: 0, underReview: 0 },
-      '20_days_ago': { submitted: 0, approved: 0, underReview: 0 },
-      '10_days_ago': { submitted: 0, approved: 0, underReview: 0 },
-      'today': { submitted: 0, approved: 0, underReview: 0 }
-    };
+    const at = (key) => counts[key] || 0;
 
-    // Calculate weekly data
-    let weeklySubmitted = 0;
-    let weeklyApproved = 0;
+    const timelineData = {};
+    for (const bucket of Object.keys(buckets)) {
+      timelineData[bucket] = {
+        submitted: at(`${bucket}__submitted`),
+        approved: at(`${bucket}__approved`),
+        underReview: at(`${bucket}__underReview`),
+      };
+    }
+    // The response has always carried a 'today' bucket that nothing ever incremented.
+    // Kept at zero so the shape the dashboard expects does not change.
+    timelineData.today = { submitted: 0, approved: 0, underReview: 0 };
 
-    // Calculate total counts
-    let totalSubmitted = 0;
-    let totalApproved = 0;
-    let totalUnderReview = 0;
-
-    allSubmissions.forEach(submission => {
-      const createdAt = new Date(submission.createdAt);
-      const status = submission.status;
-
-      // Count by status
-      if (status === 'submitted') totalSubmitted++;
-      if (status === 'approved') totalApproved++;
-      if (status === 'under_review') totalUnderReview++;
-
-      // Weekly data
-      if (createdAt >= sevenDaysAgo) {
-        if (status === 'submitted') weeklySubmitted++;
-        if (status === 'approved') weeklyApproved++;
-      }
-
-      // Timeline data
-      if (createdAt >= thirtyDaysAgo) {
-        if (createdAt >= twentyDaysAgo) {
-          if (createdAt >= tenDaysAgo) {
-            // Recent (10-20 days ago)
-            if (status === 'submitted') timelineData['10_days_ago'].submitted++;
-            if (status === 'approved') timelineData['10_days_ago'].approved++;
-            if (status === 'under_review') timelineData['10_days_ago'].underReview++;
-          } else {
-            // 20-30 days ago
-            if (status === 'submitted') timelineData['20_days_ago'].submitted++;
-            if (status === 'approved') timelineData['20_days_ago'].approved++;
-            if (status === 'under_review') timelineData['20_days_ago'].underReview++;
-          }
-        } else {
-          // 30+ days ago
-          if (status === 'submitted') timelineData['30_days_ago'].submitted++;
-          if (status === 'approved') timelineData['30_days_ago'].approved++;
-          if (status === 'under_review') timelineData['30_days_ago'].underReview++;
-        }
-      }
-    });
-
-    // Format the response
     const formattedData = {
       timeline: timelineData,
       weekly: {
-        submitted: weeklySubmitted,
-        approved: weeklyApproved
+        submitted: at('weekly__submitted'),
+        approved: at('weekly__approved'),
       },
       totals: {
-        submitted: totalSubmitted,
-        approved: totalApproved,
-        underReview: totalUnderReview,
-        total: allSubmissions.length
-      }
+        submitted: at('total__submitted'),
+        approved: at('total__approved'),
+        underReview: at('total__underReview'),
+        total: at('total'),
+      },
     };
 
     return NextResponse.json({ data: formattedData });
 
   } catch (error) {
-    console.error('Error fetching timeline data:', error);
+    reportError(error, { route: '/api/admin/timeline', detail: 'Error fetching timeline data' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,26 +1,16 @@
-const { MongoClient } = require('mongodb');
 const mongoose = require('mongoose');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/d79-directory';
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable');
-}
-
-// MongoDB client for NextAuth
-let client;
-let clientPromise;
-
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(MONGODB_URI);
-    global._mongoClientPromise = client.connect();
-  }
-  clientPromise = global._mongoClientPromise;
-} else {
-  client = new MongoClient(MONGODB_URI);
-  clientPromise = client.connect();
-}
+// These ceilings are PER serverless instance, not per deployment, so the real connection
+// count is this number times the number of warm instances. At 50 it took only ten warm
+// instances to reach the 500-connection cap on Atlas M0/M2/M5, where exhaustion does not
+// degrade gracefully -- new connections are refused outright. 10 leaves room for roughly
+// 50 instances on the same tier. minPoolSize is 0 so idle instances hold nothing open;
+// with maxIdleTimeMS below, a quiet deployment settles back to zero connections.
+// Override via env when running on a tier that can afford more.
+const MAX_POOL_SIZE = Number(process.env.MONGODB_MAX_POOL_SIZE) || 10;
+const MIN_POOL_SIZE = Number(process.env.MONGODB_MIN_POOL_SIZE) || 0;
 
 // Mongoose connection for app logic
 let cached = global.mongoose;
@@ -53,8 +43,8 @@ async function connectDB(retries = 3) {
       bufferCommands: false,
       serverSelectionTimeoutMS: 10000, // 10 second timeout (increased)
       socketTimeoutMS: 45000, // 45 second socket timeout
-      maxPoolSize: 50, // Increased from 10 to 50 to handle more concurrent connections
-      minPoolSize: 5, // Maintain minimum pool size
+      maxPoolSize: MAX_POOL_SIZE,
+      minPoolSize: MIN_POOL_SIZE,
       maxIdleTimeMS: 30000, // Close idle connections after 30 seconds
       retryWrites: true,
       retryReads: true,
@@ -90,4 +80,3 @@ async function connectDB(retries = 3) {
 }
 
 module.exports = connectDB;
-module.exports.clientPromise = clientPromise;

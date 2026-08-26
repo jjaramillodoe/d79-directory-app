@@ -5,6 +5,8 @@ const connectDB = require('../../../../../../lib/mongodb');
 const FormComment = require('../../../../../../models/FormComment');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
+const { canEditForm } = require('../../../../../../lib/formAccess');
+const { reportError } = require('../../../../../../lib/reportError');
 
 // PUT /api/forms/[id]/comments/[commentId] - Mark comment as read or fixed
 async function PUT(request, { params }) {
@@ -46,15 +48,7 @@ async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    const formUserId = form.userId?._id?.toString() || form.userId?.toString();
-    const isOwner = formUserId === user._id.toString();
-    const isPrincipalByEmail = form.principalEmail && form.principalEmail.toLowerCase() === user.email.toLowerCase();
-    const isSuperAdmin = user.level === 5;
-    const isPrincipal = user.level === 4;
-    const isSameSchool = isPrincipal && user.schoolName && form.schoolName && 
-                         user.schoolName === form.schoolName;
-
-    if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool) {
+    if (!canEditForm(user, form)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -76,11 +70,8 @@ async function PUT(request, { params }) {
       message: `Comment marked as ${action}` 
     });
   } catch (error) {
-    console.error('Error updating comment:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error.message 
-    }, { status: 500 });
+    reportError(error, { route: '/api/forms/[id]/comments/[commentId]', detail: 'Error updating comment' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

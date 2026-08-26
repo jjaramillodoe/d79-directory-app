@@ -54,6 +54,15 @@ export const metadata = {
   },
 }
 
+// Without this Next.js emits no viewport meta tag, so mobile browsers fall back to a
+// ~980px virtual viewport and render the whole app zoomed out. maximumScale is left
+// unset deliberately: capping it would block pinch-zoom, which people relying on
+// magnification need.
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
 export default function RootLayout({ children }) {
   return (
     <html

@@ -3,6 +3,7 @@ const { authOptions } = require('../../../lib/auth');
 const connectDB = require('../../../lib/mongodb');
 const User = require('../../../models/User');
 const { jsonError, requireAdminActor, canManageTarget, schoolUserListFilter, enforceRateLimit } = require('../../../lib/userAccess');
+const { reportError } = require('../../../lib/reportError');
 
 async function GET() {
   try {
@@ -25,7 +26,7 @@ async function GET() {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    reportError(error, { route: '/api/users', detail: 'Error fetching users' });
     return jsonError(500, 'Internal server error');
   }
 }
@@ -109,7 +110,7 @@ async function PUT(request) {
         connection: { remoteAddress: null },
       };
       logUserUpdated(session.user, updatedUser, changes, requestObj).catch((err) =>
-        console.error('Error logging user update:', err)
+        reportError(err, { route: '/api/users', detail: 'Error logging user update' })
       );
     }
 
@@ -118,7 +119,7 @@ async function PUT(request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error updating user:', error);
+    reportError(error, { route: '/api/users', detail: 'Error updating user' });
     return jsonError(500, 'Internal server error');
   }
 }
@@ -164,7 +165,7 @@ async function DELETE(request) {
       connection: { remoteAddress: null },
     };
     logUserDeleted(session.user, deletedUser, requestObj).catch((err) =>
-      console.error('Error logging user deletion:', err)
+      reportError(err, { route: '/api/users', detail: 'Error logging user deletion' })
     );
 
     return new Response(JSON.stringify({ message: 'User deleted successfully' }), {
@@ -172,7 +173,7 @@ async function DELETE(request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    reportError(error, { route: '/api/users', detail: 'Error deleting user' });
     return jsonError(500, 'Internal server error');
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Column, Row, Text, Heading, Button, Card } from '@once-ui-system/core';
+import Modal from '../ui/Modal';
 
 export default function FormCommentModal({
   stepNumber,
@@ -13,7 +14,7 @@ export default function FormCommentModal({
   onSubmit,
 }) {
   return (
-    <div className="app-modal-backdrop app-modal-md">
+    <Modal onClose={onClose} size="md" labelledBy="comment-modal-title">
       <Card
         padding="24"
         radius="l"
@@ -22,15 +23,16 @@ export default function FormCommentModal({
       >
         <Column gap="16">
           <Column gap="4">
-            <Heading variant="heading-strong-m">Add a comment</Heading>
+            <Heading id="comment-modal-title" variant="heading-strong-m">Add a comment</Heading>
             <Text variant="body-default-s" onBackground="neutral-weak">
               Step {stepNumber}
               {stepTitle ? `: ${stepTitle}` : ''}
             </Text>
           </Column>
           <Column gap="8">
-            <Text variant="label-default-s">Status</Text>
+            <Text as="label" htmlFor="comment-status" variant="label-default-s">Status</Text>
             <select
+              id="comment-status"
               className="app-field"
               value={status}
               onChange={(event) => onChangeStatus(event.target.value)}
@@ -41,8 +43,9 @@ export default function FormCommentModal({
             </select>
           </Column>
           <Column gap="8">
-            <Text variant="label-default-s">Comment</Text>
+            <Text as="label" htmlFor="comment-body" variant="label-default-s">Comment</Text>
             <textarea
+              id="comment-body"
               className="app-field app-field-area"
               value={comment}
               onChange={(event) => onChangeComment(event.target.value)}
@@ -60,6 +63,6 @@ export default function FormCommentModal({
           </Row>
         </Column>
       </Card>
-    </div>
+    </Modal>
   );
 }

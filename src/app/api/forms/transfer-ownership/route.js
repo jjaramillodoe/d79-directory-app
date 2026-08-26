@@ -5,6 +5,7 @@ import connectDB from '../../../../lib/mongodb';
 import FormSubmission from '../../../../models/FormSubmission';
 import User from '../../../../models/User';
 import mongoose from 'mongoose';
+const { reportError } = require('../../../../lib/reportError');
 
 export async function POST(request) {
   try {
@@ -91,7 +92,7 @@ export async function POST(request) {
     try {
       await form.save();
     } catch (saveError) {
-      console.error('Error saving form with transfer history:', saveError);
+      reportError(saveError, { route: '/api/forms/transfer-ownership', detail: 'Error saving form with transfer history' });
       return NextResponse.json({ 
         error: 'Failed to save form transfer history',
         details: saveError.message
@@ -127,7 +128,7 @@ export async function POST(request) {
         await refreshedNewOwner.save();
       }
     } catch (activityError) {
-      console.error('Error logging activity:', activityError);
+      reportError(activityError, { route: '/api/forms/transfer-ownership', detail: 'Error logging activity' });
       // Don't fail the entire operation if activity logging fails
     }
 
@@ -143,7 +144,7 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Error transferring form ownership:', error);
+    reportError(error, { route: '/api/forms/transfer-ownership', detail: 'Error transferring form ownership' });
     return NextResponse.json({ 
       error: 'Internal server error' 
     }, { status: 500 });
@@ -179,7 +180,7 @@ export async function GET(request) {
     return NextResponse.json({ forms });
 
   } catch (error) {
-    console.error('Error fetching transfer history:', error);
+    reportError(error, { route: '/api/forms/transfer-ownership', detail: 'Error fetching transfer history' });
     return NextResponse.json({ 
       error: 'Internal server error' 
     }, { status: 500 });

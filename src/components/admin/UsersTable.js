@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Column, Row, Text, Button, Tag } from '@once-ui-system/core';
+// Same predicate the API enforces. Importing it rather than restating it means the buttons
+// this table shows cannot drift from what the server will actually permit.
+import { canManageTarget as canManageUser } from '../../lib/canManageUser';
 
 const LEVEL_TAGS = {
   1: { label: 'Level 1 · Viewer', variant: 'neutral' },
@@ -38,18 +41,6 @@ function lastLoginLabel(value) {
   if (diffDays > 7) return { label: `${diffDays} days ago`, tone: 'warning', never: false };
   if (diffDays > 0) return { label: `${diffDays}d ago`, tone: 'neutral', never: false };
   return { label: 'Today', tone: 'success', never: false };
-}
-
-function canManageUser(actor, target) {
-  if (!actor || !target) return false;
-  const actorId = String(actor.id || actor._id || '');
-  const targetId = String(target._id || target.id || '');
-  if (actorId && targetId && actorId === targetId) return false;
-  if (actor.email && target.email && actor.email.toLowerCase() === target.email.toLowerCase()) return false;
-  if (Number(target.level) >= Number(actor.level)) return false;
-  if (Number(actor.level) < 5 && target.schoolName !== actor.schoolName) return false;
-  if (Number(actor.level) < 5 && Number(target.level) > 3) return false;
-  return true;
 }
 
 function sortValue(user, field) {

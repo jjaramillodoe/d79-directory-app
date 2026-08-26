@@ -10,6 +10,8 @@ const { getStepKeyByNumber } = require('../../../../../../lib/formSteps');
 const { normalizeIncomingData, diffDirtyFields, buildCompletedSteps } = require('../../../../../../lib/stepSave');
 const { rateLimit } = require('../../../../../../lib/redis');
 const { reportError } = require('../../../../../../lib/reportError');
+const { canViewForm, canEditForm } = require('../../../../../../lib/formAccess');
+const { productionFailClosed } = require('../../../../../../lib/userAccess');
 
 // GET /api/forms/[id]/step/[stepNumber] - Get specific step data
 async function GET(request, { params }) {
@@ -43,21 +45,7 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'Invalid step number' }, { status: 400 });
     }
 
-    // Check permissions (same logic as main form route)
-    const formUserId = form.userId?.toString();
-    const userId = user._id?.toString();
-    const isOwner = formUserId === userId;
-    const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
-    const isSuperAdmin = user.level === 5;
-    const isSameSchool =
-      Boolean(user.schoolName && form.schoolName && user.schoolName === form.schoolName) &&
-      (user.level === 2 || user.level === 3 || user.level === 4);
-    const hasEditAccess = form.editAccess?.some(ea => ea.userId?.toString() === userId);
-    const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some(at => at.userId?.toString() === userId);
-    const shareEntry = form.sharedWithEmails?.find(share => share.email?.toLowerCase() === user.email?.toLowerCase());
-    const hasSharedEditAccess = shareEntry && shareEntry.permissions === 'edit';
-
-    if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool && !hasEditAccess && !isAssignedLevel3 && !hasSharedEditAccess) {
+    if (!canViewForm(user, form)) {
       return NextResponse.json({ 
         error: 'Access denied',
         message: 'You do not have permission to view this form.'
@@ -83,10 +71,7 @@ async function GET(request, { params }) {
     });
   } catch (error) {
     reportError(error, { route: 'GET /api/forms/[id]/step/[stepNumber]' });
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error.message 
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -120,7 +105,9 @@ async function PUT(request, { params }) {
     const stepNum = parseInt(resolved.stepNumber, 10);
     userId = user._id.toString();
 
-    const limited = await rateLimit(`rl:save:${userId}:${id}`, 30, 60);
+    const limited = await rateLimit(`rl:save:${userId}:${id}`, 30, 60, {
+      failClosed: productionFailClosed(),
+    });
     if (!limited.ok) {
       return NextResponse.json({
         error: 'Too many saves',
@@ -163,19 +150,7 @@ async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Invalid step number' }, { status: 400 });
     }
 
-    const formUserId = form.userId?.toString();
-    const isOwner = formUserId === userId;
-    const isPrincipalByEmail = form.principalEmail?.toLowerCase() === user.email?.toLowerCase();
-    const isSuperAdmin = user.level === 5;
-    const isSameSchool =
-      Boolean(user.schoolName && form.schoolName && user.schoolName === form.schoolName) &&
-      (user.level === 2 || user.level === 3 || user.level === 4);
-    const hasEditAccess = form.editAccess?.some((ea) => ea.userId?.toString() === userId);
-    const isAssignedLevel3 = user.level === 3 && form.assignedTo?.some((at) => at.userId?.toString() === userId);
-    const shareEntry = form.sharedWithEmails?.find((share) => share.email?.toLowerCase() === user.email?.toLowerCase());
-    const hasSharedEditAccess = shareEntry && shareEntry.permissions === 'edit';
-
-    if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool && !hasEditAccess && !isAssignedLevel3 && !hasSharedEditAccess) {
+    if (!canEditForm(user, form)) {
       return NextResponse.json({
         error: 'Access denied',
         message: 'You do not have permission to edit this form.',
@@ -199,6 +174,9 @@ async function PUT(request, { params }) {
       }, { status: 423 });
     }
     lockAcquired = true;
+    // True when the lock could not be coordinated across instances, so the "being edited
+    // by" indicator cannot be trusted. The save itself is still guarded by revisionCount.
+    const lockDegraded = Boolean(lockResult.degraded);
 
     const currentStepData = form.formData?.[stepKey] || {
       completed: false,
@@ -249,6 +227,7 @@ async function PUT(request, { params }) {
         lastUpdated: currentStepData.lastUpdated,
         revisionCount: serverRevision,
         conflict: false,
+        lockDegraded,
       });
     }
 
@@ -326,14 +305,12 @@ async function PUT(request, { params }) {
       lastUpdated: savedStep.lastUpdated,
       revisionCount: savedStep.revisionCount,
       conflict: false,
+      lockDegraded,
     });
   } catch (error) {
     await releaseLockOnExit();
     reportError(error, { route: 'PUT /api/forms/[id]/step/[stepNumber]', formId: id, stepKey });
-    return NextResponse.json({
-      error: 'Internal server error',
-      message: error.message,
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -7,6 +7,17 @@ function redisGlobal() {
   return global.__d79Redis;
 }
 
+function productionFailClosed() {
+  return process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+}
+
+// Distinguishes "no Redis in this deployment" from "Redis is configured but unreachable".
+// The two must not be conflated: the first has no revocation list to consult, the second
+// has one we simply cannot read.
+function redisConfigured() {
+  return Boolean(process.env.REDIS_URL);
+}
+
 function isUnreachable(error) {
   const code = error?.code || '';
   const message = error?.message || '';
@@ -27,6 +38,29 @@ function disableRedis(slot, client, error, ms = 60_000) {
       client.disconnect(false);
     } catch (disconnectError) {
       // ignore
+    }
+  }
+}
+
+// Releases the cached client and the backoff state. Needed anywhere the process should be
+// able to exit or hand its connection back: a test file that touched Redis would otherwise
+// hang forever on the open socket, and on a graceful shutdown this returns the connection
+// instead of waiting for the server to reap it.
+async function closeRedis() {
+  const slot = redisGlobal();
+  const client = slot.client;
+  slot.client = null;
+  slot.connecting = null;
+  slot.disabledUntil = 0;
+  slot.loggedError = false;
+  if (!client) return;
+  try {
+    await client.quit();
+  } catch (error) {
+    try {
+      client.disconnect(false);
+    } catch (disconnectError) {
+      // Already gone; nothing left to release.
     }
   }
 }
@@ -76,6 +110,7 @@ async function getRedis() {
     }
     slot.loggedError = false;
     slot.disabledUntil = 0;
+    attachRateLimitCommand(client);
     slot.client = client;
     return client;
   })();
@@ -142,21 +177,53 @@ async function cacheDelPattern(pattern) {
   return keys.length;
 }
 
+// Counter increment and expiry must be one atomic step. As two round trips, a process
+// killed between INCR and EXPIRE (routine in serverless) leaves a key with no TTL, and
+// the counter then climbs forever and locks that caller out permanently. The PTTL < 0
+// branch also re-arms any such orphaned key left behind by the old implementation.
+const RATE_LIMIT_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+local ttl = redis.call('PTTL', KEYS[1])
+if count == 1 or ttl < 0 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[1])
+  ttl = tonumber(ARGV[1])
+end
+return {count, ttl}
+`;
+
+function attachRateLimitCommand(client) {
+  if (!client || typeof client.rateLimitHit === 'function') return;
+  client.defineCommand('rateLimitHit', { numberOfKeys: 1, lua: RATE_LIMIT_SCRIPT });
+}
+
 async function rateLimit(key, limit, windowSeconds, { failClosed = false } = {}) {
-  const redis = await getRedis();
-  if (!redis) {
-    if (failClosed) {
-      return { ok: false, remaining: 0, retryAfter: 60, unavailable: true };
+  const unavailable = failClosed
+    ? { ok: false, remaining: 0, retryAfter: 60, unavailable: true }
+    : { ok: true, remaining: limit, retryAfter: 0 };
+
+  let redis = null;
+  try {
+    redis = await getRedis();
+  } catch (error) {
+    redis = null;
+  }
+  if (!redis) return unavailable;
+
+  try {
+    attachRateLimitCommand(redis);
+    const [rawCount, rawTtl] = await redis.rateLimitHit(key, windowSeconds * 1000);
+    const count = Number(rawCount);
+    const retryAfter = Math.max(Math.ceil(Number(rawTtl) / 1000), 1);
+
+    if (count > limit) {
+      return { ok: false, remaining: 0, retryAfter };
     }
-    return { ok: true, remaining: limit, retryAfter: 0 };
+    return { ok: true, remaining: Math.max(limit - count, 0), retryAfter: 0 };
+  } catch (error) {
+    // Previously an error here propagated into middleware as a 500.
+    console.error('Rate limit check failed:', error?.message || error);
+    return unavailable;
   }
-  const count = await redis.incr(key);
-  if (count === 1) await redis.expire(key, windowSeconds);
-  if (count > limit) {
-    const ttl = await redis.ttl(key);
-    return { ok: false, remaining: 0, retryAfter: Math.max(ttl, 1) };
-  }
-  return { ok: true, remaining: Math.max(limit - count, 0), retryAfter: 0 };
 }
 
 function denyKey(jti) {
@@ -172,11 +239,32 @@ async function denyToken(jti, exp) {
   return true;
 }
 
+// Returns true when the caller must reject the token.
+//
+// Redis is the only record that a token was revoked, so being unable to read it is not
+// the same as the token being valid. In production that ambiguity rejects the token,
+// which means a Redis outage signs users out rather than honoring logouts that may
+// already have happened. Deployments with no REDIS_URL never had a revocation list in
+// the first place and are deliberately left alone, otherwise turning this on would lock
+// every user out of any environment that runs without Redis.
 async function isTokenDenied(jti) {
   if (!jti) return false;
-  const redis = await getRedis();
-  if (!redis) return false;
-  return (await redis.exists(denyKey(jti))) === 1;
+  if (!redisConfigured()) return false;
+
+  let redis = null;
+  try {
+    redis = await getRedis();
+  } catch (error) {
+    redis = null;
+  }
+  if (!redis) return productionFailClosed();
+
+  try {
+    return (await redis.exists(denyKey(jti))) === 1;
+  } catch (error) {
+    console.error('Token revocation check failed:', error?.message || error);
+    return productionFailClosed();
+  }
 }
 
 function questionBankCacheKey({ schoolYear, version, preferPublished } = {}) {
@@ -326,6 +414,7 @@ async function getRedisHealth() {
 
 module.exports = {
   getRedis,
+  closeRedis,
   scanKeys,
   cacheGet,
   cacheSet,
@@ -334,6 +423,8 @@ module.exports = {
   rateLimit,
   denyToken,
   isTokenDenied,
+  productionFailClosed,
+  redisConfigured,
   questionBankCacheKey,
   invalidateQuestionBankCache,
   invalidateYearCache,

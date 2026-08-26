@@ -19,12 +19,17 @@ export function usePublicOverview() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     fetch('/api/public/overview')
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
+        if (cancelled) return;
         if (data?.currentYear) setOverview((current) => ({ ...current, ...data }));
       })
       .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return overview;

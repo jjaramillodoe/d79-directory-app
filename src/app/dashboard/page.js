@@ -1,19 +1,10 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Suspense, useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import ScrollToTop from '../../components/ScrollToTop';
-import AnalyticsDashboard from '../../components/AnalyticsDashboard';
-import SmartNotifications from '../../components/SmartNotifications';
-import BulkOperations from '../../components/BulkOperations';
-import SchoolPerformanceScoring from '../../components/SchoolPerformanceScoring';
-import BulkFormCreation from '../../components/BulkFormCreation';
-import YearRollover from '../../components/admin/YearRollover';
-import ContactTableMigrate from '../../components/admin/ContactTableMigrate';
-import YearLockPanel from '../../components/admin/YearLockPanel';
-import YearSettingsPanel from '../../components/admin/YearSettingsPanel';
-import SetupNextYear from '../../components/admin/SetupNextYear';
 import DeadlineReminders from '../../components/dashboard/DeadlineReminders';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import DashboardShell from '../../components/dashboard/DashboardShell';
@@ -31,6 +22,48 @@ import { Spinner, Column, Text, SegmentedControl } from '@once-ui-system/core';
 import { 
   PieChart,
 } from 'lucide-react';
+
+// Every widget below is gated behind a non-default `activeView`, and the five year-setup
+// panels additionally require level 5. Importing them eagerly meant every principal opening
+// the dashboard downloaded the whole admin surface — including recharts, via
+// AnalyticsDashboard — to render an overview that uses none of it.
+const widgetFallback = () => (
+  <Column fillWidth horizontal="center" vertical="center" paddingY="48">
+    <Spinner size="m" />
+  </Column>
+);
+
+const AnalyticsDashboard = dynamic(() => import('../../components/AnalyticsDashboard'), {
+  loading: widgetFallback,
+});
+const SmartNotifications = dynamic(() => import('../../components/SmartNotifications'), {
+  loading: widgetFallback,
+});
+const BulkOperations = dynamic(() => import('../../components/BulkOperations'), {
+  loading: widgetFallback,
+});
+const SchoolPerformanceScoring = dynamic(
+  () => import('../../components/SchoolPerformanceScoring'),
+  { loading: widgetFallback }
+);
+const BulkFormCreation = dynamic(() => import('../../components/BulkFormCreation'), {
+  loading: widgetFallback,
+});
+const SetupNextYear = dynamic(() => import('../../components/admin/SetupNextYear'), {
+  loading: widgetFallback,
+});
+const YearRollover = dynamic(() => import('../../components/admin/YearRollover'), {
+  loading: widgetFallback,
+});
+const ContactTableMigrate = dynamic(() => import('../../components/admin/ContactTableMigrate'), {
+  loading: widgetFallback,
+});
+const YearLockPanel = dynamic(() => import('../../components/admin/YearLockPanel'), {
+  loading: widgetFallback,
+});
+const YearSettingsPanel = dynamic(() => import('../../components/admin/YearSettingsPanel'), {
+  loading: widgetFallback,
+});
 
 function DashboardPageContent() {
   const router = useRouter();
@@ -71,22 +104,29 @@ function DashboardPageContent() {
 
   useEffect(() => {
     if (session?.user) {
-      fetchForms();
+      let cancelled = false;
+      const isCancelled = () => cancelled;
+      fetchForms(isCancelled);
       if (session.user.level < 4) {
-        fetchNotifications();
+        fetchNotifications(isCancelled);
       }
       if (session.user.level === 4) {
-        fetchTimelineData();
+        fetchTimelineData(isCancelled);
       }
+      return () => {
+        cancelled = true;
+      };
     }
   }, [session]);
 
-  const fetchForms = async () => {
+  // isCancelled defaults to false so the refresh handlers can still call these directly.
+  const fetchForms = async (isCancelled = () => false) => {
     setLoading(true);
     try {
       const response = await fetch('/api/forms');
       if (response.ok) {
         const data = await response.json();
+        if (isCancelled()) return;
         const formsData = data.forms || [];
         setForms(formsData);
         
@@ -101,15 +141,16 @@ function DashboardPageContent() {
     } catch (error) {
       console.error('Error fetching forms:', error);
     } finally {
-      setLoading(false);
+      if (!isCancelled()) setLoading(false);
     }
   };
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isCancelled = () => false) => {
     try {
       const response = await fetch('/api/notifications');
       if (response.ok) {
         const data = await response.json();
+        if (isCancelled()) return;
         setNotifications(data.notifications || []);
       }
     } catch (error) {
@@ -117,15 +158,17 @@ function DashboardPageContent() {
     }
   };
 
-  const fetchTimelineData = async () => {
+  const fetchTimelineData = async (isCancelled = () => false) => {
     if (!session?.user || session.user.level !== 4) return;
     
     setLoadingTimeline(true);
     try {
       const response = await fetch('/api/admin/timeline');
       
+      if (isCancelled()) return;
       if (response.ok) {
         const data = await response.json();
+        if (isCancelled()) return;
         setTimelineData(data.data);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -143,6 +186,7 @@ function DashboardPageContent() {
         });
       }
     } catch (error) {
+      if (isCancelled()) return;
       console.error('Error fetching timeline data:', error);
       // Set empty timeline data to prevent errors
       setTimelineData({
@@ -156,7 +200,7 @@ function DashboardPageContent() {
         totals: { submitted: 0, approved: 0, underReview: 0, total: 0 }
       });
     } finally {
-      setLoadingTimeline(false);
+      if (!isCancelled()) setLoadingTimeline(false);
     }
   };
 

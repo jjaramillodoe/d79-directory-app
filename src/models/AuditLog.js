@@ -117,37 +117,58 @@ AuditLogSchema.statics.createLog = async function(data) {
   });
 };
 
-// Static method to get logs with filters
-AuditLogSchema.statics.getLogs = async function(filters = {}) {
+// Translate caller filters into a Mongo query. Shared by getLogs and countLogs so
+// that a paginated list and its total can never disagree.
+// `userEmails` restricts results to a set of actors and is how non-super-admins
+// are confined to their own school.
+AuditLogSchema.statics.buildQuery = function(filters = {}) {
   const {
     userId = null,
     userEmail = null,
+    userEmails = null,
     action = null,
     targetType = null,
     startDate = null,
     endDate = null,
-    limit = 100,
-    skip = 0,
   } = filters;
 
   const query = {};
 
   if (userId) query.userId = userId;
-  if (userEmail) query.userEmail = userEmail;
   if (action) query.action = action;
   if (targetType) query.targetType = targetType;
+
+  if (userEmail && Array.isArray(userEmails)) {
+    query.userEmail = userEmails.includes(userEmail) ? userEmail : '\u0000no-match';
+  } else if (userEmail) {
+    query.userEmail = userEmail;
+  } else if (Array.isArray(userEmails)) {
+    query.userEmail = { $in: userEmails };
+  }
+
   if (startDate || endDate) {
     query.timestamp = {};
     if (startDate) query.timestamp.$gte = new Date(startDate);
     if (endDate) query.timestamp.$lte = new Date(endDate);
   }
 
-  return this.find(query)
+  return query;
+};
+
+// Static method to get logs with filters
+AuditLogSchema.statics.getLogs = async function(filters = {}) {
+  const { limit = 100, skip = 0 } = filters;
+
+  return this.find(this.buildQuery(filters))
     .sort({ timestamp: -1 })
     .limit(limit)
     .skip(skip)
     .populate('userId', 'name email level')
     .lean();
+};
+
+AuditLogSchema.statics.countLogs = async function(filters = {}) {
+  return this.countDocuments(this.buildQuery(filters));
 };
 
 module.exports = mongoose.models.AuditLog || mongoose.model('AuditLog', AuditLogSchema);

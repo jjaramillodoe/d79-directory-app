@@ -9,10 +9,16 @@ export default function DeadlineReminders({ forms = [], userLevel }) {
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetch(`/api/school-year?schoolYear=${encodeURIComponent(currentSchoolYear())}`)
       .then((response) => (response.ok ? response.json() : null))
-      .then(setSettings)
+      .then((data) => {
+        if (!cancelled) setSettings(data);
+      })
       .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const year = currentSchoolYear();

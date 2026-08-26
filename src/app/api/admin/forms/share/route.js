@@ -4,6 +4,8 @@ import { authOptions } from '../../../../../lib/auth';
 import connectDB from '../../../../../lib/mongodb';
 import User from '../../../../../models/User';
 import FormSubmission from '../../../../../models/FormSubmission';
+import { clientSafeMessage } from '../../../../../lib/userAccess';
+const { reportError } = require('../../../../../lib/reportError');
 
 // POST: Share a form with users for collaboration
 export async function POST(request) {
@@ -108,7 +110,7 @@ export async function POST(request) {
           email: user.email,
           name: user.name,
           success: false,
-          error: error.message
+          error: clientSafeMessage(error, 'Could not assign this form.')
         });
       }
     }
@@ -130,7 +132,7 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Error sharing form:', error);
+    reportError(error, { route: '/api/admin/forms/share', detail: 'Error sharing form' });
     return NextResponse.json(
       { error: 'Failed to share form' },
       { status: 500 }
@@ -166,6 +168,11 @@ export async function GET(request) {
     const user = await User.findById(session.user.id);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Principals only inspect their own school's plan; Super Admins can inspect any.
+    if (Number(user.level) < 5 && form.schoolName !== user.schoolName) {
+      return NextResponse.json({ error: 'Form not found in your school' }, { status: 404 });
     }
 
     // Principals can see all collaborations, users can only see their own
@@ -215,7 +222,7 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    console.error('Error fetching form collaborations:', error);
+    reportError(error, { route: '/api/admin/forms/share', detail: 'Error fetching form collaborations' });
     return NextResponse.json(
       { error: 'Failed to fetch collaborations' },
       { status: 500 }
@@ -303,7 +310,7 @@ export async function DELETE(request) {
     });
 
   } catch (error) {
-    console.error('Error unsharing form:', error);
+    reportError(error, { route: '/api/admin/forms/share', detail: 'Error unsharing form' });
     return NextResponse.json(
       { error: 'Failed to unshare form' },
       { status: 500 }

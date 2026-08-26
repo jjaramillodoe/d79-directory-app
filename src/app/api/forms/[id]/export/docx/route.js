@@ -5,14 +5,16 @@ const connectDB = require('../../../../../../lib/mongodb');
 const FormSubmission = require('../../../../../../models/FormSubmission');
 const User = require('../../../../../../models/User');
 const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
-const { isTableAnswered } = require('../../../../../../lib/tableAnswer');
-const { visibleQuestions, formatYesNo } = require('../../../../../../lib/questionBankUtils');
-const { resolveExportTable, buildDocxTable } = require('../../../../../../lib/exportTables');
+const { visibleQuestions } = require('../../../../../../lib/questionBankUtils');
+const { resolveExportTable, resolveExportAnswer, buildDocxTable } = require('../../../../../../lib/exportTables');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ExternalHyperlink } = require('docx');
 const { splitFormattedText } = require('../../../../../../lib/linkifyText');
 const { splitCopyBlocks } = require('../../../../../../lib/formattedCopy');
+const { canViewForm } = require('../../../../../../lib/formAccess');
+const { enforceRateLimit } = require('../../../../../../lib/userAccess');
 const path = require('path');
 const fs = require('fs');
+const { reportError } = require('../../../../../../lib/reportError');
 
 // Helper function to load form questions
 async function loadFormQuestions(form) {
@@ -38,7 +40,7 @@ async function loadFormQuestions(form) {
       }
     }
   } catch (error) {
-    console.error('Error loading form questions JSON fallback:', error);
+    reportError(error, { route: '/api/forms/[id]/export/docx', detail: 'Error loading form questions JSON fallback' });
   }
 
   return { steps: [] };
@@ -127,25 +129,11 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check permissions
-    const formUserId = form.userId?._id?.toString() || form.userId?.toString();
-    const isOwner = formUserId === user._id.toString();
-    const isSuperAdmin = user.level === 5;
-    const isPrincipal = user.level === 4;
-    const isAssistantPrincipal = user.level === 3;
-    // Level 4 users can access forms from their school
-    const isSameSchool = isPrincipal && user.schoolName && form.schoolName && 
-                         user.schoolName === form.schoolName;
-    // Level 3 users can access if assigned to the form
-    const isAssigned = user.assignedForms.some(assignment => 
-      assignment.formId.toString() === form._id.toString()
-    );
-    // Check if form is shared with this user's email
-    const isSharedWithEmail = form.sharedWithEmails && form.sharedWithEmails.some(
-      share => share.email.toLowerCase() === user.email.toLowerCase()
-    );
+    // Document generation is expensive; cap it per user.
+    const limited = await enforceRateLimit(`rl:export-docx:${user._id}`, 10, 60);
+    if (limited) return limited;
 
-    if (!isOwner && !isSuperAdmin && !isSameSchool && !isAssigned && !isSharedWithEmail) {
+    if (!canViewForm(user, form)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -217,32 +205,7 @@ async function GET(request, { params }) {
           const questionId = question.id;
           const questionTitle = question.title || questionId;
           const value = stepData[questionId];
-          const table = resolveExportTable(value, question.columns, {
-            always: question.type === 'table',
-          });
-          const hasData = table
-            ? isTableAnswered(table)
-            : question.type === 'yesno' || question.type === 'checkbox'
-              ? Boolean(formatYesNo(value))
-              : value !== undefined && value !== null && value !== '';
-          
-          let displayValue = '';
-          
-          if (!table && hasData) {
-            if (question.type === 'yesno' || question.type === 'checkbox') {
-              displayValue = formatYesNo(value);
-            } else if (typeof value === 'object' && value !== null) {
-              if (Array.isArray(value)) {
-                displayValue = value.join(', ');
-              } else {
-                displayValue = JSON.stringify(value, null, 2);
-              }
-            } else {
-              displayValue = String(value || '');
-            }
-          } else if (!table) {
-            displayValue = '_______________________________________________________';
-          }
+          const { table, hasData, displayValue } = resolveExportAnswer(question, value);
           
           const questionNum = question.question_number ? `Q${question.question_number}: ` : '';
           
@@ -352,7 +315,7 @@ async function GET(request, { params }) {
       },
     });
   } catch (error) {
-    console.error('Error generating DOCX:', error);
+    reportError(error, { route: '/api/forms/[id]/export/docx', detail: 'Error generating DOCX' });
     return NextResponse.json({ error: 'Failed to generate DOCX' }, { status: 500 });
   }
 }

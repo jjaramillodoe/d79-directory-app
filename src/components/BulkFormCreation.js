@@ -14,6 +14,7 @@ import {
 } from '@once-ui-system/core';
 import StatCard from './dashboard/StatCard';
 import DashboardSection from './dashboard/DashboardSection';
+import Modal from './ui/Modal';
 
 export default function BulkFormCreation({ onFormsCreated }) {
   const [principals, setPrincipals] = useState([]);
@@ -301,10 +302,10 @@ export default function BulkFormCreation({ onFormsCreated }) {
       )}
 
       {showConfirm && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowConfirm(false)} labelledBy="bulk-create-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
             <Column gap="16">
-              <Heading variant="heading-strong-m">Create {selectedIds.length} form{selectedIds.length === 1 ? '' : 's'}?</Heading>
+              <Heading id="bulk-create-title" variant="heading-strong-m">Create {selectedIds.length} form{selectedIds.length === 1 ? '' : 's'}?</Heading>
               <Text onBackground="neutral-weak">
                 A blank school plan will be created and assigned to each selected principal.
               </Text>
@@ -316,7 +317,7 @@ export default function BulkFormCreation({ onFormsCreated }) {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
     </Column>
   );

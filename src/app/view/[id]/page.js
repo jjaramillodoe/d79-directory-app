@@ -56,10 +56,14 @@ export default function FormViewPage() {
 
   useEffect(() => {
     if (status === 'loading' || !session) return;
-    loadFormData();
+    let cancelled = false;
+    loadFormData(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [session, status, formId]);
 
-  const loadFormData = async () => {
+  const loadFormData = async (isCancelled = () => false) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/forms/${formId}`, {
@@ -78,6 +82,7 @@ export default function FormViewPage() {
         throw new Error('Form not found');
       }
 
+      if (isCancelled()) return;
       setFormData(data.form);
 
       const loadedStepData = data.form.formData || {};
@@ -105,12 +110,14 @@ export default function FormViewPage() {
         };
       });
 
+      if (isCancelled()) return;
       setStepData(initializedStepData);
     } catch (err) {
+      if (isCancelled()) return;
       console.error('Error loading form:', err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!isCancelled()) setLoading(false);
     }
   };
 

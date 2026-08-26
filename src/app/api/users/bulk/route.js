@@ -3,6 +3,7 @@ const User = require('../../../../models/User');
 const { getServerSession } = require('next-auth/next');
 const { authOptions } = require('../../../../lib/auth');
 const { jsonError, requireAdminActor, bulkTargetFilter, enforceRateLimit } = require('../../../../lib/userAccess');
+const { reportError } = require('../../../../lib/reportError');
 
 async function POST(request) {
   try {
@@ -83,7 +84,7 @@ async function POST(request) {
       }
     );
   } catch (error) {
-    console.error('Bulk user action error:', error);
+    reportError(error, { route: '/api/users/bulk', detail: 'Bulk user action error' });
     return jsonError(500, 'Internal server error');
   }
 }

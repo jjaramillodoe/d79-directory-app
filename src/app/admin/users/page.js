@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import DashboardShell from '../../../components/dashboard/DashboardShell';
@@ -19,28 +20,28 @@ import {
   Info,
   Download,
   RefreshCw,
-  Share2,
+  Share2, 
   BookOpen,
+  BarChart3,
 } from 'lucide-react';
 import CollaborationDashboard from '../../../components/CollaborationDashboard';
-import UserAnalytics from '../../../components/UserAnalytics';
 import SmartFilters from '../../../components/SmartFilters';
 import UserRoleTemplates from '../../../components/UserRoleTemplates';
 import SCHOOL_NAMES from '../../../constants/schools';
 import useAppToast from '../../../hooks/useAppToast';
 import { downloadUsersCsv } from '../../../components/admin/UsersTable';
+import Modal from '../../../components/ui/Modal';
+// Same predicate the API enforces; see the note in UsersTable.js.
+import { canManageTarget as canManageUser } from '../../../lib/canManageUser';
 
-function canManageUser(actor, target) {
-  if (!actor || !target) return false;
-  const actorId = String(actor.id || actor._id || '');
-  const targetId = String(target._id || target.id || '');
-  if (actorId && targetId && actorId === targetId) return false;
-  if (actor.email && target.email && actor.email.toLowerCase() === target.email.toLowerCase()) return false;
-  if (Number(target.level) >= Number(actor.level)) return false;
-  if (Number(actor.level) < 5 && target.schoolName !== actor.schoolName) return false;
-  if (Number(actor.level) < 5 && Number(target.level) > 3) return false;
-  return true;
-}
+// Pulls in recharts, and only the analytics tab of the workspace ever renders it.
+const UserAnalytics = dynamic(() => import('../../../components/UserAnalytics'), {
+  loading: () => (
+    <Column fillWidth horizontal="center" vertical="center" paddingY="48">
+      <Spinner size="m" />
+    </Column>
+  ),
+});
 
 function AdminUsersPageContent() {
   const router = useRouter();
@@ -72,13 +73,6 @@ function AdminUsersPageContent() {
   const [csvPreview, setCsvPreview] = useState([]);
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState(null);
-  const [permissionData, setPermissionData] = useState({
-    canEditUsers: false,
-    canDeleteUsers: false,
-    canManagePermissions: false,
-    canViewAuditLogs: false,
-    canBulkActions: false
-  });
 
   // Collaboration Dashboard State
   const initialTab = searchParams.get('tab');
@@ -291,23 +285,27 @@ function AdminUsersPageContent() {
     }
   };
 
-  const handlePermissionUpdate = async (userId, permissions) => {
+  const handlePermissionUpdate = async (userId, changes) => {
     try {
-      const response = await fetch(`/api/users/${userId}/permissions`, {
+      const response = await fetch('/api/users', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ permissions }),
+        body: JSON.stringify({ userId, ...changes }),
       });
 
       if (response.ok) {
         await fetchUsers();
-        toast.success('Permissions updated');
+        toast.success('User updated');
+        return;
       }
+
+      const error = await response.json().catch(() => ({}));
+      toast.error(error.error || 'Could not update this user.');
     } catch (error) {
-      console.error('Error updating permissions:', error);
-      toast.error('Error updating permissions. Please try again.');
+      console.error('Error updating user:', error);
+      toast.error('Error updating user. Please try again.');
     }
   };
 
@@ -523,9 +521,9 @@ function AdminUsersPageContent() {
       <div className="legacy-ui">
         {/* Modal for Create/Edit User */}
         {showModal && (
-          <div className="app-modal-backdrop">
+          <Modal onClose={() => setShowModal(false)} labelledBy="user-form-title">
             <div className="bg-white rounded-lg p-8 w-full max-w-lg max-h-90vh overflow-y-auto">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
+              <h3 id="user-form-title" className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
                 <UserPlus className="w-6 h-6 mr-2 text-blue-600" />
                 {editingUser ? 'Edit User' : 'Create New User'}
               </h3>
@@ -645,15 +643,19 @@ function AdminUsersPageContent() {
                 </div>
               </form>
             </div>
-          </div>
+          </Modal>
         )}
 
         {/* Advanced User Management Modal */}
         {showAdvancedModal && (
-          <div className="app-modal-backdrop app-modal-wide">
+          <Modal
+            onClose={() => setShowAdvancedModal(false)}
+            size="wide"
+            labelledBy="advanced-users-title"
+          >
             <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl my-8 max-h-[95vh] flex flex-col">
               <div className="p-6 border-b border-gray-200 flex-shrink-0">
-                <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
+                <h3 id="advanced-users-title" className="text-2xl font-semibold text-gray-900 flex items-center">
                   <Shield className="w-6 h-6 mr-2 text-indigo-600" />
                   Advanced User Management
                 </h3>
@@ -661,53 +663,6 @@ function AdminUsersPageContent() {
               
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* User Permissions Management */}
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-gray-800">User Permissions</h4>
-                  {users.map(user => (
-                    <div key={user._id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="font-medium text-gray-900">{user.name}</p>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                        </div>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            onChange={(e) => handlePermissionUpdate(user._id, { canEditUsers: e.target.checked })}
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Can Edit Users</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            onChange={(e) => handlePermissionUpdate(user._id, { canDeleteUsers: e.target.checked })}
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Can Delete Users</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            onChange={(e) => handlePermissionUpdate(user._id, { canManagePermissions: e.target.checked })}
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Can Manage Permissions</span>
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
                 {/* Account Status Management */}
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold text-gray-800">Account Status Management</h4>
@@ -745,8 +700,13 @@ function AdminUsersPageContent() {
                            <input
                              type="text"
                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                             value={user.title || ''}
-                             onChange={(e) => handlePermissionUpdate(user._id, { title: e.target.value })}
+                             defaultValue={user.title || ''}
+                             onBlur={(e) => {
+                               const next = e.target.value.trim();
+                               if (next !== (user.title || '')) {
+                                 handlePermissionUpdate(user._id, { title: next });
+                               }
+                             }}
                              placeholder="e.g., Principal, Teacher, Staff"
                            />
                          </div>
@@ -777,14 +737,14 @@ function AdminUsersPageContent() {
                 </button>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
 
         {/* Bulk Actions Modal */}
         {showBulkModal && (
-          <div className="app-modal-backdrop">
+          <Modal onClose={() => setShowBulkModal(false)} labelledBy="bulk-users-title">
             <div className="bg-white rounded-lg p-8 w-full max-w-2xl max-h-90vh overflow-y-auto">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
+              <h3 id="bulk-users-title" className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
                 <Users className="w-6 h-6 mr-2 text-purple-600" />
                 Bulk User Management
               </h3>
@@ -866,16 +826,16 @@ function AdminUsersPageContent() {
                 </button>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
 
         {/* Audit Log Modal */}
         {showAuditModal && (
-          <div className="app-modal-backdrop app-modal-full">
+          <Modal onClose={() => setShowAuditModal(false)} size="full" labelledBy="audit-log-title">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl my-8 max-h-[95vh] flex flex-col">
               <div className="p-6 border-b border-gray-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
+                  <h3 id="audit-log-title" className="text-2xl font-semibold text-gray-900 flex items-center">
                     <BarChart3 className="w-6 h-6 mr-2 text-amber-600" />
                     User Activity Audit Log
                   </h3>
@@ -909,7 +869,7 @@ function AdminUsersPageContent() {
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {auditLogs.map((log, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
+                          <tr key={log._id || `${log.timestamp}-${index}`} className="hover:bg-gray-50">
                             <td className="p-3 text-sm text-gray-600 whitespace-nowrap">
                               {new Date(log.timestamp).toLocaleString()}
                             </td>
@@ -936,15 +896,15 @@ function AdminUsersPageContent() {
                 </button>
               </div>
             </div>
-          </div>
+          </Modal>
                  )}
 
          {/* CSV Import Modal */}
          {showCsvImportModal && (
-           <div className="app-modal-backdrop app-modal-xl">
+           <Modal onClose={() => setShowCsvImportModal(false)} size="xl" labelledBy="csv-import-title">
              <div className="bg-white rounded-lg p-8 w-full max-w-4xl max-h-90vh overflow-y-auto">
                <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
+                 <h3 id="csv-import-title" className="text-2xl font-semibold text-gray-900 flex items-center">
                    <Download className="w-6 h-6 mr-2 text-emerald-600" />
                    Bulk Import Users from CSV
                  </h3>
@@ -1107,7 +1067,7 @@ function AdminUsersPageContent() {
                  </div>
                </div>
              </div>
-           </div>
+           </Modal>
          )}
       </div>
     </DashboardShell>

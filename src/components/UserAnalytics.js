@@ -376,7 +376,7 @@ const UserAnalytics = ({ users }) => {
         </div>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
           {titleChartData.map((item, index) => (
-            <div key={index} className="flex items-center">
+            <div key={item.fullTitle} className="flex items-center">
               <div 
                 className="w-3 h-3 rounded-full mr-2" 
                 style={{ backgroundColor: getLevelColor(index + 1) }}

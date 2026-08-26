@@ -3,7 +3,10 @@ const { getServerSession } = require('next-auth/next');
 const { authOptions } = require('../../../../../../lib/auth');
 const connectDB = require('../../../../../../lib/mongodb');
 const User = require('../../../../../../models/User');
+const FormSubmission = require('../../../../../../models/FormSubmission');
 const { registerActiveEditor } = require('../../../../../../lib/activeEditors');
+const { canEditForm } = require('../../../../../../lib/formAccess');
+const { reportError } = require('../../../../../../lib/reportError');
 
 // POST /api/forms/[id]/editors/register - Register as active editor
 async function POST(request, { params }) {
@@ -25,6 +28,14 @@ async function POST(request, { params }) {
 
     if (!stepKey) {
       return NextResponse.json({ error: 'stepKey is required' }, { status: 400 });
+    }
+
+    const form = await FormSubmission.findById(id).select('userId schoolName principalEmail sharedWithEmails');
+    if (!form) {
+      return NextResponse.json({ error: 'Form not found' }, { status: 404 });
+    }
+    if (!canEditForm(user, form)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     const userId = user._id.toString();
@@ -49,11 +60,8 @@ async function POST(request, { params }) {
       }, { status: 500 });
     }
   } catch (error) {
-    console.error('Error registering active editor:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error.message 
-    }, { status: 500 });
+    reportError(error, { route: '/api/forms/[id]/editors/register', detail: 'Error registering active editor' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

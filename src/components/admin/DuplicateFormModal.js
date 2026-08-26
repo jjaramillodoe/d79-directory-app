@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Column, Row, Text, Heading, Button, Card } from '@once-ui-system/core';
 import { inferSchoolYear, nextSchoolYear } from '../../lib/schoolYear';
+import Modal from '../ui/Modal';
 
 export default function DuplicateFormModal({ form, onClose, onDuplicated }) {
   const router = useRouter();
@@ -46,10 +47,10 @@ export default function DuplicateFormModal({ form, onClose, onDuplicated }) {
   };
 
   return (
-    <div className="app-modal-backdrop">
+    <Modal onClose={saving ? undefined : onClose} labelledBy="duplicate-modal-title">
       <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '32rem' }}>
         <Column gap="16">
-          <Heading variant="heading-strong-m">Copy for a new school year</Heading>
+          <Heading id="duplicate-modal-title" variant="heading-strong-m">Copy for a new school year</Heading>
           <Column gap="4">
             <Text variant="body-default-s">School: {form.schoolName}</Text>
             <Text variant="body-default-s">Current year: {sourceYear}</Text>
@@ -75,8 +76,9 @@ export default function DuplicateFormModal({ form, onClose, onDuplicated }) {
           ) : (
             <>
               <Column gap="8">
-                <Text variant="label-default-s">New school year</Text>
+                <Text as="label" htmlFor="duplicate-target-year" variant="label-default-s">New school year</Text>
                 <input
+                  id="duplicate-target-year"
                   className="app-field"
                   value={targetYear}
                   onChange={(event) => setTargetYear(event.target.value)}
@@ -114,6 +116,6 @@ export default function DuplicateFormModal({ form, onClose, onDuplicated }) {
           )}
         </Column>
       </Card>
-    </div>
+    </Modal>
   );
 }

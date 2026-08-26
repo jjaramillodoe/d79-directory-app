@@ -10,6 +10,10 @@ const {
   VerticalAlign,
 } = require('docx');
 const { isTableValue, isTableAnswered, normalizeTable, cleanCell, normalizeColumnDefs } = require('./tableAnswer');
+const { formatYesNo } = require('./questionBankUtils');
+
+// Unanswered questions print as a ruled line so the exported plan can be completed on paper.
+const ANSWER_PLACEHOLDER = '_______________________________________________________';
 
 function pdfSafe(text) {
   return String(text ?? '')
@@ -153,9 +157,62 @@ function drawPdfTable(doc, table) {
   doc.moveDown(0.6);
 }
 
+/**
+ * Decides how one answer should appear in an exported document.
+ *
+ * The PDF and DOCX routes ran byte-identical copies of this, so a change to how (say)
+ * checkbox answers render had to be made twice or the two formats silently disagreed.
+ *
+ * Deliberately not merged into `schoolYearSettings.formatAnswer`, despite the surface
+ * similarity: that one serves the year-over-year comparison view, where it renders booleans
+ * as 'Yes'/'No', flattens tables to plain text for diffing, and emits compact JSON. Exports
+ * need `formatYesNo`, real table objects to hand to the table builders, indented JSON, and a
+ * ruled placeholder for blanks. Folding them together would have quietly changed both.
+ *
+ * @param {object} question - Question definition, for `type` and `columns`.
+ * @param {*} value - The stored answer.
+ * @param {{ maxLength?: number }} [options] - Truncate beyond maxLength (PDF only, since
+ *   PDFKit lays out a single enormous string very slowly).
+ * @returns {{ table: object|null, hasData: boolean, displayValue: string }}
+ */
+function resolveExportAnswer(question, value, { maxLength } = {}) {
+  const table = resolveExportTable(value, question.columns, {
+    always: question.type === 'table',
+  });
+  const isChoice = question.type === 'yesno' || question.type === 'checkbox';
+
+  const hasData = table
+    ? isTableAnswered(table)
+    : isChoice
+      ? Boolean(formatYesNo(value))
+      : value !== undefined && value !== null && value !== '';
+
+  let displayValue = '';
+
+  if (!table && hasData) {
+    if (isChoice) {
+      displayValue = formatYesNo(value);
+    } else if (typeof value === 'object' && value !== null) {
+      displayValue = Array.isArray(value) ? value.join(', ') : JSON.stringify(value, null, 2);
+    } else {
+      displayValue = String(value || '');
+    }
+
+    if (maxLength && displayValue.length > maxLength) {
+      displayValue = `${displayValue.substring(0, maxLength)}... (truncated)`;
+    }
+  } else if (!table) {
+    displayValue = ANSWER_PLACEHOLDER;
+  }
+
+  return { table, hasData, displayValue };
+}
+
 module.exports = {
   resolveExportTable,
+  resolveExportAnswer,
   buildDocxTable,
   drawPdfTable,
   pdfSafe,
+  ANSWER_PLACEHOLDER,
 };

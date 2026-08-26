@@ -13,6 +13,7 @@ import {
   Eye
 } from 'lucide-react';
 import useAppToast from '../hooks/useAppToast';
+import Modal from './ui/Modal';
 
 const CollaborationDashboard = ({ user }) => {
   const toast = useAppToast();
@@ -83,7 +84,6 @@ const CollaborationDashboard = ({ user }) => {
         }
         // Level 5 users see all forms, no filtering needed
         
-        console.log('📄 Forms for collaboration:', forms);
         setUserForms(forms);
       }
     } catch (error) {
@@ -462,9 +462,9 @@ const CollaborationDashboard = ({ user }) => {
 
       {/* Create User Modal */}
       {showCreateUser && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowCreateUser(false)} labelledBy="create-level3-title">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Create Level 3 User</h3>
+            <h3 id="create-level3-title" className="text-lg font-semibold mb-4">Create Level 3 User</h3>
             <p className="text-sm text-gray-600 mb-4">
               This user will be added to <strong>{user?.schoolName}</strong> and can collaborate on shared forms.
             </p>
@@ -523,14 +523,14 @@ const CollaborationDashboard = ({ user }) => {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Share Form Modal */}
       {showShareForm && (
-        <div className="app-modal-backdrop">
+        <Modal onClose={() => setShowShareForm(false)} labelledBy="share-level3-title">
           <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-4">Share Form with Level 3 Users</h3>
+            <h3 id="share-level3-title" className="text-lg font-semibold mb-4">Share Form with Level 3 Users</h3>
             
             <form onSubmit={submitShareForm} className="space-y-4">
               <div>
@@ -620,7 +620,7 @@ const CollaborationDashboard = ({ user }) => {
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

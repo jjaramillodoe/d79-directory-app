@@ -2,30 +2,14 @@ import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { isTokenDenied, rateLimit } from './lib/redis';
 
-const SUPER_ADMIN_PAGES = [
-  '/admin/questions',
-  '/admin/logs',
-  '/admin/system',
-  '/admin/goals',
-  '/admin/submissions',
-];
-const SUPER_ADMIN_APIS = [
-  '/api/admin/questions',
-  '/api/admin/health',
-  '/api/admin/goals',
-  '/api/admin/forms/rollover',
-  '/api/admin/forms/migrate-contacts',
-  '/api/admin/forms/live',
-  '/api/admin/forms/export',
-];
+// Admin level policy lives in its own module so a test can assert it stays exhaustive over
+// the filesystem. See the comment there for why the default is level 5.
+import { requiredAdminLevel } from './lib/adminRouteLevels';
 
 function isAuthed(token) {
   return Boolean(token?.userId) && token.isActive !== false && Number(token.level) >= 1;
 }
 
-function matchesPrefix(pathname, prefixes) {
-  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-}
 
 function clientIp(request) {
   return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
@@ -83,10 +67,7 @@ export async function proxy(request) {
 
   const level = Number(token.level) || 0;
   if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-    const needsSuperAdmin = pathname.startsWith('/admin')
-      ? matchesPrefix(pathname, SUPER_ADMIN_PAGES)
-      : matchesPrefix(pathname, SUPER_ADMIN_APIS);
-    const minLevel = needsSuperAdmin ? 5 : 4;
+    const minLevel = requiredAdminLevel(pathname);
     if (level < minLevel) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

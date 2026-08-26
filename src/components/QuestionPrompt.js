@@ -9,6 +9,7 @@ export default function QuestionPrompt({
   requiredSuffix = null,
   headingVariant = 'heading-strong-s',
   compact = false,
+  id,
 }) {
   const copy = splitQuestionCopy(question?.title, question?.description);
   const heading = copy.heading;
@@ -20,7 +21,7 @@ export default function QuestionPrompt({
   if (!heading && !body && !helper) return null;
 
   return (
-    <Column gap={compact ? '8' : '4'} fillWidth style={{ minWidth: 0, width: '100%' }}>
+    <Column id={id} gap={compact ? '8' : '4'} fillWidth style={{ minWidth: 0, width: '100%' }}>
       {heading ? (
         <Text variant={headingVariant} style={{ whiteSpace: 'pre-line' }}>
           <LinkifiedText text={heading} suffix={suffix} />

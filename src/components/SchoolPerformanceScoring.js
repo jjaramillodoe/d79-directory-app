@@ -16,6 +16,7 @@ import {
 import StatCard from './dashboard/StatCard';
 import DashboardSection from './dashboard/DashboardSection';
 import FormStatusTag from './dashboard/FormStatusTag';
+import Modal from './ui/Modal';
 
 const TIER_TAG = {
   Platinum: { label: 'Platinum', variant: 'brand' },
@@ -309,12 +310,12 @@ export default function SchoolPerformanceScoring({ forms = [] }) {
       </DashboardSection>
 
       {selectedSchool && (
-        <div className="app-modal-backdrop app-modal-lg">
+        <Modal onClose={() => setShowDetails(null)} size="lg" labelledBy="school-details-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '40rem' }}>
             <Column gap="20">
               <Row fillWidth horizontal="between" vertical="center" wrap gap="12">
                 <Column gap="4">
-                  <Heading variant="heading-strong-m">{selectedSchool.schoolName}</Heading>
+                  <Heading id="school-details-title" variant="heading-strong-m">{selectedSchool.schoolName}</Heading>
                   <Text variant="body-default-s" onBackground="neutral-weak">
                     {selectedSchool.principalName} · {selectedSchool.principalEmail}
                   </Text>
@@ -380,7 +381,7 @@ export default function SchoolPerformanceScoring({ forms = [] }) {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
     </Column>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { Column, Row, Text, Heading, Button, Card, Tag } from '@once-ui-system/core';
+import Modal from '../ui/Modal';
 
 export default function FormShareModal({
   emails,
@@ -13,7 +14,7 @@ export default function FormShareModal({
   onShare,
 }) {
   return (
-    <div className="app-modal-backdrop app-modal-md">
+    <Modal onClose={sharing ? undefined : onClose} size="md" labelledBy="share-modal-title">
       <Card
         padding="24"
         radius="l"
@@ -21,13 +22,15 @@ export default function FormShareModal({
         style={{ width: '100%', maxWidth: '36rem', maxHeight: '90vh', overflow: 'auto' }}
       >
         <Column gap="16">
-          <Heading variant="heading-strong-m">Share this plan</Heading>
+          <Heading id="share-modal-title" variant="heading-strong-m">Share this plan</Heading>
           <Column gap="8">
-            <Text variant="label-default-s">Email addresses</Text>
-            <Text variant="body-default-s" onBackground="neutral-weak">
+            <Text as="label" htmlFor="share-emails" variant="label-default-s">Email addresses</Text>
+            <Text id="share-emails-hint" variant="body-default-s" onBackground="neutral-weak">
               Separate addresses with commas or new lines.
             </Text>
             <textarea
+              id="share-emails"
+              aria-describedby="share-emails-hint"
               className="app-field app-field-area"
               value={emails}
               onChange={(event) => onChangeEmails(event.target.value)}
@@ -36,8 +39,9 @@ export default function FormShareModal({
             />
           </Column>
           <Column gap="8">
-            <Text variant="label-default-s">Permission</Text>
+            <Text as="label" htmlFor="share-permissions" variant="label-default-s">Permission</Text>
             <select
+              id="share-permissions"
               className="app-field"
               value={permissions}
               onChange={(event) => onChangePermissions(event.target.value)}
@@ -76,6 +80,6 @@ export default function FormShareModal({
           </Row>
         </Column>
       </Card>
-    </div>
+    </Modal>
   );
 }

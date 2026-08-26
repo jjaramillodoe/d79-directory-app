@@ -15,13 +15,30 @@ const ACCENT_MAP = {
 export default function StatCard({ label, value, suffix = '', accentKey, onClick, selected, hint }) {
   const accent = ACCENT_MAP[accentKey] || 'neutral-strong';
 
+  // A card with onClick is a control, so it needs to be reachable and operable by keyboard.
+  // Without these it was mouse-only, and the filters it drives were unusable without one.
+  const interactiveProps = onClick
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-pressed': Boolean(selected),
+        onClick,
+        onKeyDown: (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onClick(event);
+          }
+        },
+      }
+    : {};
+
   return (
     <Card
       padding="20"
       fillWidth
       radius="l"
       direction="column"
-      onClick={onClick}
+      {...interactiveProps}
       style={{
         cursor: onClick ? 'pointer' : undefined,
         boxShadow: selected ? 'inset 0 0 0 2px var(--brand-solid-strong)' : undefined,

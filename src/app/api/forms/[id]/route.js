@@ -8,6 +8,8 @@ const User = require('../../../../models/User');
 const { getPublishedOrJson } = require('../../../../lib/questionBank');
 const { getStepKeys, getStepNumberByKey } = require('../../../../lib/formSteps');
 const { inferSchoolYear } = require('../../../../lib/schoolYear');
+const { describeFormAccess, canEditForm } = require('../../../../lib/formAccess');
+const { reportError } = require('../../../../lib/reportError');
 
 // GET /api/forms/[id] - Get specific form
 async function GET(request, { params }) {
@@ -45,7 +47,7 @@ async function GET(request, { params }) {
           continue;
         }
         
-        console.error('Error fetching user in GET:', userError);
+        reportError(userError, { route: '/api/forms/[id]', detail: 'Error fetching user in GET' });
         return NextResponse.json({ 
           error: 'Database connection error',
           message: 'Unable to verify user. Please try again in a moment.',
@@ -93,7 +95,7 @@ async function GET(request, { params }) {
           continue;
         }
         
-        console.error('Error fetching form in GET:', formError);
+        reportError(formError, { route: '/api/forms/[id]', detail: 'Error fetching form in GET' });
         return NextResponse.json({ 
           error: 'Database connection error',
           message: 'Unable to load form. Please try again in a moment.',
@@ -107,67 +109,21 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    // Check permissions: owner can access their form, super admins can access any form, 
-    // principals (level 4) can access forms from their school, or user has been assigned the form
-    // Handle both populated and unpopulated userId with null safety
-    let formUserId;
-    try {
-      formUserId = form.userId?._id?.toString() || form.userId?.toString() || (form.userId ? form.userId.toString() : null);
-    } catch (e) {
-      console.error('Error extracting form userId in GET:', e);
-      formUserId = null;
-    }
-    
-    const isOwner = formUserId && user._id ? formUserId === user._id.toString() : false;
-    // Also check if user is the principal by email (in case ownership wasn't set correctly)
-    const isPrincipalByEmail = form.principalEmail && form.principalEmail.toLowerCase() === user.email.toLowerCase();
-    const isSuperAdmin = user.level === 5;
-    const isPrincipal = user.level === 4;
-    const isLevel2 = user.level === 2;
-    // Level 2 and Level 4 users can access forms from their school
-    const isSameSchool = (isPrincipal || isLevel2) && user.schoolName && form.schoolName && 
-                         user.schoolName === form.schoolName;
-    const isAssigned = user.assignedForms.some(assignment => 
-      assignment.formId.toString() === form._id.toString()
-    );
-    // Check if form is shared with this user's email (for Level 5 sharing)
-    const isSharedWithEmail = form.sharedWithEmails && form.sharedWithEmails.some(
-      share => share.email.toLowerCase() === user.email.toLowerCase()
-    );
-    
-    if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool && !isAssigned && !isSharedWithEmail) {
+    const access = describeFormAccess(user, form);
+    if (!access.canView) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Add collaboration information if user is assigned to this form
-    let collaborationInfo = null;
-    if (isAssigned) {
-      const assignment = user.assignedForms.find(a => a.formId.toString() === form._id.toString());
-      collaborationInfo = {
-        permissions: assignment.permissions,
-        assignedSections: assignment.assignedSections,
-        assignedAt: assignment.assignedAt,
-        assignedBy: assignment.assignedBy
-      };
-    }
+    const collaborationInfo = access.assignment
+      ? {
+          permissions: access.assignment.permissions,
+          assignedSections: access.assignment.assignedSections,
+          assignedAt: access.assignment.assignedAt,
+          assignedBy: access.assignment.assignedBy,
+        }
+      : null;
 
-    // Also include user permission level for frontend display
-    let userPermission = null;
-    if (isOwner || isPrincipalByEmail || isSuperAdmin) {
-      userPermission = 'owner';
-    } else if (isSameSchool) {
-      // Level 2 and Level 4 users from same school can edit
-      userPermission = 'edit';
-    } else if (isAssigned && collaborationInfo) {
-      // Level 3 users assigned for collaboration can always edit
-      if (user.level === 3) {
-        userPermission = 'edit';
-      } else {
-        userPermission = collaborationInfo.permissions || 'view';
-      }
-    } else {
-      userPermission = 'view';
-    }
+    const userPermission = access.permission;
 
     // Fetch all active comments for this form (wrap in try-catch to prevent breaking form load)
     let comments = [];
@@ -181,7 +137,7 @@ async function GET(request, { params }) {
         .lean();
     } catch (commentError) {
       // Log error but don't fail the entire request
-      console.error('Error fetching comments (non-fatal):', commentError);
+      reportError(commentError, { route: '/api/forms/[id]', detail: 'Error fetching comments (non-fatal)' });
       comments = [];
     }
 
@@ -216,7 +172,7 @@ async function GET(request, { params }) {
       comments: comments || [] // Include comments from FormComment collection
     });
   } catch (error) {
-    console.error('Error fetching form:', error);
+    reportError(error, { route: '/api/forms/[id]', detail: 'Error fetching form' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -238,7 +194,7 @@ async function PUT(request, { params }) {
       try {
         await connectDB();
       } catch (dbError) {
-        console.error('Database connection error:', dbError);
+        reportError(dbError, { route: '/api/forms/[id]', detail: 'Database connection error' });
         // If it's a connection error and we have retries left, retry
         if (retryCount < maxRetries && (
           dbError.name === 'MongoNetworkError' || 
@@ -285,7 +241,7 @@ async function PUT(request, { params }) {
           }
           
           // If all retries failed or it's not a connection error, return error
-          console.error('Error fetching user:', userError);
+          reportError(userError, { route: '/api/forms/[id]', detail: 'Error fetching user' });
           return NextResponse.json({ 
             error: 'Database connection error',
             message: 'Unable to verify user permissions. Please try again in a moment.',
@@ -326,7 +282,7 @@ async function PUT(request, { params }) {
             continue;
           }
           
-          console.error('Error fetching form:', formError);
+          reportError(formError, { route: '/api/forms/[id]', detail: 'Error fetching form' });
           return NextResponse.json({ 
             error: 'Database connection error',
             message: 'Unable to load form. Please try again in a moment.',
@@ -340,75 +296,16 @@ async function PUT(request, { params }) {
         return NextResponse.json({ error: 'Form not found' }, { status: 404 });
       }
 
-      // Check permissions: owner can edit their draft/submitted forms, super admins can edit any form,
-      // principals (level 4) can edit forms from their school, 
-      // Level 3 (Assistant Principals) can edit if assigned for collaboration,
-      // or user has edit permissions
-      // Handle both populated and unpopulated userId with null safety
-      let formUserId;
-      try {
-        formUserId = form.userId?._id?.toString() || form.userId?.toString() || (form.userId ? form.userId.toString() : null);
-      } catch (e) {
-        console.error('Error extracting form userId:', e);
-        formUserId = null;
-      }
-      
-      const isOwner = formUserId && user._id ? formUserId === user._id.toString() : false;
-      // Also check if user is the principal by email (in case ownership wasn't set correctly)
-      const isPrincipalByEmail = form.principalEmail && form.principalEmail.toLowerCase() === user.email.toLowerCase();
-      const isSuperAdmin = user.level === 5;
-      const isPrincipal = user.level === 4;
-      const isLevel2 = user.level === 2;
-      const isAssistantPrincipal = user.level === 3;
-      // Level 2 and Level 4 users can edit forms from their school
-      const isSameSchool = (isPrincipal || isLevel2) && user.schoolName && form.schoolName && 
-                           user.schoolName === form.schoolName;
-      const assignment = user.assignedForms.find(a => a.formId.toString() === form._id.toString());
-      const hasEditAccess = assignment && assignment.permissions === 'edit';
-      // Level 3 users assigned for collaboration can always edit
-      const isAssignedLevel3 = isAssistantPrincipal && assignment;
-      
-      // Check if form is shared with this user's email and has edit permissions
-      const shareEntry = form.sharedWithEmails && form.sharedWithEmails.find(
-        share => share.email.toLowerCase() === user.email.toLowerCase()
-      );
-      const hasSharedEditAccess = shareEntry && shareEntry.permissions === 'edit';
-      
-      // Allow access if: owner, principal by email, super admin, same school, has edit access, assigned Level 3, or shared with edit access
-      if (!isOwner && !isPrincipalByEmail && !isSuperAdmin && !isSameSchool && !hasEditAccess && !isAssignedLevel3 && !hasSharedEditAccess) {
-        // Log the permission denial for debugging
-        console.warn('Access denied for form:', {
+      if (!canEditForm(user, form)) {
+        console.warn('Edit denied for form', {
           formId: id,
-          userEmail: user.email,
-          userLevel: user.level,
-          isOwner,
-          isPrincipalByEmail,
-          isSuperAdmin,
-          isSameSchool,
-          hasEditAccess,
-          isAssignedLevel3,
-          formUserId: formUserId,
           userId: user._id?.toString(),
-          principalEmail: form.principalEmail,
-          userSchoolName: user.schoolName,
-          formSchoolName: form.schoolName
+          userLevel: user.level,
         });
-        
-        return NextResponse.json({ 
+
+        return NextResponse.json({
           error: 'Access denied',
           message: 'You do not have permission to edit this form. Please contact an administrator to grant edit access.',
-          details: {
-            isOwner,
-            isPrincipalByEmail,
-            isSuperAdmin,
-            isSameSchool,
-            hasEditAccess,
-            isAssignedLevel3,
-            userEmail: user.email,
-            principalEmail: form.principalEmail,
-            formOwnerId: formUserId || 'unknown',
-            userId: user._id?.toString() || 'unknown'
-          }
         }, { status: 403 });
       }
 
@@ -560,7 +457,7 @@ async function PUT(request, { params }) {
       try {
         await form.save();
       } catch (saveError) {
-        console.error('Error saving form:', saveError);
+        reportError(saveError, { route: '/api/forms/[id]', detail: 'Error saving form' });
         // If it's a connection error and we have retries left, retry
         if (retryCount < maxRetries && (
           saveError.name === 'MongoNetworkError' || 
@@ -588,7 +485,7 @@ async function PUT(request, { params }) {
       });
     } catch (error) {
       // Handle non-database errors
-      console.error('Error updating form:', error);
+      reportError(error, { route: '/api/forms/[id]', detail: 'Error updating form' });
       
       // Check if it's a database connection error
       if (error.name === 'MongoNetworkError' || 
@@ -602,10 +499,7 @@ async function PUT(request, { params }) {
         }, { status: 503 });
       }
       
-      return NextResponse.json({ 
-        error: 'Internal server error',
-        message: error.message || 'An unexpected error occurred'
-      }, { status: 500 });
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   }
 }
@@ -639,7 +533,7 @@ async function DELETE(request, { params }) {
       message: 'Form deleted successfully' 
     });
   } catch (error) {
-    console.error('Error deleting form:', error);
+    reportError(error, { route: '/api/forms/[id]', detail: 'Error deleting form' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

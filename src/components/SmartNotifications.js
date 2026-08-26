@@ -16,6 +16,7 @@ import {
 import StatCard from './dashboard/StatCard';
 import DashboardSection from './dashboard/DashboardSection';
 import useAppToast from '../hooks/useAppToast';
+import Modal from './ui/Modal';
 
 const TYPE_LABELS = {
   deadline: 'Deadlines',
@@ -257,18 +258,19 @@ export default function SmartNotifications({ forms = [] }) {
       </DashboardSection>
 
       {showCompose && (
-        <div className="app-modal-backdrop app-modal-md">
+        <Modal onClose={() => setShowCompose(false)} size="md" labelledBy="compose-notice-title">
           <Card padding="24" radius="l" direction="column" style={{ width: '100%', maxWidth: '36rem' }}>
             <Column gap="16">
               <Row fillWidth horizontal="between" vertical="center">
-                <Heading variant="heading-strong-m">Send notice</Heading>
+                <Heading id="compose-notice-title" variant="heading-strong-m">Send notice</Heading>
                 <Button size="s" variant="tertiary" onClick={() => setShowCompose(false)}>
                   Close
                 </Button>
               </Row>
               <Column gap="8">
-                <Text variant="label-default-s">Type</Text>
+                <Text as="label" htmlFor="notice-type" variant="label-default-s">Type</Text>
                 <select
+                  id="notice-type"
                   className="app-field"
                   value={notificationType}
                   onChange={(e) => setNotificationType(e.target.value)}
@@ -309,8 +311,9 @@ export default function SmartNotifications({ forms = [] }) {
                 </Column>
               </Column>
               <Column gap="8">
-                <Text variant="label-default-s">Message</Text>
+                <Text as="label" htmlFor="notice-message" variant="label-default-s">Message</Text>
                 <textarea
+                  id="notice-message"
                   className="app-field"
                   rows={4}
                   value={message}
@@ -331,7 +334,7 @@ export default function SmartNotifications({ forms = [] }) {
               </Row>
             </Column>
           </Card>
-        </div>
+        </Modal>
       )}
     </Column>
   );

@@ -3,6 +3,7 @@ const { authOptions } = require('../../../../lib/auth');
 const connectDB = require('../../../../lib/mongodb');
 const User = require('../../../../models/User');
 const { jsonError, requireAdminActor, enforceRateLimit } = require('../../../../lib/userAccess');
+const { reportError } = require('../../../../lib/reportError');
 
 async function POST(request) {
   try {
@@ -70,7 +71,7 @@ async function POST(request) {
       connection: { remoteAddress: null },
     };
     logUserCreated(session.user, newUser, requestObj).catch((err) =>
-      console.error('Error logging user creation:', err)
+      reportError(err, { route: '/api/users/create', detail: 'Error logging user creation' })
     );
 
     return new Response(JSON.stringify({
@@ -90,7 +91,7 @@ async function POST(request) {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    reportError(error, { route: '/api/users/create', detail: 'Error creating user' });
     return jsonError(500, 'Internal server error');
   }
 }

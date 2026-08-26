@@ -6,6 +6,7 @@ const connectDB = require('../../../../../lib/mongodb');
 const { getDraftTemplate, auditRequest } = require('../../../../../lib/questionBank');
 const { sanitizeStepUpdates, toClientTemplate } = require('../../../../../lib/questionBankUtils');
 const { logAction } = require('../../../../../lib/auditLogger');
+const { reportError } = require('../../../../../lib/reportError');
 
 export async function PATCH(request) {
   try {
@@ -66,7 +67,7 @@ export async function PATCH(request) {
       draft: toClientTemplate(draft),
     });
   } catch (error) {
-    console.error('Error updating step:', error);
+    reportError(error, { route: '/api/admin/questions/step', detail: 'Error updating step' });
     return NextResponse.json({ error: 'Failed to update step' }, { status: 500 });
   }
 }

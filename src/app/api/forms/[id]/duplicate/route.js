@@ -8,11 +8,16 @@ const User = require('../../../../../models/User');
 const { logAction } = require('../../../../../lib/auditLogger');
 const { duplicateForm } = require('../../../../../lib/formDuplicate');
 const { inferSchoolYear, nextSchoolYear } = require('../../../../../lib/schoolYear');
+const { canEditForm } = require('../../../../../lib/formAccess');
+const { clientSafeMessage } = require('../../../../../lib/userAccess');
+const { reportError } = require('../../../../../lib/reportError');
 
+// Duplication mints a whole new plan, so it stays a principal-and-above action even
+// though levels 2-3 may edit an existing one. Narrowing the shared edit rule rather
+// than restating it keeps this from drifting away from the rest of the app.
 function canDuplicate(user, form) {
-  if (user.level === 5) return true;
-  if (user.level === 4 && user.schoolName === form.schoolName) return true;
-  return form.userId?.toString() === user._id.toString();
+  if (Number(user.level) < 4) return false;
+  return canEditForm(user, form);
 }
 
 export async function POST(request, { params }) {
@@ -79,14 +84,14 @@ export async function POST(request, { params }) {
     } catch (error) {
       return NextResponse.json(
         {
-          error: error.message || 'Failed to duplicate form',
+          error: clientSafeMessage(error, 'Failed to duplicate form'),
           existingFormId: error.existingFormId || null,
         },
         { status: error.status || 500 }
       );
     }
   } catch (error) {
-    console.error('Error duplicating form:', error);
+    reportError(error, { route: '/api/forms/[id]/duplicate', detail: 'Error duplicating form' });
     return NextResponse.json({ error: 'Failed to duplicate form' }, { status: 500 });
   }
 }
