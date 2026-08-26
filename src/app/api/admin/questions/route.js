@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../lib/auth');
-const connectDB = require('../../../../lib/mongodb');
-const FormTemplate = require('../../../../models/FormTemplate');
-const { getAdminQuestionBank, getDraftTemplate, auditRequest } = require('../../../../lib/questionBank');
-const { sanitizeQuestionUpdates, toClientTemplate } = require('../../../../lib/questionBankUtils');
-const { logAction } = require('../../../../lib/auditLogger');
-const { reportError } = require('../../../../lib/reportError');
+import { authOptions } from '../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import FormTemplate from '../../../../models/FormTemplate';
+import { getAdminQuestionBank, getDraftTemplate, auditRequest } from '../../../../lib/questionBank';
+import { sanitizeQuestionUpdates, toClientTemplate } from '../../../../lib/questionBankUtils';
+import { logAction } from '../../../../lib/auditLogger';
+import { reportError } from '../../../../lib/reportError';
 
 async function requireSuperAdmin() {
   const session = await getServerSession(authOptions);

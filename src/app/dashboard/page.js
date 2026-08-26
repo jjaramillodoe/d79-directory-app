@@ -19,6 +19,7 @@ import DashboardSection from '../../components/dashboard/DashboardSection';
 import CommentsOverview from '../../components/dashboard/CommentsOverview';
 import ReviewNotifications from '../../components/dashboard/ReviewNotifications';
 import { Spinner, Column, Text, SegmentedControl } from '@once-ui-system/core';
+import * as logger from '../../lib/logger';
 import { 
   PieChart,
 } from 'lucide-react';
@@ -136,10 +137,10 @@ function DashboardPageContent() {
           setStats(statsData);
         }
       } else {
-        console.error('Failed to fetch forms');
+        logger.error('Failed to fetch forms');
       }
     } catch (error) {
-      console.error('Error fetching forms:', error);
+      logger.error('Error fetching forms:', error);
     } finally {
       if (!isCancelled()) setLoading(false);
     }
@@ -154,7 +155,7 @@ function DashboardPageContent() {
         setNotifications(data.notifications || []);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error);
     }
   };
 
@@ -172,7 +173,7 @@ function DashboardPageContent() {
         setTimelineData(data.data);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to fetch timeline data:', response.status, errorData);
+        logger.error('Failed to fetch timeline data:', response.status, errorData);
         // Set empty timeline data to prevent errors
         setTimelineData({
           timeline: {
@@ -187,7 +188,7 @@ function DashboardPageContent() {
       }
     } catch (error) {
       if (isCancelled()) return;
-      console.error('Error fetching timeline data:', error);
+      logger.error('Error fetching timeline data:', error);
       // Set empty timeline data to prevent errors
       setTimelineData({
         timeline: {

@@ -1,26 +1,29 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../../lib/auth');
-const connectDB = require('../../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../../models/FormSubmission');
-const User = require('../../../../../../models/User');
-const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
-const { visibleQuestions } = require('../../../../../../lib/questionBankUtils');
-const { resolveExportTable, resolveExportAnswer, drawPdfTable, pdfSafe } = require('../../../../../../lib/exportTables');
-const { splitFormattedText } = require('../../../../../../lib/linkifyText');
-const { splitCopyBlocks } = require('../../../../../../lib/formattedCopy');
-const { canViewForm } = require('../../../../../../lib/formAccess');
-const { enforceRateLimit } = require('../../../../../../lib/userAccess');
-const { Readable } = require('stream');
-const path = require('path');
-const fs = require('fs');
-const { reportError } = require('../../../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../../lib/auth';
+import connectDB from '../../../../../../lib/mongodb';
+import FormSubmission from '../../../../../../models/FormSubmission';
+import User from '../../../../../../models/User';
+import { getPublishedOrJson } from '../../../../../../lib/questionBank';
+import { visibleQuestions } from '../../../../../../lib/questionBankUtils';
+import { resolveExportTable, resolveExportAnswer, drawPdfTable, pdfSafe } from '../../../../../../lib/exportTables';
+import { splitFormattedText } from '../../../../../../lib/linkifyText';
+import { splitCopyBlocks } from '../../../../../../lib/formattedCopy';
+import { canViewForm } from '../../../../../../lib/formAccess';
+import { enforceRateLimit } from '../../../../../../lib/userAccess';
+import { Readable } from 'stream';
+import path from 'path';
+import fs from 'fs';
+import { reportError } from '../../../../../../lib/reportError';
+import { inferSchoolYear } from '../../../../../../lib/schoolYear';
 
-// Require PDFKit at module level - should be externalized by webpack config
-// This is a Node.js-only package, so it should not be bundled
+// The one deliberate `require` left in the API routes, which are otherwise all ESM imports.
+// It cannot become an `import` for two reasons: the CJS entry has to be addressed directly
+// because the ESM one pulls fontkit through Turbopack and breaks @swc/helpers, and the call
+// needs to sit inside a try/catch so a missing or broken pdfkit degrades to a reported error
+// instead of taking the whole route module down at load time. A static import does neither.
 let PDFDocument;
 try {
-  // CJS build — the ESM entry pulls fontkit through Turbopack and breaks @swc/helpers.
   PDFDocument = require('pdfkit/js/pdfkit.js');
 } catch (e) {
   reportError(e, { route: '/api/forms/[id]/export/pdf', detail: 'Failed to require pdfkit' });
@@ -29,7 +32,6 @@ try {
 // Helper function to load form questions
 async function loadFormQuestions(form) {
   try {
-    const { inferSchoolYear } = require('../../../../../../lib/schoolYear');
     const bank = await getPublishedOrJson({
       schoolYear: form ? inferSchoolYear(form) : undefined,
       version: form?.questionBankVersion,
@@ -115,7 +117,7 @@ function getQuestionTitle(formQuestionsData, stepKey, fieldId) {
 }
 
 // GET /api/forms/[id]/export/pdf - Generate PDF
-async function GET(request, { params }) {
+export async function GET(request, { params }) {
   let form = null;
   let formId = null;
   try {
@@ -383,6 +385,3 @@ async function GET(request, { params }) {
     return NextResponse.json(errorResponse, { status: 500 });
   }
 }
-
-module.exports = { GET };
-

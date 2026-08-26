@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { inferSchoolYear, previousSchoolYear } = require('../../../../../lib/schoolYear');
-const { getPublishedOrJson } = require('../../../../../lib/questionBank');
-const { compareStepAnswers, getYearSettings } = require('../../../../../lib/schoolYearSettings');
-const { canViewForm } = require('../../../../../lib/formAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { inferSchoolYear, previousSchoolYear } from '../../../../../lib/schoolYear';
+import { getPublishedOrJson } from '../../../../../lib/questionBank';
+import { compareStepAnswers, getYearSettings } from '../../../../../lib/schoolYearSettings';
+import { canViewForm } from '../../../../../lib/formAccess';
+import { reportError } from '../../../../../lib/reportError';
 
 export async function GET(request, { params }) {
   try {

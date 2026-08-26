@@ -1,14 +1,14 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormComment = require('../../../../../models/FormComment');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { reportError } = require('../../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormComment from '../../../../../models/FormComment';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { reportError } from '../../../../../lib/reportError';
 
 // POST /api/forms/[id]/comments - Add a new comment (Level 5 only)
-async function POST(request, { params }) {
+export async function POST(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -122,6 +122,3 @@ async function POST(request, { params }) {
     }
   }
 }
-
-module.exports = { POST };
-

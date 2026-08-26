@@ -1,17 +1,19 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../../lib/auth');
-const connectDB = require('../../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../../models/FormSubmission');
-const User = require('../../../../../../models/User');
-const { acquireLock, releaseLock } = require('../../../../../../lib/locking');
-const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
-const { getStepKeyByNumber } = require('../../../../../../lib/formSteps');
-const { normalizeIncomingData, diffDirtyFields, buildCompletedSteps } = require('../../../../../../lib/stepSave');
-const { rateLimit } = require('../../../../../../lib/redis');
-const { reportError } = require('../../../../../../lib/reportError');
-const { canViewForm, canEditForm } = require('../../../../../../lib/formAccess');
-const { productionFailClosed } = require('../../../../../../lib/userAccess');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../../lib/auth';
+import connectDB from '../../../../../../lib/mongodb';
+import FormSubmission from '../../../../../../models/FormSubmission';
+import User from '../../../../../../models/User';
+import { acquireLock, releaseLock } from '../../../../../../lib/locking';
+import { getPublishedOrJson } from '../../../../../../lib/questionBank';
+import { getStepKeyByNumber } from '../../../../../../lib/formSteps';
+import { normalizeIncomingData, diffDirtyFields, buildCompletedSteps } from '../../../../../../lib/stepSave';
+import { rateLimit } from '../../../../../../lib/redis';
+import { reportError } from '../../../../../../lib/reportError';
+import { canViewForm, canEditForm } from '../../../../../../lib/formAccess';
+import { productionFailClosed } from '../../../../../../lib/userAccess';
+import { inferSchoolYear } from '../../../../../../lib/schoolYear';
+import { isFormLocked } from '../../../../../../lib/schoolYearSettings';
 
 // GET /api/forms/[id]/step/[stepNumber] - Get specific step data
 async function GET(request, { params }) {
@@ -35,7 +37,6 @@ async function GET(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    const { inferSchoolYear } = require('../../../../../../lib/schoolYear');
     const bank = await getPublishedOrJson({
       schoolYear: inferSchoolYear(form),
       version: form.questionBankVersion,
@@ -133,8 +134,6 @@ async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    const { inferSchoolYear } = require('../../../../../../lib/schoolYear');
-    const { isFormLocked } = require('../../../../../../lib/schoolYearSettings');
     if (await isFormLocked(form)) {
       return NextResponse.json({
         error: 'This school year is archived and read-only',

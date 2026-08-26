@@ -15,6 +15,7 @@ import {
 import StatCard from './dashboard/StatCard';
 import DashboardSection from './dashboard/DashboardSection';
 import Modal from './ui/Modal';
+import * as logger from '../lib/logger';
 
 export default function BulkFormCreation({ onFormsCreated }) {
   const [principals, setPrincipals] = useState([]);
@@ -42,7 +43,7 @@ export default function BulkFormCreation({ onFormsCreated }) {
         setError('Could not load principals.');
       }
     } catch (err) {
-      console.error('Error fetching principals:', err);
+      logger.error('Error fetching principals:', err);
       setError('Could not load principals.');
     } finally {
       setLoading(false);

@@ -33,6 +33,7 @@ import { downloadUsersCsv } from '../../../components/admin/UsersTable';
 import Modal from '../../../components/ui/Modal';
 // Same predicate the API enforces; see the note in UsersTable.js.
 import { canManageTarget as canManageUser } from '../../../lib/canManageUser';
+import * as logger from '../../../lib/logger';
 
 // Pulls in recharts, and only the analytics tab of the workspace ever renders it.
 const UserAnalytics = dynamic(() => import('../../../components/UserAnalytics'), {
@@ -153,7 +154,7 @@ function AdminUsersPageContent() {
              const data = await response.json();
        setUsers(data.users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
       // Show empty state if API fails
       setUsers([]);
     } finally {
@@ -211,7 +212,7 @@ function AdminUsersPageContent() {
       fetchUsers();
       toast.success('User deleted');
     } catch (error) {
-      console.error('Error deleting user:', error);
+      logger.error('Error deleting user:', error);
       toast.error('Error deleting user. Please try again.');
     }
   };
@@ -248,7 +249,7 @@ function AdminUsersPageContent() {
       setShowModal(false);
       toast.success(editingUser ? 'User updated' : 'User created');
     } catch (error) {
-      console.error('Error saving user:', error);
+      logger.error('Error saving user:', error);
       toast.error('Error saving user. Please try again.');
     }
   };
@@ -280,7 +281,7 @@ function AdminUsersPageContent() {
         toast.success('Bulk action completed');
       }
     } catch (error) {
-      console.error('Error performing bulk action:', error);
+      logger.error('Error performing bulk action:', error);
       toast.error('Error performing bulk action. Please try again.');
     }
   };
@@ -304,7 +305,7 @@ function AdminUsersPageContent() {
       const error = await response.json().catch(() => ({}));
       toast.error(error.error || 'Could not update this user.');
     } catch (error) {
-      console.error('Error updating user:', error);
+      logger.error('Error updating user:', error);
       toast.error('Error updating user. Please try again.');
     }
   };
@@ -317,7 +318,7 @@ function AdminUsersPageContent() {
         setAuditLogs(data.logs || []);
       }
     } catch (error) {
-      console.error('Error fetching audit logs:', error);
+      logger.error('Error fetching audit logs:', error);
     }
   };
 
@@ -391,7 +392,7 @@ function AdminUsersPageContent() {
         toast.error(errorData.error || 'Import failed');
       }
     } catch (error) {
-      console.error('Error importing users:', error);
+      logger.error('Error importing users:', error);
       toast.error('Error importing users. Please try again.');
     } finally {
       setImporting(false);

@@ -5,7 +5,7 @@ import connectDB from '../../../../../lib/mongodb';
 import User from '../../../../../models/User';
 import FormSubmission from '../../../../../models/FormSubmission';
 import { clientSafeMessage } from '../../../../../lib/userAccess';
-const { reportError } = require('../../../../../lib/reportError');
+import { reportError } from '../../../../../lib/reportError';
 
 // POST: Share a form with users for collaboration
 export async function POST(request) {
@@ -41,12 +41,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Form not found' }, { status: 404 });
     }
 
-    console.log('Form school:', form.schoolName, 'User school:', session.user.schoolName);
-    
     // For level 4 (principals), verify the form is from their school
     // Level 5 (super admins) can share any form
     if (session.user.level === 4 && form.schoolName !== session.user.schoolName) {
-      console.error('Form not in user school:', { formSchool: form.schoolName, userSchool: session.user.schoolName });
       return NextResponse.json({ error: 'Form not found in your school' }, { status: 404 });
     }
 

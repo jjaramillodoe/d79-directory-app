@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const { seedFromJson, auditRequest } = require('../../../../../lib/questionBank');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { clientSafeMessage } = require('../../../../../lib/userAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import { seedFromJson, auditRequest } from '../../../../../lib/questionBank';
+import { logAction } from '../../../../../lib/auditLogger';
+import { clientSafeMessage } from '../../../../../lib/userAccess';
+import { reportError } from '../../../../../lib/reportError';
+import { invalidateQuestionBankCache, invalidateOverviewCache } from '../../../../../lib/redis';
 
 export async function POST(request) {
   try {
@@ -20,7 +21,6 @@ export async function POST(request) {
     const result = await seedFromJson({ userId: session.user.id, force: false });
 
     if (result.seeded) {
-      const { invalidateQuestionBankCache, invalidateOverviewCache } = require('../../../../../lib/redis');
       await invalidateQuestionBankCache();
       await invalidateOverviewCache();
       await logAction({

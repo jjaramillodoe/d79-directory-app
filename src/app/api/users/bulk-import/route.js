@@ -4,7 +4,7 @@ import { authOptions } from '../../../../lib/auth';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
 import userAccess from '../../../../lib/userAccess';
-const { reportError } = require('../../../../lib/reportError');
+import { reportError } from '../../../../lib/reportError';
 
 const { enforceRateLimit, requireAdminActor } = userAccess;
 

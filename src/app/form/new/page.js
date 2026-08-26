@@ -11,6 +11,7 @@ import DashboardSidebar from '../../../components/dashboard/DashboardSidebar';
 import DashboardHeader from '../../../components/dashboard/DashboardHeader';
 import DashboardSection from '../../../components/dashboard/DashboardSection';
 import { currentSchoolYear, previousSchoolYear } from '../../../lib/schoolYear';
+import * as logger from '../../../lib/logger';
 
 export default function NewFormPage() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function NewFormPage() {
       }
       router.push(`/form/${data.formId}`);
     } catch (err) {
-      console.error('Error creating form:', err);
+      logger.error('Error creating form:', err);
       setError('Failed to create form. Please try again.');
       setIsSubmitting(false);
     }

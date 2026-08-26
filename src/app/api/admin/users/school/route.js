@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../../../lib/auth';
 import connectDB from '../../../../../lib/mongodb';
 import User from '../../../../../models/User';
-const { reportError } = require('../../../../../lib/reportError');
+import { reportError } from '../../../../../lib/reportError';
 
 // GET: school users for collaboration (relative imports — Turbopack does not resolve @/)
 export async function GET(request) {

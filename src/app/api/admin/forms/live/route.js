@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const User = require('../../../../../models/User');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { inferSchoolYear } = require('../../../../../lib/schoolYear');
-const { getYearSettings } = require('../../../../../lib/schoolYearSettings');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import User from '../../../../../models/User';
+import FormSubmission from '../../../../../models/FormSubmission';
+import { logAction } from '../../../../../lib/auditLogger';
+import { inferSchoolYear } from '../../../../../lib/schoolYear';
+import { getYearSettings } from '../../../../../lib/schoolYearSettings';
+import { reportError } from '../../../../../lib/reportError';
 
 export async function POST(request) {
   try {

@@ -22,6 +22,7 @@ import ScrollToTop from '../../../components/ScrollToTop';
 import useQuestionBank from '../../../hooks/useQuestionBank';
 import useAppToast from '../../../hooks/useAppToast';
 import { Spinner, Column, Row, Text, Button } from '@once-ui-system/core';
+import * as logger from '../../../lib/logger';
 
 function FormPageContent() {
   const router = useRouter();
@@ -136,7 +137,7 @@ function FormPageContent() {
     if (session?.user && formId && formId !== 'undefined' && formId !== 'null') {
       loadFormData();
     } else if (session && (!formId || formId === 'undefined' || formId === 'null')) {
-      console.error('Invalid form ID:', formId);
+      logger.error('Invalid form ID:', formId);
       toast.error('Invalid form ID. Redirecting to dashboard…');
       setTimeout(() => router.push('/dashboard'), 500);
     }
@@ -197,7 +198,7 @@ function FormPageContent() {
         }
       }
     } catch (error) {
-      console.error('Error fetching active editors:', error);
+      logger.error('Error fetching active editors:', error);
     }
   };
 
@@ -215,7 +216,7 @@ function FormPageContent() {
         body: JSON.stringify({ stepKey }),
       });
     } catch (error) {
-      console.error('Error registering as active editor:', error);
+      logger.error('Error registering as active editor:', error);
     }
   };
 
@@ -234,7 +235,7 @@ function FormPageContent() {
         }
       }
     } catch (error) {
-      console.error('Error fetching locks:', error);
+      logger.error('Error fetching locks:', error);
     }
   };
 
@@ -252,10 +253,10 @@ function FormPageContent() {
       
       if (response.ok) {
         setCurrentLockedStep(null);
-        console.log('Lock released successfully');
+        logger.debug('Lock released successfully');
       }
     } catch (error) {
-      console.error('Error releasing lock:', error);
+      logger.error('Error releasing lock:', error);
       // Don't throw - this is cleanup, failure is okay
     }
   };
@@ -357,7 +358,7 @@ function FormPageContent() {
 
     // Log that we're using the new step-level API (for debugging)
     if (process.env.NODE_ENV === 'development') {
-      console.log(`💾 Using step-level API: /api/forms/${formId}/step/${stepNumber}`, {
+      logger.debug(`💾 Using step-level API: /api/forms/${formId}/step/${stepNumber}`, {
         stepKey,
         stepNumber,
         hasData,
@@ -444,7 +445,7 @@ function FormPageContent() {
           // If it's retryable and we have retries left, retry
           if (isRetryable && attempt < retries) {
             const delay = 1000 * (attempt + 1); // Exponential backoff: 1s, 2s, 3s
-            console.log(`Save failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`);
+            logger.debug(`Save failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue; // Retry
           }
@@ -520,7 +521,7 @@ function FormPageContent() {
         
         if (isNetworkError && attempt < retries) {
           const delay = 1000 * (attempt + 1); // Exponential backoff
-          console.log(`Network error (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`);
+          logger.debug(`Network error (attempt ${attempt + 1}/${retries + 1}), retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           continue; // Retry
         }
@@ -569,7 +570,7 @@ function FormPageContent() {
           // Use saveCurrentStep which has retry logic built in
           await saveCurrentStep(3); // 3 retries for navigation saves
         } catch (error) {
-          console.error('Error auto-saving step:', error);
+          logger.error('Error auto-saving step:', error);
           
           // Check if it's a connection/database error
           const isConnectionError = error.message?.toLowerCase().includes('connection') ||
@@ -613,7 +614,7 @@ function FormPageContent() {
           // Use saveCurrentStep which has retry logic built in
           await saveCurrentStep(3); // 3 retries for navigation saves
         } catch (error) {
-          console.error('Error auto-saving step:', error);
+          logger.error('Error auto-saving step:', error);
           
           // Check if it's a connection/database error
           const isConnectionError = error.message?.toLowerCase().includes('connection') ||
@@ -693,7 +694,7 @@ function FormPageContent() {
           }
         })
         .catch((error) => {
-          console.error('Auto-save failed:', error);
+          logger.error('Auto-save failed:', error);
           window.autoSaveInProgress = false;
         });
     };
@@ -732,7 +733,7 @@ function FormPageContent() {
     const stepNumber = getStepNumberFromKey(stepKey);
     
     if (!stepNumber) {
-      console.error('Unknown step key:', stepKey);
+      logger.error('Unknown step key:', stepKey);
       return { success: false, message: 'Unknown step' };
     }
     
@@ -775,7 +776,7 @@ function FormPageContent() {
               
               // Optionally, we could merge the data here
               // For now, we'll just show the error and let user refresh
-              console.warn('Conflict detected:', errorData);
+              logger.warn('Conflict detected:', errorData);
             }
             
             // If merge strategy is 'merge', try to merge and retry
@@ -819,7 +820,7 @@ function FormPageContent() {
           // Handle 429 (Too Many Requests) specifically
           if (response.status === 429) {
             const retryAfter = errorData.retryAfter || 5;
-            console.warn(`Rate limited (429), waiting ${retryAfter} seconds before retry`);
+            logger.warn(`Rate limited (429), waiting ${retryAfter} seconds before retry`);
             
             if (attempt < retries) {
               const delay = retryAfter * 1000;
@@ -919,7 +920,7 @@ function FormPageContent() {
         setLastSaved(new Date());
         // Auto-save completed successfully - silent, no alerts
       } catch (error) {
-        console.error('Auto-save failed:', error);
+        logger.error('Auto-save failed:', error);
         // Don't show alert for auto-save failures to avoid interrupting user
       } finally {
         if (!silent) {
@@ -988,7 +989,7 @@ function FormPageContent() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
-        console.error('Error loading form:', errorMessage, response.status);
+        logger.error('Error loading form:', errorMessage, response.status);
         
         // If it's a permission error, redirect to dashboard
         if (response.status === 403 || response.status === 401) {
@@ -1003,7 +1004,7 @@ function FormPageContent() {
       const data = await response.json();
       
       if (!data.form) {
-        console.error('No form data in response:', data);
+        logger.error('No form data in response:', data);
         throw new Error('Form data not found in response');
       }
       
@@ -1127,7 +1128,7 @@ function FormPageContent() {
         }
       }
     } catch (error) {
-      console.error('Error loading form:', error);
+      logger.error('Error loading form:', error);
       const errorMessage = error.message || 'Unknown error occurred';
       
       // Show error to user before redirecting
@@ -1161,9 +1162,9 @@ function FormPageContent() {
       try {
         // Use saveCurrentStep which has retry logic built in
         await saveCurrentStep(3); // 3 retries for navigation saves
-        console.log(`✅ Step ${currentStep} saved before navigating to step ${stepNumber}`);
+        logger.debug(`✅ Step ${currentStep} saved before navigating to step ${stepNumber}`);
       } catch (error) {
-        console.error('Error saving before navigation:', error);
+        logger.error('Error saving before navigation:', error);
         
         // Check if it's a connection/database error
         const isConnectionError = error.message?.toLowerCase().includes('connection') ||
@@ -1280,7 +1281,7 @@ function FormPageContent() {
         throw new Error(result.message || 'Save failed');
       }
     } catch (error) {
-      console.error('Error saving form:', error);
+      logger.error('Error saving form:', error);
       toast.error(`Failed to save form: ${error.message}`);
     } finally {
       setSaving(false);
@@ -1307,7 +1308,7 @@ function FormPageContent() {
         throw new Error(result.message || 'Save failed');
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
+      logger.error('Error saving draft:', error);
       toast.error(`Could not save draft: ${error.message}`);
     } finally {
       setSavingDraft(false);
@@ -1329,7 +1330,7 @@ function FormPageContent() {
       }
       setSubmitConfirm({ warnings, completion });
     } catch (error) {
-      console.error('Error preparing submission:', error);
+      logger.error('Error preparing submission:', error);
       toast.error(`Could not prepare submission: ${error.message}`);
     } finally {
       setSaving(false);
@@ -1376,7 +1377,7 @@ function FormPageContent() {
         throw new Error(result.message || 'Submission failed');
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
+      logger.error('Error submitting form:', error);
       toast.error(`Failed to submit form: ${error.message}`);
     } finally {
       setSaving(false);
@@ -1653,7 +1654,7 @@ function FormPageContent() {
       if (!contentType || !contentType.includes('application/json')) {
         // If we get HTML instead of JSON, it means the API route failed
         const text = await response.text();
-        console.error('API returned non-JSON response:', text.substring(0, 200));
+        logger.error('API returned non-JSON response:', text.substring(0, 200));
         throw new Error(`Server error: API returned ${response.status} ${response.statusText}. Please try again.`);
       }
 
@@ -1663,7 +1664,7 @@ function FormPageContent() {
       }
 
       const result = await response.json().catch(error => {
-        console.error('Failed to parse JSON response:', error);
+        logger.error('Failed to parse JSON response:', error);
         throw new Error('Invalid response from server. Please try again.');
       });
       
@@ -1680,7 +1681,7 @@ function FormPageContent() {
       setShowCommentModal(false);
       toast.success('Comment added');
     } catch (error) {
-      console.error('Error adding comment:', error);
+      logger.error('Error adding comment:', error);
       toast.error(`Failed to add comment: ${error.message}`);
     }
   };
@@ -1719,7 +1720,7 @@ function FormPageContent() {
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
-        console.error('API returned non-JSON response:', text.substring(0, 200));
+        logger.error('API returned non-JSON response:', text.substring(0, 200));
         throw new Error(`Server error: API returned ${response.status} ${response.statusText}. Please try again.`);
       }
 
@@ -1729,7 +1730,7 @@ function FormPageContent() {
       }
 
       const result = await response.json().catch(error => {
-        console.error('Failed to parse JSON response:', error);
+        logger.error('Failed to parse JSON response:', error);
         throw new Error('Invalid response from server. Please try again.');
       });
 
@@ -1740,7 +1741,7 @@ function FormPageContent() {
       setShowShareModal(false);
       toast.success(`Shared with ${emails.length} email${emails.length === 1 ? '' : 's'}`);
     } catch (error) {
-      console.error('Error sharing form:', error);
+      logger.error('Error sharing form:', error);
       toast.error(`Failed to share form: ${error.message}`);
     } finally {
       setSharing(false);
@@ -1758,7 +1759,7 @@ function FormPageContent() {
         setSharedWithEmails(data.sharedWithEmails || []);
       }
     } catch (error) {
-      console.error('Error loading shared emails:', error);
+      logger.error('Error loading shared emails:', error);
     }
   };
 
@@ -1785,7 +1786,7 @@ function FormPageContent() {
       await loadSharedEmails();
       toast.success('Email removed from shared list');
     } catch (error) {
-      console.error('Error removing shared email:', error);
+      logger.error('Error removing shared email:', error);
       toast.error(`Failed to remove email: ${error.message}`);
     }
   };
@@ -1817,7 +1818,7 @@ function FormPageContent() {
         toast.success('Comment marked as fixed');
       }
     } catch (error) {
-      console.error(`Error marking comment as ${action}:`, error);
+      logger.error(`Error marking comment as ${action}:`, error);
       toast.error(`Failed to mark comment: ${error.message}`);
     }
   };

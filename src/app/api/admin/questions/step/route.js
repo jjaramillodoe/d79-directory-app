@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const { getDraftTemplate, auditRequest } = require('../../../../../lib/questionBank');
-const { sanitizeStepUpdates, toClientTemplate } = require('../../../../../lib/questionBankUtils');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import { getDraftTemplate, auditRequest } from '../../../../../lib/questionBank';
+import { sanitizeStepUpdates, toClientTemplate } from '../../../../../lib/questionBankUtils';
+import { logAction } from '../../../../../lib/auditLogger';
+import { reportError } from '../../../../../lib/reportError';
 
 export async function PATCH(request) {
   try {

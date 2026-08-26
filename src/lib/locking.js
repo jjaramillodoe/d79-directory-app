@@ -6,6 +6,13 @@
 
 const { getRedis, scanKeys, redisConfigured } = require('./redis');
 
+// The catch blocks below deliberately use plain `console.error` rather than `reportError`.
+// Every one of them is a Redis-unavailable path, and lock operations run on every autosave for
+// every active editor — during an outage that is hundreds of identical events per minute, which
+// would bury the incident rather than reveal it. The outage is already surfaced two better
+// ways: `degraded: true` reaches the editor as a warning toast, and the platform logs still
+// carry these lines.
+
 let inMemoryLocks = new Map(); // Fallback: { lockKey: { userId, userName, email, lockedAt, expiresAt } }
 
 async function initRedis() {

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-const { authOptions } = require('../../../../lib/auth');
-const connectDB = require('../../../../lib/mongodb');
-const FormSubmission = require('../../../../models/FormSubmission');
-const { getPublishedOrJson } = require('../../../../lib/questionBank');
-const { schoolYearQuery } = require('../../../../lib/schoolYear');
-const { reportError } = require('../../../../lib/reportError');
+import { authOptions } from '../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import FormSubmission from '../../../../models/FormSubmission';
+import { getPublishedOrJson } from '../../../../lib/questionBank';
+import { schoolYearQuery } from '../../../../lib/schoolYear';
+import { reportError } from '../../../../lib/reportError';
 
 // NLP patterns to detect N/A responses
 const NA_PATTERNS = [

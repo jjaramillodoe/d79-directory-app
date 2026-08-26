@@ -1,12 +1,12 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { getFormLocks, getLockInfo } = require('../../../../../lib/locking');
-const { canViewForm } = require('../../../../../lib/formAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { getFormLocks, getLockInfo } from '../../../../../lib/locking';
+import { canViewForm } from '../../../../../lib/formAccess';
+import { reportError } from '../../../../../lib/reportError';
 
 // GET /api/forms/[id]/locks - Get all active locks for a form
 async function GET(request, { params }) {

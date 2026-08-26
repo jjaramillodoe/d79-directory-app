@@ -71,8 +71,8 @@
     ]
   },
   "logo": {
-    "light": "https://placehold.co/600x400",
-    "dark": "https://placehold.co/600x400"
+    "light": "/images/d79logo.png",
+    "dark": "/images/d79logo.png"
   },
   "background": {
     "color": {

@@ -1,5 +1,6 @@
 const AuditLog = require('../models/AuditLog');
 const connectDB = require('./mongodb');
+const { reportError } = require('./reportError');
 
 /**
  * Create an audit log entry
@@ -64,7 +65,7 @@ async function logAction(data) {
     return true;
   } catch (error) {
     // Don't throw errors - logging should never break the main flow
-    console.error('Error creating audit log:', error);
+    reportError(error, { module: 'auditLogger', detail: 'Error creating audit log' });
     return false;
   }
 }

@@ -14,6 +14,7 @@ import DashboardHeader from '../../../components/dashboard/DashboardHeader';
 import FormStatusTag from '../../../components/dashboard/FormStatusTag';
 import { inferSchoolYear } from '../../../lib/schoolYear';
 import { completedStepCount, stepProgressPercent } from '../../../lib/formProgress';
+import * as logger from '../../../lib/logger';
 
 const FALLBACK_STEP_KEYS = [
   'tableOfContents', 'childAbuseIntervention',
@@ -114,7 +115,7 @@ export default function FormViewPage() {
       setStepData(initializedStepData);
     } catch (err) {
       if (isCancelled()) return;
-      console.error('Error loading form:', err);
+      logger.error('Error loading form:', err);
       setError(err.message);
     } finally {
       if (!isCancelled()) setLoading(false);
@@ -141,7 +142,7 @@ export default function FormViewPage() {
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes(expectedType)) {
       const errorText = await response.text();
-      console.error('Unexpected response:', errorText);
+      logger.error('Unexpected response:', errorText);
       throw new Error(`Server returned a non-${label} response`);
     }
 
@@ -166,7 +167,7 @@ export default function FormViewPage() {
       const filename = `${(formData?.schoolName || 'form').replace(/[^a-z0-9]/gi, '_')}_Consolidated_Plan.pdf`;
       await downloadFile(`/api/forms/${formId}/export/pdf`, filename, 'application/pdf', 'PDF');
     } catch (err) {
-      console.error('Error downloading PDF:', err);
+      logger.error('Error downloading PDF:', err);
       toast.error(`Failed to download PDF: ${err.message}`);
     } finally {
       setDownloadingPDF(false);
@@ -179,7 +180,7 @@ export default function FormViewPage() {
       const filename = `${(formData?.schoolName || 'form').replace(/[^a-z0-9]/gi, '_')}_Consolidated_Plan.docx`;
       await downloadFile(`/api/forms/${formId}/export/docx`, filename, 'wordprocessingml', 'Word document');
     } catch (err) {
-      console.error('Error downloading DOCX:', err);
+      logger.error('Error downloading DOCX:', err);
       toast.error(`Failed to download Word document: ${err.message}`);
     } finally {
       setDownloadingDOCX(false);

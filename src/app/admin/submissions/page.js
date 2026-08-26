@@ -15,6 +15,7 @@ import { Spinner, Column, Row, Text, Heading, Button, Card } from '@once-ui-syst
 import { currentSchoolYear } from '../../../lib/schoolYear';
 import useAppToast from '../../../hooks/useAppToast';
 import Modal from '../../../components/ui/Modal';
+import * as logger from '../../../lib/logger';
 
 // FormViewer drags in jspdf and html2canvas, the two largest client dependencies in the app,
 // and it renders only inside the print dialog. `ssr: false` because html2canvas needs a real
@@ -117,7 +118,7 @@ export default function AdminSubmissionsPage() {
         setSubmissions(data.forms || []);
       }
     } catch (error) {
-      console.error('Error fetching submissions:', error);
+      logger.error('Error fetching submissions:', error);
     } finally {
       setLoading(false);
     }
@@ -166,7 +167,7 @@ export default function AdminSubmissionsPage() {
         setReviewData({ status: 'approved', comments: '' });
       }
     } catch (error) {
-      console.error('Error updating submission:', error);
+      logger.error('Error updating submission:', error);
     }
   };
 
@@ -193,7 +194,7 @@ export default function AdminSubmissionsPage() {
         setShowReportModal(false);
       }
     } catch (error) {
-      console.error('Error generating report:', error);
+      logger.error('Error generating report:', error);
     }
   };
 
@@ -211,7 +212,7 @@ export default function AdminSubmissionsPage() {
         setSubmissionToDelete(null);
       }
     } catch (error) {
-      console.error('Error deleting submission:', error);
+      logger.error('Error deleting submission:', error);
     }
   };
 
@@ -243,7 +244,7 @@ export default function AdminSubmissionsPage() {
         toast.error(errorData.error || 'Could not transfer ownership');
       }
     } catch (error) {
-      console.error('Error transferring ownership:', error);
+      logger.error('Error transferring ownership:', error);
       toast.error('Error transferring ownership. Please try again.');
     } finally {
       setTransferring(false);
@@ -270,7 +271,7 @@ export default function AdminSubmissionsPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error exporting to JSON:', error);
+      logger.error('Error exporting to JSON:', error);
     } finally {
       setExporting(false);
     }
@@ -315,7 +316,7 @@ export default function AdminSubmissionsPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Error exporting to CSV:', error);
+      logger.error('Error exporting to CSV:', error);
     } finally {
       setExporting(false);
     }
@@ -404,7 +405,7 @@ export default function AdminSubmissionsPage() {
       };
       
     } catch (error) {
-      console.error('Error exporting to PDF:', error);
+      logger.error('Error exporting to PDF:', error);
     } finally {
       setExporting(false);
     }

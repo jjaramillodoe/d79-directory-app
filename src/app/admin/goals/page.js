@@ -27,6 +27,7 @@ import DashboardHeader from '../../../components/dashboard/DashboardHeader';
 import StatCard from '../../../components/dashboard/StatCard';
 import DashboardSection from '../../../components/dashboard/DashboardSection';
 import { currentSchoolYear } from '../../../lib/schoolYear';
+import * as logger from '../../../lib/logger';
 
 // ag-grid and recharts are the two heaviest dependencies on this page and neither is
 // reachable from the default "overview" tab, so both load on demand. `ssr: false` because
@@ -105,7 +106,7 @@ function AdminGoalsPageContent() {
       const result = await response.json();
       setData(result);
     } catch (err) {
-      console.error('Error fetching analysis:', err);
+      logger.error('Error fetching analysis:', err);
       setError(err.message);
     } finally {
       setLoading(false);

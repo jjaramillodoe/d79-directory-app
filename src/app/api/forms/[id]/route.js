@@ -1,18 +1,20 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../lib/auth');
-const connectDB = require('../../../../lib/mongodb');
-const FormSubmission = require('../../../../models/FormSubmission');
-const FormComment = require('../../../../models/FormComment');
-const User = require('../../../../models/User');
-const { getPublishedOrJson } = require('../../../../lib/questionBank');
-const { getStepKeys, getStepNumberByKey } = require('../../../../lib/formSteps');
-const { inferSchoolYear } = require('../../../../lib/schoolYear');
-const { describeFormAccess, canEditForm } = require('../../../../lib/formAccess');
-const { reportError } = require('../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import FormSubmission from '../../../../models/FormSubmission';
+import FormComment from '../../../../models/FormComment';
+import User from '../../../../models/User';
+import { getPublishedOrJson } from '../../../../lib/questionBank';
+import { getStepKeys, getStepNumberByKey } from '../../../../lib/formSteps';
+import { inferSchoolYear } from '../../../../lib/schoolYear';
+import { describeFormAccess, canEditForm } from '../../../../lib/formAccess';
+import { reportError } from '../../../../lib/reportError';
+import { getYearSettings, isFormLocked } from '../../../../lib/schoolYearSettings';
+import { deriveCompletedSteps } from '../../../../lib/formDuplicate';
 
 // GET /api/forms/[id] - Get specific form
-async function GET(request, { params }) {
+export async function GET(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -147,7 +149,6 @@ async function GET(request, { params }) {
 
     let yearSettings = null;
     try {
-      const { getYearSettings } = require('../../../../lib/schoolYearSettings');
       yearSettings = await getYearSettings(schoolYear);
     } catch (error) {
       console.warn('Could not load school year settings:', error.message);
@@ -161,7 +162,6 @@ async function GET(request, { params }) {
     formPayload.needsUpdate = (formPayload.needsUpdate || []).filter((item) => !item.reviewedAt);
     formPayload.attestation = formPayload.attestation || { confirmed: false };
     if (!formPayload.completedSteps?.length) {
-      const { deriveCompletedSteps } = require('../../../../lib/formDuplicate');
       formPayload.completedSteps = deriveCompletedSteps(formPayload.formData);
     }
 
@@ -178,7 +178,7 @@ async function GET(request, { params }) {
 }
 
 // PUT /api/forms/[id] - Update form data
-async function PUT(request, { params }) {
+export async function PUT(request, { params }) {
   let retryCount = 0;
   const maxRetries = 3;
   
@@ -312,7 +312,6 @@ async function PUT(request, { params }) {
       const updateData = await request.json();
       const { step, stepData, currentStep, action } = updateData;
       const formYear = inferSchoolYear(form);
-      const { isFormLocked } = require('../../../../lib/schoolYearSettings');
       const locked = await isFormLocked(form);
       if (locked && action !== 'review') {
         return NextResponse.json({
@@ -505,7 +504,7 @@ async function PUT(request, { params }) {
 }
 
 // DELETE /api/forms/[id] - Delete form (admin only)
-async function DELETE(request, { params }) {
+export async function DELETE(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -537,5 +536,3 @@ async function DELETE(request, { params }) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-module.exports = { GET, PUT, DELETE };

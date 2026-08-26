@@ -3,6 +3,7 @@ const { randomUUID } = require('crypto');
 const connectDB = require('./mongodb');
 const User = require('../models/User');
 const { denyToken, isTokenDenied } = require('./redis');
+const { reportError } = require('./reportError');
 
 if (!process.env.NEXTAUTH_SECRET) {
   throw new Error('NEXTAUTH_SECRET is required');
@@ -40,10 +41,10 @@ const authOptions = {
         await dbUser.save();
 
         const { logLogin } = require('./auditLogger');
-        logLogin(dbUser).catch((err) => console.error('Error logging login:', err));
+        logLogin(dbUser).catch((err) => reportError(err, { module: 'auth', detail: 'Error logging login' }));
         return true;
       } catch (error) {
-        console.error('Error during sign in:', error);
+        reportError(error, { module: 'auth', detail: 'Error during sign in' });
         return false;
       }
     },
@@ -115,7 +116,7 @@ const authOptions = {
         token.userId = dbUser._id.toString();
         token.lastSynced = Date.now();
       } catch (error) {
-        console.error('Error in jwt callback:', error);
+        reportError(error, { module: 'auth', detail: 'Error in jwt callback' });
       }
       return token;
     },

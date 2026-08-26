@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormTemplate = require('../../../../../models/FormTemplate');
-const {
-  getDraftTemplate,
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormTemplate from '../../../../../models/FormTemplate';
+import {getDraftTemplate,
   getPublishedTemplate,
-  auditRequest,
-} = require('../../../../../lib/questionBank');
-const { cloneSteps, toClientTemplate } = require('../../../../../lib/questionBankUtils');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { invalidateQuestionBankCache, invalidateOverviewCache } = require('../../../../../lib/redis');
-const { currentSchoolYear } = require('../../../../../lib/schoolYear');
+  auditRequest,} from '../../../../../lib/questionBank';
+import { cloneSteps, toClientTemplate } from '../../../../../lib/questionBankUtils';
+import { logAction } from '../../../../../lib/auditLogger';
+import { invalidateQuestionBankCache, invalidateOverviewCache } from '../../../../../lib/redis';
+import { currentSchoolYear } from '../../../../../lib/schoolYear';
+import { upsertYearSettings } from '../../../../../lib/schoolYearSettings';
+import { reportError } from '../../../../../lib/reportError';
 
 export async function POST(request) {
   try {
@@ -56,7 +56,6 @@ export async function POST(request) {
     await draft.save();
 
     if (pinYear) {
-      const { upsertYearSettings } = require('../../../../../lib/schoolYearSettings');
       await upsertYearSettings(pinYear, { questionBankVersion: draft.version }, session.user.id);
     }
 
@@ -93,7 +92,6 @@ export async function POST(request) {
       draft: toClientTemplate(nextDraft),
     });
   } catch (error) {
-    const { reportError } = require('../../../../../lib/reportError');
     reportError(error, { route: 'POST /api/admin/questions/publish' });
     return NextResponse.json({ error: 'Failed to publish question bank' }, { status: 500 });
   }

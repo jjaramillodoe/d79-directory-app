@@ -5,7 +5,7 @@ import connectDB from '../../../../lib/mongodb';
 import FormSubmission from '../../../../models/FormSubmission';
 import User from '../../../../models/User';
 import mongoose from 'mongoose';
-const { reportError } = require('../../../../lib/reportError');
+import { reportError } from '../../../../lib/reportError';
 
 export async function POST(request) {
   try {

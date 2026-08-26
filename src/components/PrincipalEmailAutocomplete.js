@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, ChevronDown } from 'lucide-react';
+import * as logger from '../lib/logger';
 
 const PrincipalEmailAutocomplete = ({
   id,
@@ -57,7 +60,7 @@ const PrincipalEmailAutocomplete = ({
         }
       }
     } catch (error) {
-      console.error('Error fetching principal suggestions:', error);
+      logger.error('Error fetching principal suggestions:', error);
     } finally {
       setLoading(false);
     }

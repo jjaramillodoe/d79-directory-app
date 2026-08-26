@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { inferSchoolYear } = require('../../../../../lib/schoolYear');
-const { isFormLocked } = require('../../../../../lib/schoolYearSettings');
-const { canEditForm } = require('../../../../../lib/formAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { inferSchoolYear } from '../../../../../lib/schoolYear';
+import { isFormLocked } from '../../../../../lib/schoolYearSettings';
+import { canEditForm } from '../../../../../lib/formAccess';
+import { reportError } from '../../../../../lib/reportError';
 
 export async function POST(request, { params }) {
   try {

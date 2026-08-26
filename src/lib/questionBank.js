@@ -3,6 +3,7 @@ const path = require('path');
 const connectDB = require('./mongodb');
 const FormTemplate = require('../models/FormTemplate');
 const SchoolYearSettings = require('../models/SchoolYearSettings');
+const { reportError } = require('./reportError');
 const {
   cloneSteps,
   normalizeSteps,
@@ -32,7 +33,7 @@ function loadJsonFallback() {
         };
       }
     } catch (error) {
-      console.error(`Error loading form questions from ${filePath}:`, error.message);
+      reportError(error, { module: 'questionBank', detail: 'Error loading form questions', filePath });
     }
   }
 

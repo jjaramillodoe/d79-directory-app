@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import useAppToast from '../hooks/useAppToast';
 import Modal from './ui/Modal';
+import * as logger from '../lib/logger';
 
 const CollaborationDashboard = ({ user }) => {
   const toast = useAppToast();
@@ -62,7 +63,7 @@ const CollaborationDashboard = ({ user }) => {
         setSchoolUsers([]);
       }
     } catch (err) {
-      console.error('Error fetching school users:', err);
+      logger.error('Error fetching school users:', err);
       setError('Failed to load school users');
       setSchoolUsers([]);
     } finally {
@@ -87,7 +88,7 @@ const CollaborationDashboard = ({ user }) => {
         setUserForms(forms);
       }
     } catch (error) {
-      console.error('Error fetching forms:', error);
+      logger.error('Error fetching forms:', error);
     }
   };
 
@@ -131,7 +132,7 @@ const CollaborationDashboard = ({ user }) => {
         toast.error(error.error || 'Request failed');
       }
     } catch (error) {
-      console.error('Error sharing form:', error);
+      logger.error('Error sharing form:', error);
       toast.error('Failed to share form');
     }
   };
@@ -156,7 +157,7 @@ const CollaborationDashboard = ({ user }) => {
         toast.error(error.error || 'Request failed');
       }
     } catch (error) {
-      console.error('Error unsharing form:', error);
+      logger.error('Error unsharing form:', error);
       toast.error('Failed to unshare form');
     }
   };
@@ -182,7 +183,7 @@ const CollaborationDashboard = ({ user }) => {
         toast.error(error.error || 'Request failed');
       }
     } catch (error) {
-      console.error('Error creating user:', error);
+      logger.error('Error creating user:', error);
       toast.error('Failed to create user');
     }
   };

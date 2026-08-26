@@ -1,12 +1,12 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { getActiveEditors } = require('../../../../../lib/activeEditors');
-const { canViewForm } = require('../../../../../lib/formAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { getActiveEditors } from '../../../../../lib/activeEditors';
+import { canViewForm } from '../../../../../lib/formAccess';
+import { reportError } from '../../../../../lib/reportError';
 
 // GET /api/forms/[id]/editors - Get all active editors for a form
 async function GET(request, { params }) {

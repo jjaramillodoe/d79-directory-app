@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { duplicateForm } = require('../../../../../lib/formDuplicate');
-const { inferSchoolYear, nextSchoolYear } = require('../../../../../lib/schoolYear');
-const { canEditForm } = require('../../../../../lib/formAccess');
-const { clientSafeMessage } = require('../../../../../lib/userAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { logAction } from '../../../../../lib/auditLogger';
+import { duplicateForm } from '../../../../../lib/formDuplicate';
+import { inferSchoolYear, nextSchoolYear } from '../../../../../lib/schoolYear';
+import { canEditForm } from '../../../../../lib/formAccess';
+import { clientSafeMessage } from '../../../../../lib/userAccess';
+import { reportError } from '../../../../../lib/reportError';
 
 // Duplication mints a whole new plan, so it stays a principal-and-above action even
 // though levels 2-3 may edit an existing one. Narrowing the shared edit rule rather

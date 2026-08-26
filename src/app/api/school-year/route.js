@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../lib/auth');
-const connectDB = require('../../../lib/mongodb');
-const User = require('../../../models/User');
-const FormTemplate = require('../../../models/FormTemplate');
-const { logAction } = require('../../../lib/auditLogger');
-const { currentSchoolYear, isValidSchoolYear } = require('../../../lib/schoolYear');
-const { getYearSettings, upsertYearSettings, getYearPlanCounts, previewNextSchoolYear, initializeNextSchoolYear } = require('../../../lib/schoolYearSettings');
-const { FALLBACK_STEP_KEYS } = require('../../../lib/formSteps');
-const { reportError } = require('../../../lib/reportError');
-const { clientSafeMessage } = require('../../../lib/userAccess');
+import { authOptions } from '../../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import User from '../../../models/User';
+import FormTemplate from '../../../models/FormTemplate';
+import { logAction } from '../../../lib/auditLogger';
+import { currentSchoolYear, isValidSchoolYear } from '../../../lib/schoolYear';
+import { getYearSettings, upsertYearSettings, getYearPlanCounts, previewNextSchoolYear, initializeNextSchoolYear } from '../../../lib/schoolYearSettings';
+import { FALLBACK_STEP_KEYS } from '../../../lib/formSteps';
+import { reportError } from '../../../lib/reportError';
+import { clientSafeMessage } from '../../../lib/userAccess';
 
 export async function GET(request) {
   try {

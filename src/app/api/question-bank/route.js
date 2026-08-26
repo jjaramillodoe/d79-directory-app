@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../lib/auth');
-const { getPublishedOrJson, getDraftTemplate } = require('../../../lib/questionBank');
-const { toClientTemplate } = require('../../../lib/questionBankUtils');
-const { reportError } = require('../../../lib/reportError');
+import { authOptions } from '../../../lib/auth';
+import { getPublishedOrJson, getDraftTemplate } from '../../../lib/questionBank';
+import { toClientTemplate } from '../../../lib/questionBankUtils';
+import { reportError } from '../../../lib/reportError';
 
 export const dynamic = 'force-dynamic';
 

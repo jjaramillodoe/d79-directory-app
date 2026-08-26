@@ -1,12 +1,12 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../lib/auth');
-const connectDB = require('../../../../lib/mongodb');
-const FormSubmission = require('../../../../models/FormSubmission');
-const { requireAdminActor, schoolScopeFilter } = require('../../../../lib/userAccess');
-const { reportError } = require('../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import FormSubmission from '../../../../models/FormSubmission';
+import { requireAdminActor, schoolScopeFilter } from '../../../../lib/userAccess';
+import { reportError } from '../../../../lib/reportError';
 
-async function GET() {
+export async function GET() {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -136,5 +136,3 @@ async function GET() {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-module.exports = { GET };

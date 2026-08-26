@@ -1,13 +1,13 @@
-const { NextResponse } = require('next/server');
-const connectDB = require('../../../../lib/mongodb');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../lib/auth');
-const AuditLog = require('../../../../models/AuditLog');
-const User = require('../../../../models/User');
-const { requireAdminActor } = require('../../../../lib/userAccess');
-const { reportError } = require('../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import connectDB from '../../../../lib/mongodb';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/auth';
+import AuditLog from '../../../../models/AuditLog';
+import User from '../../../../models/User';
+import { requireAdminActor } from '../../../../lib/userAccess';
+import { reportError } from '../../../../lib/reportError';
 
-async function GET(request) {
+export async function GET(request) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -116,5 +116,3 @@ async function GET(request) {
     });
   }
 }
-
-module.exports = { GET };

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import useAppToast from '../hooks/useAppToast';
 import Modal from './ui/Modal';
+import * as logger from '../lib/logger';
 
 // Editable rows need an identity that survives a delete. Row content cannot supply one:
 // name and email are being typed, so keying on them would remount the row on every
@@ -177,7 +178,7 @@ const UserRoleTemplates = ({ onCreateUsers }) => {
         onCreateUsers();
       }
     } catch (error) {
-      console.error('Error creating users:', error);
+      logger.error('Error creating users:', error);
       toast.error('Error creating users. Please try again.');
     } finally {
       setIsCreating(false);

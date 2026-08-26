@@ -1,12 +1,15 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../lib/auth');
-const connectDB = require('../../../lib/mongodb');
-const FormSubmission = require('../../../models/FormSubmission');
-const User = require('../../../models/User');
-const { currentSchoolYear, isValidSchoolYear } = require('../../../lib/schoolYear');
-const { yearMatch, findFormsList, decorateFormList } = require('../../../lib/formList');
-const { reportError } = require('../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import FormSubmission from '../../../models/FormSubmission';
+import User from '../../../models/User';
+import { currentSchoolYear, isValidSchoolYear } from '../../../lib/schoolYear';
+import { yearMatch, findFormsList, decorateFormList } from '../../../lib/formList';
+import { reportError } from '../../../lib/reportError';
+import { enforceRateLimit } from '../../../lib/userAccess';
+import { getYearSettings } from '../../../lib/schoolYearSettings';
+import { getPublishedOrJson } from '../../../lib/questionBank';
 
 async function GET(request) {
   try {
@@ -80,7 +83,6 @@ async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { enforceRateLimit } = require('../../../lib/userAccess');
     const limited = await enforceRateLimit(`rl:forms-create:${session.user.id || 'anon'}`, 20, 60);
     if (limited) return limited;
 
@@ -100,7 +102,6 @@ async function POST(request) {
     const schoolName = user.level < 5 ? String(user.schoolName || '').trim() : requestedSchool;
     const { initialOwnerEmail, schoolYear } = body;
     const formSchoolYear = isValidSchoolYear(schoolYear) ? String(schoolYear).trim() : currentSchoolYear();
-    const { getYearSettings } = require('../../../lib/schoolYearSettings');
     const yearSettings = await getYearSettings(formSchoolYear);
     if (yearSettings.archived) {
       return NextResponse.json({
@@ -146,7 +147,6 @@ async function POST(request) {
 
     let questionBankVersion = null;
     try {
-      const { getPublishedOrJson } = require('../../../lib/questionBank');
       const published = await getPublishedOrJson({
         schoolYear: formSchoolYear,
         version: yearSettings.questionBankVersion,

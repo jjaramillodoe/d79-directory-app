@@ -1,11 +1,12 @@
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../lib/auth');
-const connectDB = require('../../../../lib/mongodb');
-const User = require('../../../../models/User');
-const { jsonError, requireAdminActor, enforceRateLimit } = require('../../../../lib/userAccess');
-const { reportError } = require('../../../../lib/reportError');
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/auth';
+import connectDB from '../../../../lib/mongodb';
+import User from '../../../../models/User';
+import { jsonError, requireAdminActor, enforceRateLimit } from '../../../../lib/userAccess';
+import { reportError } from '../../../../lib/reportError';
+import { logUserCreated } from '../../../../lib/auditLogger';
 
-async function POST(request) {
+export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
     const limited = await enforceRateLimit(`rl:users-create:${session?.user?.id || 'anon'}`, 20, 60);
@@ -64,7 +65,6 @@ async function POST(request) {
       isActive: isActive !== undefined ? isActive : true,
     });
 
-    const { logUserCreated } = require('../../../../lib/auditLogger');
     const requestObj = {
       headers: Object.fromEntries(request.headers || []),
       ip: null,
@@ -95,5 +95,3 @@ async function POST(request) {
     return jsonError(500, 'Internal server error');
   }
 }
-
-module.exports = { POST };

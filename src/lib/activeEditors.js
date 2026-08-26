@@ -5,6 +5,7 @@
  */
 
 const { getRedis, scanKeys } = require('./redis');
+const { reportError } = require('./reportError');
 
 let inMemoryEditors = new Map(); // Fallback: { editorKey: { userId, userName, email, stepKey, stepNumber, lastSeen } }
 
@@ -68,7 +69,7 @@ async function registerActiveEditor(formId, stepKey, userId, userName, userEmail
 
     return true;
   } catch (error) {
-    console.error('Error registering active editor:', error);
+    reportError(error, { module: 'activeEditors', detail: 'Error registering active editor' });
     return false;
   }
 }
@@ -98,7 +99,7 @@ async function unregisterActiveEditor(formId, stepKey, userId) {
     }
     return false;
   } catch (error) {
-    console.error('Error unregistering active editor:', error);
+    reportError(error, { module: 'activeEditors', detail: 'Error unregistering active editor' });
     return false;
   }
 }
@@ -149,7 +150,7 @@ async function getActiveEditors(formId) {
     }
     return editors;
   } catch (error) {
-    console.error('Error getting active editors:', error);
+    reportError(error, { module: 'activeEditors', detail: 'Error getting active editors' });
     return [];
   }
 }
@@ -189,7 +190,7 @@ async function cleanupExpiredEditors() {
       }
     }
   } catch (error) {
-    console.error('Error cleaning up expired editors:', error);
+    reportError(error, { module: 'activeEditors', detail: 'Error cleaning up expired editors' });
   }
 }
 

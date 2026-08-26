@@ -1,25 +1,25 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../../lib/auth');
-const connectDB = require('../../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../../models/FormSubmission');
-const User = require('../../../../../../models/User');
-const { getPublishedOrJson } = require('../../../../../../lib/questionBank');
-const { visibleQuestions } = require('../../../../../../lib/questionBankUtils');
-const { resolveExportTable, resolveExportAnswer, buildDocxTable } = require('../../../../../../lib/exportTables');
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ExternalHyperlink } = require('docx');
-const { splitFormattedText } = require('../../../../../../lib/linkifyText');
-const { splitCopyBlocks } = require('../../../../../../lib/formattedCopy');
-const { canViewForm } = require('../../../../../../lib/formAccess');
-const { enforceRateLimit } = require('../../../../../../lib/userAccess');
-const path = require('path');
-const fs = require('fs');
-const { reportError } = require('../../../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../../lib/auth';
+import connectDB from '../../../../../../lib/mongodb';
+import FormSubmission from '../../../../../../models/FormSubmission';
+import User from '../../../../../../models/User';
+import { getPublishedOrJson } from '../../../../../../lib/questionBank';
+import { visibleQuestions } from '../../../../../../lib/questionBankUtils';
+import { resolveExportTable, resolveExportAnswer, buildDocxTable } from '../../../../../../lib/exportTables';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ExternalHyperlink } from 'docx';
+import { splitFormattedText } from '../../../../../../lib/linkifyText';
+import { splitCopyBlocks } from '../../../../../../lib/formattedCopy';
+import { canViewForm } from '../../../../../../lib/formAccess';
+import { enforceRateLimit } from '../../../../../../lib/userAccess';
+import path from 'path';
+import fs from 'fs';
+import { reportError } from '../../../../../../lib/reportError';
+import { inferSchoolYear } from '../../../../../../lib/schoolYear';
 
 // Helper function to load form questions
 async function loadFormQuestions(form) {
   try {
-    const { inferSchoolYear } = require('../../../../../../lib/schoolYear');
     const bank = await getPublishedOrJson({
       schoolYear: form ? inferSchoolYear(form) : undefined,
       version: form?.questionBankVersion,
@@ -105,7 +105,7 @@ function introDocxParagraphs(intro) {
 }
 
 // GET /api/forms/[id]/export/docx - Generate editable DOCX
-async function GET(request, { params }) {
+export async function GET(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -319,6 +319,3 @@ async function GET(request, { params }) {
     return NextResponse.json({ error: 'Failed to generate DOCX' }, { status: 500 });
   }
 }
-
-module.exports = { GET };
-

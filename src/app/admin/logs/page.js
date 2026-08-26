@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import AppFooter from '../../../components/AppFooter';
+import * as logger from '../../../lib/logger';
 
 function AdminLogsPageContent() {
   const router = useRouter();
@@ -99,7 +100,7 @@ function AdminLogsPageContent() {
       setLogs(logsData);
       setTotal(data.total || 0);
     } catch (error) {
-      console.error('Error fetching logs:', error);
+      logger.error('Error fetching logs:', error);
       setLogs([]);
       setTotal(0);
     } finally {

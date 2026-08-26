@@ -1,5 +1,10 @@
 const Redis = require('ioredis');
 
+// Errors here stay on `console.error` instead of going through `reportError`. Connection
+// failures are logged once per process via the `loggedError` latch below, and the rate-limit
+// and token-revocation paths run on every request — reporting either per occurrence would
+// generate one event per request for the duration of an outage. Both already fail in a defined
+// direction (closed in production) which is the behavior that actually matters.
 function redisGlobal() {
   if (!global.__d79Redis) {
     global.__d79Redis = { client: null, connecting: null, disabledUntil: 0, loggedError: false };

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const { getDraftTemplate, getPublishedTemplate, auditRequest } = require('../../../../../lib/questionBank');
-const { cloneSteps, toClientTemplate } = require('../../../../../lib/questionBankUtils');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { invalidateQuestionBankCache } = require('../../../../../lib/redis');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import { getDraftTemplate, getPublishedTemplate, auditRequest } from '../../../../../lib/questionBank';
+import { cloneSteps, toClientTemplate } from '../../../../../lib/questionBankUtils';
+import { logAction } from '../../../../../lib/auditLogger';
+import { invalidateQuestionBankCache } from '../../../../../lib/redis';
+import { reportError } from '../../../../../lib/reportError';
 
 export async function POST(request) {
   try {

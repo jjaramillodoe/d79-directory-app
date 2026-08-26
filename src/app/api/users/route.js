@@ -1,11 +1,12 @@
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../lib/auth');
-const connectDB = require('../../../lib/mongodb');
-const User = require('../../../models/User');
-const { jsonError, requireAdminActor, canManageTarget, schoolUserListFilter, enforceRateLimit } = require('../../../lib/userAccess');
-const { reportError } = require('../../../lib/reportError');
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import User from '../../../models/User';
+import { jsonError, requireAdminActor, canManageTarget, schoolUserListFilter, enforceRateLimit } from '../../../lib/userAccess';
+import { reportError } from '../../../lib/reportError';
+import { logUserUpdated, logUserDeleted } from '../../../lib/auditLogger';
 
-async function GET() {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     const limited = await enforceRateLimit(`rl:users:${session?.user?.id || 'anon'}`, 60, 60);
@@ -31,7 +32,7 @@ async function GET() {
   }
 }
 
-async function PUT(request) {
+export async function PUT(request) {
   try {
     const session = await getServerSession(authOptions);
     const limited = await enforceRateLimit(`rl:users-write:${session?.user?.id || 'anon'}`, 30, 60);
@@ -103,7 +104,6 @@ async function PUT(request) {
     }
 
     if (Object.keys(changes).length > 0) {
-      const { logUserUpdated } = require('../../../lib/auditLogger');
       const requestObj = {
         headers: Object.fromEntries(request.headers || []),
         ip: null,
@@ -124,7 +124,7 @@ async function PUT(request) {
   }
 }
 
-async function DELETE(request) {
+export async function DELETE(request) {
   try {
     const session = await getServerSession(authOptions);
     const limited = await enforceRateLimit(`rl:users-write:${session?.user?.id || 'anon'}`, 30, 60);
@@ -158,7 +158,6 @@ async function DELETE(request) {
       return jsonError(404, 'User not found');
     }
 
-    const { logUserDeleted } = require('../../../lib/auditLogger');
     const requestObj = {
       headers: Object.fromEntries(request.headers || []),
       ip: null,
@@ -177,5 +176,3 @@ async function DELETE(request) {
     return jsonError(500, 'Internal server error');
   }
 }
-
-module.exports = { GET, PUT, DELETE };

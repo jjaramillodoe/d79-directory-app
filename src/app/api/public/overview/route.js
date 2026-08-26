@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
-const connectDB = require('../../../../lib/mongodb');
-const FormSubmission = require('../../../../models/FormSubmission');
-const User = require('../../../../models/User');
-const { getPublishedOrJson } = require('../../../../lib/questionBank');
-const { currentSchoolYear, previousSchoolYear, inferSchoolYear } = require('../../../../lib/schoolYear');
-const { cacheGet, cacheSet } = require('../../../../lib/redis');
-const { reportError } = require('../../../../lib/reportError');
+import connectDB from '../../../../lib/mongodb';
+import FormSubmission from '../../../../models/FormSubmission';
+import User from '../../../../models/User';
+import { getPublishedOrJson } from '../../../../lib/questionBank';
+import { currentSchoolYear, previousSchoolYear, inferSchoolYear } from '../../../../lib/schoolYear';
+import { cacheGet, cacheSet } from '../../../../lib/redis';
+import { reportError } from '../../../../lib/reportError';
 
 export async function GET() {
   try {

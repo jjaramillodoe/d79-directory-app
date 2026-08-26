@@ -20,6 +20,7 @@ import { isTableValue } from '../lib/tableAnswer';
 import { visibleQuestions, formatYesNo, isGateQuestion } from '../lib/questionBankUtils';
 import QuestionPrompt from './QuestionPrompt';
 import FormattedCopy from './FormattedCopy';
+import * as logger from '../lib/logger';
 
 const FormViewer = ({ form }) => {
   const { questionBank } = useQuestionBank();
@@ -69,14 +70,14 @@ const FormViewer = ({ form }) => {
 
       const element = document.getElementById('form-viewer-content');
       if (!element) {
-        console.error('Form viewer content element not found');
+        logger.error('Form viewer content element not found');
         toast.error('Could not find form content to export');
         return;
       }
 
       // Show loading message
-      console.log('Starting PDF generation...');
-      console.log('Browser info:', {
+      logger.debug('Starting PDF generation...');
+      logger.debug('Browser info:', {
         userAgent: navigator.userAgent,
         platform: navigator.platform,
         cookieEnabled: navigator.cookieEnabled
@@ -167,7 +168,7 @@ const FormViewer = ({ form }) => {
               }
             }
           } catch (error) {
-            console.warn('Cannot modify className on element:', node.tagName, error.message);
+            logger.warn('Cannot modify className on element:', node.tagName, error.message);
           }
           
           try {
@@ -176,7 +177,7 @@ const FormViewer = ({ form }) => {
               node.style.color = '#000000';
             }
           } catch (error) {
-            console.warn('Cannot modify style.color on element:', node.tagName, error.message);
+            logger.warn('Cannot modify style.color on element:', node.tagName, error.message);
           }
           
           try {
@@ -185,7 +186,7 @@ const FormViewer = ({ form }) => {
               node.style.backgroundColor = 'white';
             }
           } catch (error) {
-            console.warn('Cannot modify style.backgroundColor on element:', node.tagName, error.message);
+            logger.warn('Cannot modify style.backgroundColor on element:', node.tagName, error.message);
           }
           
           // Process children
@@ -220,18 +221,18 @@ const FormViewer = ({ form }) => {
       }
 
       // Create PDF
-      console.log('Converting canvas to image...');
+      logger.debug('Converting canvas to image...');
       const imgData = canvas.toDataURL('image/png');
-      console.log('Image data length:', imgData.length);
+      logger.debug('Image data length:', imgData.length);
       
-      console.log('Creating PDF document...');
+      logger.debug('Creating PDF document...');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = pdfWidth - 20; // 10mm margin on each side
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      console.log('PDF dimensions:', { pdfWidth, pdfHeight, imgWidth, imgHeight });
+      logger.debug('PDF dimensions:', { pdfWidth, pdfHeight, imgWidth, imgHeight });
       
       let heightLeft = imgHeight;
       let position = 10; // Top margin
@@ -251,27 +252,27 @@ const FormViewer = ({ form }) => {
       // Save PDF with improved download handling
       const fileName = `School-Plan-Form-${form.schoolName?.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
       
-      console.log('Attempting to download PDF:', fileName);
-      console.log('PDF size:', pdf.internal.getNumberOfPages(), 'pages');
+      logger.debug('Attempting to download PDF:', fileName);
+      logger.debug('PDF size:', pdf.internal.getNumberOfPages(), 'pages');
       
       // Check if browser supports downloads
       const supportsDownload = 'download' in document.createElement('a');
-      console.log('Browser supports download attribute:', supportsDownload);
+      logger.debug('Browser supports download attribute:', supportsDownload);
       
       try {
         // Method 1: Try direct save first (most reliable)
-        console.log('Trying pdf.save() method...');
+        logger.debug('Trying pdf.save() method...');
         pdf.save(fileName);
-        console.log('PDF download initiated via pdf.save()');
+        logger.debug('PDF download initiated via pdf.save()');
         
         // Give it a moment, then show success message
         setTimeout(() => {
-          console.log('PDF export completed successfully!');
+          logger.debug('PDF export completed successfully!');
           toast.success(`PDF downloaded: ${fileName}`);
         }, 1000);
         
       } catch (saveError) {
-        console.error('pdf.save() failed, trying alternative method:', saveError);
+        logger.error('pdf.save() failed, trying alternative method:', saveError);
         
         // Method 2: Alternative download using blob
         try {
@@ -292,11 +293,11 @@ const FormViewer = ({ form }) => {
             URL.revokeObjectURL(url);
           }, 100);
           
-          console.log('PDF download initiated via blob method');
+          logger.debug('PDF download initiated via blob method');
           toast.success(`PDF downloaded: ${fileName}`);
           
         } catch (blobError) {
-          console.error('Blob method failed, trying data URI:', blobError);
+          logger.error('Blob method failed, trying data URI:', blobError);
           
           // Method 3: Fallback to data URI
           const pdfDataUri = pdf.output('datauristring');
@@ -309,13 +310,13 @@ const FormViewer = ({ form }) => {
           link.click();
           document.body.removeChild(link);
           
-          console.log('PDF download initiated via data URI method');
+          logger.debug('PDF download initiated via data URI method');
           toast.success(`PDF generated: ${fileName}`);
         }
       }
 
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      logger.error('Error generating PDF:', error);
       toast.error(`Error generating PDF: ${error.message || 'Please try again.'}`);
     }
   };

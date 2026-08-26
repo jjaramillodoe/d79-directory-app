@@ -1,15 +1,15 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../../lib/auth');
-const connectDB = require('../../../../../../lib/mongodb');
-const FormComment = require('../../../../../../models/FormComment');
-const FormSubmission = require('../../../../../../models/FormSubmission');
-const User = require('../../../../../../models/User');
-const { canEditForm } = require('../../../../../../lib/formAccess');
-const { reportError } = require('../../../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../../lib/auth';
+import connectDB from '../../../../../../lib/mongodb';
+import FormComment from '../../../../../../models/FormComment';
+import FormSubmission from '../../../../../../models/FormSubmission';
+import User from '../../../../../../models/User';
+import { canEditForm } from '../../../../../../lib/formAccess';
+import { reportError } from '../../../../../../lib/reportError';
 
 // PUT /api/forms/[id]/comments/[commentId] - Mark comment as read or fixed
-async function PUT(request, { params }) {
+export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -74,6 +74,3 @@ async function PUT(request, { params }) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-module.exports = { PUT };
-

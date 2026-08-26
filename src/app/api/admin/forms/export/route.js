@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { isValidSchoolYear, currentSchoolYear, schoolYearQuery } = require('../../../../../lib/schoolYear');
-const { getPublishedOrJson } = require('../../../../../lib/questionBank');
-const { COMPARE_STEPS, formatAnswer, getYearSettings } = require('../../../../../lib/schoolYearSettings');
-const { enforceRateLimit } = require('../../../../../lib/userAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { isValidSchoolYear, currentSchoolYear, schoolYearQuery } from '../../../../../lib/schoolYear';
+import { getPublishedOrJson } from '../../../../../lib/questionBank';
+import { COMPARE_STEPS, formatAnswer, getYearSettings } from '../../../../../lib/schoolYearSettings';
+import { enforceRateLimit } from '../../../../../lib/userAccess';
+import { reportError } from '../../../../../lib/reportError';
 
 function csvCell(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;

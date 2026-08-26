@@ -1,12 +1,12 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../../../../lib/auth');
-const connectDB = require('../../../../../../../lib/mongodb');
-const User = require('../../../../../../../models/User');
-const { releaseLock } = require('../../../../../../../lib/locking');
-const { getPublishedOrJson } = require('../../../../../../../lib/questionBank');
-const { getStepKeyByNumber } = require('../../../../../../../lib/formSteps');
-const { reportError } = require('../../../../../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../../../../lib/auth';
+import connectDB from '../../../../../../../lib/mongodb';
+import User from '../../../../../../../models/User';
+import { releaseLock } from '../../../../../../../lib/locking';
+import { getPublishedOrJson } from '../../../../../../../lib/questionBank';
+import { getStepKeyByNumber } from '../../../../../../../lib/formSteps';
+import { reportError } from '../../../../../../../lib/reportError';
 
 // POST /api/forms/[id]/step/[stepNumber]/unlock - Release lock for a step
 async function POST(request, { params }) {

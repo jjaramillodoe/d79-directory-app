@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../lib/auth');
-const { getSystemHealth } = require('../../../../lib/systemHealth');
-const { flushAppCaches, resetRedisBackoff } = require('../../../../lib/redis');
-const { logAction } = require('../../../../lib/auditLogger');
-const { auditRequest } = require('../../../../lib/questionBank');
-const { reportError } = require('../../../../lib/reportError');
+import { authOptions } from '../../../../lib/auth';
+import { getSystemHealth } from '../../../../lib/systemHealth';
+import { flushAppCaches, resetRedisBackoff } from '../../../../lib/redis';
+import { logAction } from '../../../../lib/auditLogger';
+import { auditRequest } from '../../../../lib/questionBank';
+import { reportError } from '../../../../lib/reportError';
 
 async function requireSuperAdmin() {
   const session = await getServerSession(authOptions);

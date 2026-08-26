@@ -1,11 +1,11 @@
-const { NextResponse } = require('next/server');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../lib/auth');
-const connectDB = require('../../../lib/mongodb');
-const FormSubmission = require('../../../models/FormSubmission');
-const FormComment = require('../../../models/FormComment');
-const User = require('../../../models/User');
-const { reportError } = require('../../../lib/reportError');
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../lib/auth';
+import connectDB from '../../../lib/mongodb';
+import FormSubmission from '../../../models/FormSubmission';
+import FormComment from '../../../models/FormComment';
+import User from '../../../models/User';
+import { reportError } from '../../../lib/reportError';
 
 // GET /api/notifications - Get user's notifications
 async function GET(request) {

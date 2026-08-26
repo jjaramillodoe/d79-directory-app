@@ -70,7 +70,10 @@ async function connectDB(retries = 3) {
       e.message?.includes('connection') ||
       e.message?.includes('timeout')
     )) {
-      console.log(`Database connection failed, retrying... (${retries} retries left)`);
+      // Stays visible in production, and stays a plain console call rather than a report: a
+      // retry that then succeeds is not an incident, but a burst of them is the first sign of
+      // a database problem and is worth having in the platform logs.
+      console.warn(`Database connection failed, retrying... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
       return connectDB(retries - 1);
     }

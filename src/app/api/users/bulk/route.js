@@ -1,11 +1,11 @@
-const connectDB = require('../../../../lib/mongodb');
-const User = require('../../../../models/User');
-const { getServerSession } = require('next-auth/next');
-const { authOptions } = require('../../../../lib/auth');
-const { jsonError, requireAdminActor, bulkTargetFilter, enforceRateLimit } = require('../../../../lib/userAccess');
-const { reportError } = require('../../../../lib/reportError');
+import connectDB from '../../../../lib/mongodb';
+import User from '../../../../models/User';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/auth';
+import { jsonError, requireAdminActor, bulkTargetFilter, enforceRateLimit } from '../../../../lib/userAccess';
+import { reportError } from '../../../../lib/reportError';
 
-async function POST(request) {
+export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
     const limited = await enforceRateLimit(`rl:users-bulk:${session?.user?.id || 'anon'}`, 10, 60);
@@ -88,5 +88,3 @@ async function POST(request) {
     return jsonError(500, 'Internal server error');
   }
 }
-
-module.exports = { POST };

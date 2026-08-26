@@ -1,20 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const User = require('../../../../../models/User');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { auditRequest } = require('../../../../../lib/questionBank');
-const { reportError } = require('../../../../../lib/reportError');
-const { isValidSchoolYear, currentSchoolYear } = require('../../../../../lib/schoolYear');
-const { clientSafeMessage } = require('../../../../../lib/userAccess');
-const {
-  listMigratableQuestions,
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import User from '../../../../../models/User';
+import { logAction } from '../../../../../lib/auditLogger';
+import { auditRequest } from '../../../../../lib/questionBank';
+import { reportError } from '../../../../../lib/reportError';
+import { isValidSchoolYear, currentSchoolYear } from '../../../../../lib/schoolYear';
+import { clientSafeMessage } from '../../../../../lib/userAccess';
+import {listMigratableQuestions,
   previewContactMigration,
-  applyContactMigration,
-} = require('../../../../../lib/migrateTextareaContacts');
-
+  applyContactMigration,} from '../../../../../lib/migrateTextareaContacts';
 async function requireSuperAdmin() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {

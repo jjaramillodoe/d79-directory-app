@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-const { authOptions } = require('../../../../../lib/auth');
-const connectDB = require('../../../../../lib/mongodb');
-const FormSubmission = require('../../../../../models/FormSubmission');
-const User = require('../../../../../models/User');
-const { logAction } = require('../../../../../lib/auditLogger');
-const { duplicateForm } = require('../../../../../lib/formDuplicate');
-const { isValidSchoolYear, schoolYearQuery } = require('../../../../../lib/schoolYear');
-const { clientSafeMessage } = require('../../../../../lib/userAccess');
-const { reportError } = require('../../../../../lib/reportError');
+import { authOptions } from '../../../../../lib/auth';
+import connectDB from '../../../../../lib/mongodb';
+import FormSubmission from '../../../../../models/FormSubmission';
+import User from '../../../../../models/User';
+import { logAction } from '../../../../../lib/auditLogger';
+import { duplicateForm, repairCopiedCompletions } from '../../../../../lib/formDuplicate';
+import { isValidSchoolYear, schoolYearQuery } from '../../../../../lib/schoolYear';
+import { clientSafeMessage } from '../../../../../lib/userAccess';
+import { reportError } from '../../../../../lib/reportError';
+import { archiveSchoolYear } from '../../../../../lib/schoolYearSettings';
 
 export async function POST(request) {
   try {
@@ -79,12 +80,10 @@ export async function POST(request) {
     }
 
     if (created.length > 0 || skipped.length > 0) {
-      const { archiveSchoolYear } = require('../../../../../lib/schoolYearSettings');
       await archiveSchoolYear(sourceYear, user._id);
     }
 
     if (created.length > 0) {
-      const { repairCopiedCompletions } = require('../../../../../lib/formDuplicate');
       await repairCopiedCompletions(targetYear);
     }
 
