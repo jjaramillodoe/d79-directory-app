@@ -26,11 +26,14 @@ Outstanding captures:
 - `deploy/operations.mdx` — **Rollover confirmation**: rollover result counts (created, skipped, errors) and the archived-year tag on 2025-2026 forms.
 - `deploy/production.mdx` — **Vercel deployment**: a successful Vercel production deployment for d79-directory-app.
 - `features/collaboration.mdx` — **Share modal**: the collaboration share UI with view/edit permissions and optional section assignment.
+- `features/audit-logs.mdx` — **System audit logs**: /admin/logs with Show Filters open, action dropdown, date range, and the Timestamp / User / Action / Details / IP table.
 - `features/question-bank.mdx` — **Question bank admin**: /admin/questions with draft vs published, add step, reorder, and Publish.
+- `features/question-bank.mdx` — **Table columns editor**: /admin/questions table type with Staff contact preset, column blueprint textarea, and Text vs Dropdown per column.
 - `features/reviews-exports.mdx` — **Review comments**: a Super Admin comment on a step and the principal dashboard Comments view.
 - `features/role-preview.mdx` — **Preview school roles**: Add screenshot of the Overview Preview school roles card and the yellow impersonation banner.
 - `features/roles.mdx` — **Dashboard by role**: Super Admin sidebar (Submissions, Users, Goals, Question bank, System, Audit logs, Year setup) versus a principal sidebar.
 - `features/school-plans.mdx` — **Step navigator**: FormWorkspace: school + year header, section list with completion checks, quiet question cards, sticky Previous/Next, and autosave status.
+- `features/school-plans.mdx` — **Table question**: a GenericFormStep table with staff-contact headers, Add row, and the Excel-paste hint.
 - `features/school-year.mdx` — **Year setup**: Super Admin Year setup (dashboard ?view=bulk-create) with rollover controls, archive toggle, deadlines, and pinned question-bank version.
 - `features/system.mdx` — **System health**: /admin/system with API, MongoDB, and Redis cards, overall health tag, and Flush caches.
 - `introduction.mdx` — **District 79 Directory homepage**: the public portal homepage with year tags, Sign in, and the live district snapshot.

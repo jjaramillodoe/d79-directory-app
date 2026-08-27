@@ -42,7 +42,8 @@
               "features/question-bank",
               "features/collaboration",
               "features/reviews-exports",
-              "features/system"
+              "features/system",
+              "features/audit-logs"
             ]
           },
           {

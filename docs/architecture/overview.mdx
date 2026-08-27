@@ -54,7 +54,9 @@ flowchart LR
 | `src/lib/locking.js` | Redis or in-memory step locks (TTL 300s) |
 | `src/lib/redis.js` | Shared Redis client, cache, SCAN, save rate limit |
 | `src/lib/systemHealth.js` | Super Admin health snapshot (API / Mongo / Redis) |
+| `src/lib/formAccess.js` | `canViewForm` / `canEditForm` (same-school levels 2–4) |
 | `src/lib/auditLogger.js` | Writes `AuditLog` rows |
+| `src/lib/geoRestrict.js` | NY-state geo headers; `GEO_RESTRICT=deny` |
 
 ## UI layering
 

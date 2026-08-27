@@ -62,6 +62,10 @@ Counters live in Redis as `rl:*` keys (60-second windows unless noted). The prox
 | `rl:users-create:{userId}` | 20 | 60s | Yes |
 | `rl:users-bulk:{userId}` | 10 | 60s | Yes |
 | `rl:users-import:{userId}` | 5 | 60s | Yes |
+| `rl:export-pdf:{userId}` | 10 | 60s | Yes |
+| `rl:export-docx:{userId}` | 10 | 60s | Yes |
+| `rl:export-district:{userId}` | 5 | 60s | Yes |
+| `rl:clienterr:{ip}` | 10 POSTs | 300s | Yes (`src/proxy.js`, unauthenticated) |
 
 <Tabs>
   <Tab title="429 body">
@@ -79,5 +83,5 @@ Header: `Retry-After: 60`
 </Tabs>
 
 <Callout type="note">
-  Hitting a 403 on `/api/forms/:id/editors` while the form page itself loads usually means the route’s RBAC is stricter than `GET /api/forms/:id`. Principals need **same-school level 4** (or matching `principalEmail`). Assistant Principals need assignment or share. See [Troubleshooting](/guides/troubleshooting).
+  Presence (`/editors`, `/locks`) uses the same `canViewForm` helper as the form GET. Same-school levels 2–4 should see 200. Level 1 still needs assignment or share. See [Troubleshooting](/guides/troubleshooting).
 </Callout>

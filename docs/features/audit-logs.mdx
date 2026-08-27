@@ -1,0 +1,146 @@
+---
+title: Audit logs and admin tables
+description: Filter, search, page, and export the Super Admin audit log and the users table.
+icon: scroll
+---
+
+Audit entries are written by `src/lib/auditLogger.js` into the `AuditLog` collection. Logins are recorded in the NextAuth `signIn` callback (fire-and-forget — a logging failure never blocks sign-in).
+
+There are two tables Super Admins use for this:
+
+| Surface | Who | What you see |
+| --- | --- | --- |
+| **System Audit Logs** (`/admin/logs`) | Level 5 | Full district log, filters, pagination, CSV |
+| **Users → Audit log** modal | Level ≥ 4 | Same API; principals only see actors at their school |
+| **Users** table (`/admin/users`) | Level ≥ 4 | Roster you can search, sort, and export |
+
+{/* Screenshot needed: System audit logs — /admin/logs with Show Filters open, action dropdown, date range, and the Timestamp / User / Action / Details / IP table. */}
+
+<Tip>
+  Open **System** (`/admin/system`) for the last eight events, then **Audit logs** in the sidebar for the full table. From Users, **System logs** goes to `/admin/logs`; **Audit log** opens the modal.
+</Tip>
+
+## How to use the audit log table
+
+<Steps>
+  <Step title="Open System Audit Logs">
+    Sign in as Super Admin. In the Admin sidebar choose **Audit logs**, or go to `/admin/logs`. The page is level 5 only — anyone else is sent to `/dashboard`.
+  </Step>
+  <Step title="Scan the columns">
+    Newest events are first. Each row has:
+
+    | Column | Source field | Notes |
+    | --- | --- | --- |
+    | Timestamp | `timestamp` | Relative time plus a full local datetime |
+    | User | `userName`, `userEmail` | Who performed the action |
+    | Action | `action` | Enum value, color-coded (for example `login`, `form_submitted`) |
+    | Details | `details` | Human-readable summary; hover to see truncated text |
+    | IP Address | `ipAddress` | Present when the writer passed a request; otherwise `—` |
+  </Step>
+  <Step title="Search the current page">
+    Use **Search logs by user, action, or details**. This filter runs in the browser on the rows already loaded (50 per page). It does not search the whole collection. For a specific mailbox, use the **User Email** filter instead.
+  </Step>
+  <Step title="Narrow with Show Filters">
+    Click **Show Filters**, then combine:
+
+    | Filter | Query param | Values |
+    | --- | --- | --- |
+    | Action | `action` | See [Action values](#action-values) |
+    | User Email | `userEmail` | Exact `@schools.nyc.gov` address |
+    | Target Type | `targetType` | `user` \| `form` \| `system` \| `other` |
+    | Start Date / End Date | `startDate` / `endDate` | Inclusive calendar dates |
+
+    Changing a filter resets you to page 1. **Clear Filters** restores the unfiltered list. **Refresh** reloads without changing filters.
+  </Step>
+  <Step title="Page through results">
+    The API returns up to 50 rows per page (`limit=50`, `skip` advances). **Previous** / **Next** walk the total count shown in the header badge.
+  </Step>
+  <Step title="Export CSV">
+    **Export CSV** downloads `audit-logs-YYYY-MM-DD.csv` for the **rows currently on screen** (after search). Columns: Timestamp, User, Email, Action, Target Type, Details, IP Address.
+
+    Apply Action / Email / Date filters first if you need a slice; search-only exports are limited to the current page.
+  </Step>
+</Steps>
+
+<Warning>
+  CSV export is not a full-history dump. Raise `limit` on `GET /api/users/audit-logs` (max 1000) if you need a larger pull from the API. The UI always requests 50.
+</Warning>
+
+## Action values
+
+Stored on `AuditLog.action`. The logs UI dropdown lists the common ones; the schema also allows the rest.
+
+| `action` | Typical `targetType` | When it is written |
+| --- | --- | --- |
+| `login` | `system` | Successful Google sign-in |
+| `logout` | `system` | Sign-out (when logged) |
+| `user_created` / `user_updated` / `user_deleted` | `user` | Admin user mutations |
+| `user_activated` / `user_deactivated` | `user` | Bulk activate / deactivate |
+| `form_created` / `form_duplicated` / `form_edited` | `form` | Plan create, copy, step save |
+| `form_attested` / `form_submitted` | `form` | Principal attestation / submit |
+| `form_approved` / `form_rejected` | `form` | Super Admin review |
+| `form_shared` / `form_unshared` | `form` | Collaboration share |
+| `form_ownership_transferred` | `form` | Ownership transfer |
+| `permission_changed` | `user` | Level or collaboration change via `PUT /api/users` |
+| `bulk_action` / `csv_import` | `user` | Bulk user tools |
+| `export` | `form` or `system` | District or plan export when logged |
+| `settings_changed` | `system` | Year settings, cache flush |
+| `question_bank_seeded` / `question_bank_updated` / `question_bank_published` | `system` | Question bank admin |
+| `other` | `other` | Fallback |
+
+Older rows may also come from embedded `User.activityLog[]` (backward compatibility). Those have no IP or user-agent.
+
+## Who can see whose logs
+
+The list endpoint is `GET /api/users/audit-logs` (`requireAdminActor`, level ≥ 4).
+
+- **Super Admin** — every `AuditLog` (and matching `activityLog` entries).
+- **Principal (level 4)** — only events whose `userEmail` is on their school roster. Audit rows have no `schoolName` of their own; the API scopes by actor emails instead.
+
+<AccordionGroup>
+  <Accordion title="Users → Audit log modal">
+    On `/admin/users`, click **Audit log**. The modal table uses the same columns (Timestamp, User, Action, Details, IP) and **Refresh Logs**. Principals see only their school. For filters, dates, pagination, and CSV, Super Admins should use `/admin/logs`.
+  </Accordion>
+</AccordionGroup>
+
+## How to use the users table
+
+`/admin/users` is the roster Super Admins and principals manage. Principals only see levels 1–3 at their school (Super Admins at that school are omitted).
+
+<Steps>
+  <Step title="Filter the roster">
+    Use the Smart Filters bar (search, level, school, status, title, date range). Click the **Never signed in** stat card — or **Never signed in** / **Stale (30+ days)** — to find accounts that have not used Google sign-in.
+  </Step>
+  <Step title="Sort columns">
+    Click **Name**, **Level**, **School**, **Last sign-in**, or **Status**. A second click reverses direction. Last sign-in and level default to descending when you first sort those columns.
+  </Step>
+  <Step title="Export the visible rows">
+    **Export CSV** on the Users section downloads the **currently filtered** list (`users-YYYY-MM-DD.csv`): Name, Email, Level, School, Title, Status, Created, Last Login.
+
+    Smart Filters also has its own export control for the same filtered set.
+  </Step>
+</Steps>
+
+<Tip>
+  “Never signed in” is the audit follow-up for accounts that exist in MongoDB but have never completed Google OAuth. Create the `users` document **before** the person signs in — otherwise Google returns them to `/login`.
+</Tip>
+
+## API
+
+```bash
+curl -s -b cookies.txt \
+  "http://localhost:3000/api/users/audit-logs?action=login&limit=50&skip=0"
+```
+
+| Query | Effect |
+| --- | --- |
+| `action` | Exact `AuditLog.action` |
+| `userEmail` | Exact actor email (principals cannot widen past their school) |
+| `targetType` | `user` \| `form` \| `system` \| `other` |
+| `startDate` / `endDate` | ISO or date strings on `timestamp` |
+| `limit` | Default 100, max 1000 |
+| `skip` | Pagination offset |
+
+Response: `{ success, logs, total, limit, skip }`.
+
+Related: [Users API](/api/users), [System health](/features/system), [Operations](/deploy/operations).

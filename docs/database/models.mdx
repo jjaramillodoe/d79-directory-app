@@ -64,6 +64,17 @@ Collection: `formsubmissions`
 }
 ```
 
+Most answers are strings or booleans. **Table** questions store:
+
+```json
+{
+  "headers": ["First Name", "Last Name", "Title"],
+  "rows": [["Jordan", "Lee", "Liaison"]]
+}
+```
+
+Column types (text vs dropdown) live on the question bank `question.columns`, not on the answer. See [How to fill a table question](/features/school-plans#how-to-fill-a-table-question).
+
 Partial unique index `schoolName_schoolYear_unique` on `{ schoolName: 1, schoolYear: 1 }` (only when `schoolYear` is a non-empty string). Duplicate and create routes return `409` when a school already has a plan for that year. Super Admin **System** reports whether this index is present.
 
 ## `FormTemplate`
@@ -74,7 +85,7 @@ Collection: `formtemplates`
 - `status`: `draft` \| `published` \| `archived`
 - `schoolYear` optional
 - `steps[]`: `{ id, key, title, questions[] }`
-- Question: `{ id, question_number, title, placeholder, type, required, description, active, order }` plus extra keys (`strict: false`)
+- Question: `{ id, question_number, title, placeholder, type, required, description, active, order }` plus extra keys (`strict: false`) such as `columns` (table presets), `gatesFollowing`, `visibleWhen`, intro text
 
 ## `SchoolYearSettings`
 
@@ -92,4 +103,8 @@ Collection: `formcomments`
 
 Collection: `auditlogs`
 
-Actions include `login`, `form_created`, `form_duplicated`, `form_attested`, `form_submitted`, `question_bank_published`, `csv_import`, `settings_changed`, and others listed on the schema enum.
+How-to and field list: [Audit logs and admin tables](/features/audit-logs).
+
+`action` enum: `login`, `logout`, `user_created`, `user_updated`, `user_deleted`, `user_activated`, `user_deactivated`, `form_created`, `form_duplicated`, `form_attested`, `form_edited`, `form_submitted`, `form_approved`, `form_rejected`, `form_shared`, `form_unshared`, `form_ownership_transferred`, `permission_changed`, `bulk_action`, `csv_import`, `export`, `settings_changed`, `question_bank_seeded`, `question_bank_updated`, `question_bank_published`, `other`.
+
+`targetType`: `user` \| `form` \| `system` \| `other`. Also `userName`, `userEmail`, `targetId`, `details`, `metadata`, `ipAddress`, `userAgent`, `timestamp`.

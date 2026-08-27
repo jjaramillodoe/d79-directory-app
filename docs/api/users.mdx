@@ -68,13 +68,15 @@ Level ≥ 4. `{ "userIds": [], "action": "..." }`. Limit 10 / 60s. Only ids that
 | `delete` | `deleteMany` |
 | `level_up` / `level_down` | Increment/decrement with caps (principals cannot promote to 4) |
 
-## `PUT /api/users/[id]/permissions`
-
-Level ≥ 4. `{ "permissions": { ... } }` is `$set` onto the user document (collaboration flags). Prefer the share UI (`POST /api/admin/forms/share`) for plan assignment.
-
 ## `GET /api/users/audit-logs`
 
-Filtered `AuditLog` query (admin). Prefer `/admin/logs` in the UI.
+Level ≥ 4. Filtered `AuditLog` query (plus legacy `User.activityLog` rows). Super Admin sees the district. Principals are scoped to emails on their school roster.
+
+Query: `action`, `userEmail`, `targetType`, `startDate`, `endDate`, `limit` (max 1000), `skip`.
+
+Prefer `/admin/logs` in the UI (level 5). How-to: [Audit logs and admin tables](/features/audit-logs).
+
+Plan assignment is **not** this route. Use the share UI (`POST /api/admin/forms/share`) or `PUT /api/users` for level / school / active. The old `PUT /api/users/[id]/permissions` handler was removed.
 
 ## `GET` `POST` `/api/notifications`
 

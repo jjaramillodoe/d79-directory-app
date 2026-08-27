@@ -31,11 +31,73 @@ Authenticated users load the bank they should render:
 
 `GET /api/question-bank?schoolYear=2026-2027&version=3`
 
+## How to configure a table question
+
+Set **Type** to **Table (Excel paste)** on the question. Staff then get a grid on the plan ([how they fill it](/features/school-plans#how-to-fill-a-table-question)). Column definitions live on `question.columns` and survive publish because `FormTemplate` questions are `strict: false`.
+
+{/* Screenshot needed: Table columns editor — /admin/questions table type with Staff contact preset, column blueprint textarea, and Text vs Dropdown per column. */}
+
+<Steps>
+  <Step title="Open the draft question">
+    Super Admin → `/admin/questions`. Edit the step, find the question, set type to **Table (Excel paste)**.
+  </Step>
+  <Step title="Start from a preset (optional)">
+    Click a preset to lock headers (and dropdowns, when the preset includes them):
+
+    | Preset | Columns |
+    | --- | --- |
+    | Staff contact | First Name, Last Name, Title, Email, Telephone |
+    | Staff + certified | Staff contact, plus Certified (Yes/No) and Training Date |
+    | Staff + room / time | Staff contact, plus Room Number, Start Time, End Time |
+    | Program hours | Program, Start Time, End Time, Days |
+    | Program / Grade / Timeline | Program Name (text), Grade Level and Timeline (dropdowns) |
+    | Contact + notes | Contact-style headers used by the notes migration |
+  </Step>
+  <Step title="Name columns, one per line">
+    **Column names** is the blueprint. One header per line (or a single comma-separated line). Reorder by moving lines. **Clear columns** empties the list so staff can paste their own Excel headers on the form.
+  </Step>
+  <Step title="Make a column a dropdown">
+    Either:
+
+    - In the blueprint, write `Certified | Yes, No` (name, pipe, choices). Use `;` to separate choices that contain commas.
+    - Or set **Input** to **Dropdown** and list options one per line under that column.
+
+    **Text** columns accept any string. Max 20 columns; dropdowns cap at 40 options.
+  </Step>
+  <Step title="Publish">
+    Save the draft, then publish with `{ confirm: true }` so live plans pick up the columns. Existing answers keep their `question.id`; changing headers on a locked table reshapes the grid on the next edit (extra cells are trimmed, missing cells pad empty).
+  </Step>
+</Steps>
+
+<Tip>
+  Leave **Table columns** empty when schools truly have different spreadsheets. Lock a preset when you need comparable district data (staff lists, program hours) and clean PDF/DOCX tables.
+</Tip>
+
+<Warning>
+  Do not rename `question.id` after schools have answered. Column header edits are safer than id changes, but a published lock still overwrites staff-chosen headers on the next save.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Pipe syntax examples">
+```text
+First Name
+Last Name
+Certified | Yes, No
+Grade Level | 6,7, 8, 9, 10, 11, and 12; All; Literacy-Elementary (K-5)
+```
+
+    `parseColumnBlueprint` in `src/lib/tableAnswer.js` is the same parser the admin editor and the form use.
+  </Accordion>
+  <Accordion title="Migrate old contact notes into tables">
+    Year setup includes **Contact table migrate**. Dry-run a question id for a school year, review the JSON diff, then apply. Use this after you change a free-text contact question to type `table` with a contact preset. Download the dry-run report before applying.
+  </Accordion>
+</AccordionGroup>
+
 ## Safe edits vs breaking edits
 
 <AccordionGroup>
   <Accordion title="Safe">
-    Change `title`, `placeholder`, `description`, `required`, `active`, `order`. Keep `question.id` unchanged.
+    Change `title`, `placeholder`, `description`, `required`, `active`, `order`, or table `columns`. Keep `question.id` unchanged.
   </Accordion>
   <Accordion title="Unsafe">
     Renaming `id`, deleting a question that already has answers, or reshuffling ids. Old `formData[stepKey].data[oldId]` would orphan.

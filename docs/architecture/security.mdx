@@ -9,6 +9,9 @@ Next.js 16 renamed middleware to **proxy**. The file is `src/proxy.js` (not `mid
 ```js
 export const config = {
   matcher: [
+    '/',
+    '/about',
+    '/login',
     '/dashboard',
     '/dashboard/:path*',
     '/form/:path*',
@@ -19,7 +22,7 @@ export const config = {
 };
 ```
 
-Public HTML (`/`, `/about`, `/login`) is **not** in the matcher. `GET /api/public/*` is in the matcher but returns immediately without a session.
+Public HTML (`/`, `/about`, `/login`) **is** in the matcher so a New York geo deny can cover them, but those paths skip the session redirect (otherwise `/login` would loop). `GET /api/public/*` returns immediately without a session.
 
 ## Request path
 
@@ -54,7 +57,17 @@ flowchart TD
   </Accordion>
 </AccordionGroup>
 
-The proxy is a **coarse gate**. Form-level RBAC (owner, same school, assignment, share) lives in each route handler. See [Roles and access](/features/roles).
+The proxy is a **coarse gate**. Form-level RBAC (owner, same school, assignment, share) lives in `src/lib/formAccess.js` and each route handler. See [Roles and access](/features/roles).
+
+## New York geo restriction
+
+Vercel sets `x-vercel-ip-country` and `x-vercel-ip-country-region` on requests that hit their network. The proxy reads those in `src/lib/geoRestrict.js`.
+
+- Allowed: **US** + region **NY** (New York State). Do **not** match `geo_city` to `"New York"` — Brooklyn, Queens, the Bronx, and Staten Island IPs usually geolocate to the borough name and would be locked out.
+- Missing headers (local `next start`) are treated as allowed.
+- App enforcement is off unless `GEO_RESTRICT=deny`. WAF log/challenge rules sit in front of the process; the proxy only hard-denies.
+
+See [Environment variables](/deploy/environment).
 
 ## JWT deny-list
 
@@ -75,7 +88,7 @@ Without Redis, logout cannot revoke the cookie early. The session still expires 
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
 | `Content-Security-Policy` | `'self'` default; Google accounts for OAuth; Vercel Analytics/Insights scripts and connect |
 
-CSP `script-src` includes `'unsafe-inline'` and `'unsafe-eval'` because Next.js and Once UI still need them in this build. Do not loosen `frame-ancestors` or `form-action`.
+CSP `script-src` includes `'unsafe-inline'` (Next.js / Once UI). `'unsafe-eval'` was removed. Do not loosen `frame-ancestors` or `form-action`.
 
 ## Indexing
 

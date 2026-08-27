@@ -44,10 +44,10 @@ POST /api/admin/questions/publish
 
 | Method | Path |
 | --- | --- |
-| `GET` | `/api/admin/goals` |
-| `GET` | `/api/admin/reports` |
-| `GET` | `/api/admin/timeline` |
-| `GET` | `/api/notifications` |
+| `GET` | `/api/admin/goals` | Year-scoped goal clusters |
+| `POST` | `/api/admin/reports` | Submissions CSV. Body: `{ startDate?, endDate?, status? }`. Principals: own school only (`schoolScopeFilter`) |
+| `GET` | `/api/admin/timeline` | Activity timeline; same school scope as reports |
+| `GET` | `/api/notifications` | Plan-owner review pings (not Super Admin-only) |
 | `GET` `POST` | `/api/admin/health` |
 
 `GET /api/admin/health` returns API / MongoDB / Redis sizes and pings. `POST` body `{ "action": "flush-cache" }` or `{ "action": "retry-redis" }`. See [System health](/features/system).

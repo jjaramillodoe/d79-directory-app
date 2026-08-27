@@ -26,13 +26,37 @@ POST /api/forms/<id>/comments
 
 `/admin/goals` and `GET /api/admin/goals` cluster plan answers (including N/A detection) and honor **school year** query params. District targets live on `SchoolYearSettings.districtGoals`.
 
+## How to export table data
+
+Table answers print as real grids in PDF and Word (`src/lib/exportTables.js`). District CSVs are roster/status reports, not cell-by-cell table dumps.
+
+<Steps>
+  <Step title="Export one plan (PDF or Word)">
+    Open `/form/[id]` or `/view/[id]` and use **PDF** / **Word**, or call `GET /api/forms/[id]/export/pdf` and `.../docx`. Anyone with [form view access](/features/roles) can download. Locked table columns (from the [question bank](/features/question-bank#how-to-configure-a-table-question)) are the headers in the file. Empty tables still show the header row so the paper copy can be filled in.
+  </Step>
+  <Step title="Export a submissions report CSV">
+    Super Admin → `/admin/submissions` → generate report. That `POST`s `/api/admin/reports` with optional `startDate`, `endDate`, and `status`. Columns are school, principal, status, progress, review fields — not the inner table cells. Principals (level 4) hitting the same route only receive **their school** (`schoolScopeFilter`).
+  </Step>
+  <Step title="Export the year workbook">
+    Super Admin: `GET /api/admin/forms/export?schoolYear=2026-2027&format=csv` (or `html`). Includes compare-step answers for attendance, housing, and counseling.
+  </Step>
+</Steps>
+
+<Tip>
+  Need a spreadsheet of staff-contact rows rather than a status report? Fill the table on the plan, then export **Word** and copy the table, or keep the source in Excel and paste back into the form.
+</Tip>
+
+<Warning>
+  Plan PDF/DOCX are limited to 10 downloads per user per 60s (`rl:export-pdf:*`, `rl:export-docx:*`). District year export is 5 per 60s (`rl:export-district:*`).
+</Warning>
+
 ## Exports
 
 | Output | Route | Who |
 | --- | --- | --- |
-| PDF | `GET /api/forms/[id]/export/pdf` | Users with form access |
-| DOCX | `GET /api/forms/[id]/export/docx` | Users with form access |
+| PDF | `GET /api/forms/[id]/export/pdf` | Users with `canViewForm` |
+| DOCX | `GET /api/forms/[id]/export/docx` | Users with `canViewForm` |
 | Year CSV/HTML | `GET /api/admin/forms/export?schoolYear=2026-2027&format=csv` | Super Admin |
-| Reports CSV | `/api/admin/reports` | Admin |
+| Submissions report CSV | `POST /api/admin/reports` | Level ≥ 4 (principals: own school only) |
 
-PDF/DOCX use `pdfkit` / `docx` on the server (webpack externals). Year export includes compare-step answers for attendance, housing, and counseling.
+PDF/DOCX use `pdfkit` / `docx` on the server (webpack externals). Table questions render via `exportTables.js`, not as joined text.

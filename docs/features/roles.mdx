@@ -9,8 +9,8 @@ Levels are stored on `User.level` (1–5) and copied onto the JWT. Route handler
 | Level | Title | Typical access |
 | --- | --- | --- |
 | 1 | Viewer | Open plans assigned to you |
-| 2 | School staff | Open and edit plans **at your school** |
-| 3 | Assistant Principal | Edit plans the principal **assigned or shared** — not every plan at the school |
+| 2 | School staff | Open and edit the plan **at your school** (`canEditForm` same-school grant) |
+| 3 | Assistant Principal | Same-school edit; cannot create, duplicate, attest, or submit |
 | 4 | Principal | Own/create/duplicate/attest/submit school plans; manage users levels 1–3 at that school |
 | 5 | Super Admin | All schools, question bank, rollover, goals, comments, ownership transfer, bulk import, System, [role preview](/features/role-preview) |
 
@@ -25,16 +25,16 @@ Levels are stored on `User.level` (1–5) and copied onto the JWT. Route handler
     - Super Admin
     - Form owner (`userId`)
     - `principalEmail` matches the session email
-    - Same `schoolName` and level **2 or 4**
+    - Same `schoolName` and level **2, 3, or 4** (`src/lib/formAccess.js`)
     - Listed in `User.assignedForms` for that `formId`
     - Listed in `FormSubmission.sharedWithEmails`
   </Tab>
   <Tab title="Edit">
-    Writes (`PUT /api/forms/[id]`, step save) additionally allow:
+    Writes (`PUT /api/forms/[id]`, step save) use `canEditForm`. Same-school levels 2–4 edit without a share (one plan per school per year). Also:
 
-    - Assigned **level 3** (`assignedForms` on the user, any permission — the handler treats assignment as edit)
+    - Assigned **level 3** (`assignedForms` — assignment always grants edit for APs)
     - `sharedWithEmails` entry with `permissions: "edit"`
-    - `form.editAccess[]` user ids when present
+    - Level 1 only via assignment or share
 
     Archived years reject writes unless Super Admin set `allowEditsWhenArchived` on that plan (or un-archived the year).
   </Tab>
@@ -48,7 +48,7 @@ Levels are stored on `User.level` (1–5) and copied onto the JWT. Route handler
 </Tabs>
 
 <Callout type="info">
-  Assistant Principal is a **collaborator**, not a second owner. If Preview as AP cannot edit, share the plan from Collaboration. That is expected, not a 403 bug.
+  Assistant Principal is not a second owner: they can edit the school plan but cannot attest or submit. Level 1 still needs an assignment or share. Off-school collaborators always need share/assignment.
 </Callout>
 
 ## School users (`canManageTarget`)

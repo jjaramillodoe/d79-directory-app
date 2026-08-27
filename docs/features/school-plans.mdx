@@ -43,6 +43,55 @@ Fallback keys in `src/lib/formSteps.js` (order is the live bank when published):
 
 Read-only view is `/view/[id]` (same shell, print/PDF/Word, jump list). New plans: `/form/new`.
 
+## How to fill a table question
+
+Some questions are type `table` (staff lists, program hours, contacts). Answers are stored as `{ headers, rows }` on `formData[stepKey].data[questionId]`, not as a single string. Super Admins configure columns in the [question bank](/features/question-bank#how-to-configure-a-table-question); you fill the grid here.
+
+{/* Screenshot needed: Table question — a GenericFormStep table with staff-contact headers, Add row, and the Excel-paste hint. */}
+
+<Steps>
+  <Step title="Open the section that has the table">
+    Use the step list on `/form/[id]`. A table question shows a grid (not a textarea) and a short hint under the prompt.
+  </Step>
+  <Step title="Type in cells, or paste from Excel / Google Sheets">
+    Click a cell and type. For dropdown columns, choose **Select one** or a listed option.
+
+    To paste a spreadsheet: copy the range in Excel or Sheets, click **anywhere on the table** (not inside a single cell as if it were a paragraph), and paste. Tab-separated columns stay in columns. If the first pasted row matches the locked headers, that row is treated as a header and dropped.
+  </Step>
+  <Step title="Add or remove rows">
+    **Add row** appends an empty row. The trash control on a row removes it (the last remaining row cannot be deleted). **Clear table** empties every cell but keeps the column headers the question bank defined.
+  </Step>
+  <Step title="Add a column only when headers are unlocked">
+    If Super Admin left **Table columns** empty, you can **Add column** and edit header names. If they locked a preset (for example Staff contact), headers are fixed and **Add column** is hidden so every school uses the same shape.
+  </Step>
+</Steps>
+
+<Tip>
+  Dropdown columns keep a pasted value when it matches a choice (case-insensitive). A value that does not match still appears in the cell so you can fix it. Grade / timeline presets use the district lists in `src/lib/tableAnswer.js`.
+</Tip>
+
+<Warning>
+  Caps are 100 rows and 20 columns. Do not paste a whole workbook into one cell — that becomes a single-column blob and will not export as a grid. Autosave (~3s) writes the structured table; required tables need at least one non-empty cell.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="What a saved table looks like">
+```json
+{
+  "headers": ["First Name", "Last Name", "Title", "Email", "Telephone"],
+  "rows": [
+    ["Jordan", "Lee", "Attendance liaison", "jlee@schools.nyc.gov", "212-555-0100"]
+  ]
+}
+```
+
+    Legacy free-text contact notes may still be a string. The editor can parse those into rows when the question uses a contact-style column preset. Super Admins can also run the contact-table migration on Year setup.
+  </Accordion>
+  <Accordion title="Read-only and exports">
+    `/view/[id]` and archived years show the same grid without edit controls. [PDF and Word](/features/reviews-exports) print real tables (headers + rows), not a joined paragraph.
+  </Accordion>
+</AccordionGroup>
+
 ## Editing a step
 
 `PUT /api/forms/[id]/step/[stepNumber]`

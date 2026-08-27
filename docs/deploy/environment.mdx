@@ -43,9 +43,16 @@ REDIS_URL=redis://default:PASSWORD@HOST:PORT
 
 # Optional API error reporting (do not send form answers to Sentry)
 SENTRY_DSN=
+
+# Optional NY-only gate in src/proxy.js. off (default) | deny
+# GEO_RESTRICT=
 ```
 
 Without `REDIS_URL`, locks and caches are in-memory per serverless isolate and will not coordinate across instances.
+
+Set `GEO_RESTRICT=deny` only after Vercel Firewall **log** rules show no legitimate New York schools matching as out-of-state. Missing geo headers (localhost) are allowed. See [Edge proxy and security](/architecture/security).
+
+Add `NEXTAUTH_SECRET` (and Preview `NEXTAUTH_URL`) to **Preview**, not only Production — `next build` evaluates API routes while collecting page data.
 
 Super Admins can confirm whether these variables are **set** (not their values) on [System health](/features/system).
 

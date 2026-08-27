@@ -22,15 +22,13 @@ Use this page when the UI loads but an API fails, Google sign-in bounces to `/lo
   </Accordion>
 
   <Accordion title="403 on GET /api/forms/:id/editors (form page still opens)">
-    The form GET allows a **level 4 principal at the same school**. Presence used to omit level 4 unless `principalEmail` matched.
+    Presence and locks use `canViewForm` in `src/lib/formAccess.js`. Same-school levels **2, 3, and 4** may read editors/locks and edit answers (one plan per school per year). Level 1 still needs an assignment or share.
 
-    Current rule: same-school levels **2, 3, and 4** may read editors/locks. Assistant Principals still need assignment to **edit** answers.
-
-    If you preview as Principal on a plan owned by someone else at that school, editors should return 200. If you preview as AP on a plan you were never assigned, expect 403 on write.
+    If you preview as Principal or AP on a plan at the demo school, editors should return 200. Preview as a viewer (level 1) without a share and expect 403 on write.
   </Accordion>
 
-  <Accordion title="Assistant Principal cannot edit">
-    Intended. Level 3 is a collaborator. The principal (or Super Admin) must **share/assign** the plan (`User.assignedForms` or `sharedWithEmails`). Same school is not enough. See [Roles and access](/features/roles).
+  <Accordion title="Assistant Principal cannot create or attest">
+    Intended. Level 3 can **edit** the school’s plan (`canEditForm`) but cannot create, duplicate, attest, or submit. Those stay level ≥ 4. See [Roles and access](/features/roles).
   </Accordion>
 
   <Accordion title="401 immediately after Sign out, or session lasts after logout">
@@ -45,8 +43,12 @@ Use this page when the UI loads but an API fails, Google sign-in bounces to `/lo
     Step locks last 5 minutes (`form:{id}:step:{stepKey}`). Presence heartbeats last 60s. Two serverless instances without Redis cannot see each other’s locks — configure `REDIS_URL`. Closing the tab should `POST .../step/:n/unlock`.
   </Accordion>
 
-  <Accordion title="NEXTAUTH_SECRET is required crash">
-    `src/lib/auth.js` throws if the secret is missing. Copy `.env.example` to `.env.local` and run `openssl rand -base64 32`. Preview/impersonation also needs this secret on Vercel.
+  <Accordion title="NEXTAUTH_SECRET is required / Preview build failed collecting page data">
+    Auth no longer throws at **import** time (that broke Vercel Preview when the secret was Production-only). NextAuth still needs `NEXTAUTH_SECRET` at **request** time. Set it on Production **and** Preview. Copy `.env.example` to `.env.local` and run `openssl rand -base64 32`.
+  </Accordion>
+
+  <Accordion title="403 This application is only available from New York State">
+    `GEO_RESTRICT=deny` is on, or a WAF deny rule is live. Allowed geo is US + NY state, not city = New York. Local hosts without Vercel geo headers are allowed. Leave `GEO_RESTRICT` unset until Firewall logs look clean.
   </Accordion>
 
   <Accordion title="Production build fails on page.js exports">
@@ -72,7 +74,7 @@ Use this page when the UI loads but an API fails, Google sign-in bounces to `/lo
     `userId` (owner), `principalEmail`, `schoolName`, `assignedTo` / collaborator `assignedForms`, `sharedWithEmails`.
   </Step>
   <Step title="Match the handler">
-    `GET /api/forms/[id]` allows same-school **level 2 and 4**. Writes also allow assigned level 3. Presence/locks also allow same-school level 3 to *see* who is editing.
+    `canViewForm` / `canEditForm`: Super Admin, owner, matching `principalEmail`, or same-school levels **2–4**. Level 1 and off-school users need `assignedForms` or `sharedWithEmails`. Attest/submit/create still require level ≥ 4.
   </Step>
 </Steps>
 

@@ -47,7 +47,9 @@ Confirms API uptime, MongoDB data size, Redis memory/keys, env var presence, and
 
 ## Auditing
 
-UI: `/admin/logs`. Writes go through `src/lib/auditLogger.js` into `AuditLog`. Logins are recorded in the NextAuth `signIn` callback (fire-and-forget).
+How-to (filter, search, export): [Audit logs and admin tables](/features/audit-logs).
+
+UI: `/admin/logs` (Super Admin). Principals use **Users → Audit log** (school-scoped). Writes go through `src/lib/auditLogger.js` into `AuditLog`. Logins are recorded in the NextAuth `signIn` callback (fire-and-forget).
 
 ## Support
 
