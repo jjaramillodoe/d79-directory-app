@@ -1,10 +1,10 @@
 {
-  "total": 292,
+  "total": 268,
   "byDirectory": {
-    "src/app": 119,
-    "src/components": 110,
+    "src/app": 81,
+    "src/components": 123,
     "src/hooks": 2,
-    "src/lib": 45,
+    "src/lib": 46,
     "src/models": 16
   }
 }

@@ -16,6 +16,9 @@ export default function useFormData({
   const [formData, setFormData] = useState({
     schoolName: '',
     status: 'draft',
+    schoolYear: '',
+    createdAt: /** @type {string | undefined} */ (undefined),
+    questionBankVersion: /** @type {number | null} */ (null),
   });
   const [collaborationInfo, setCollaborationInfo] = useState(null);
   const [userPermissions, setUserPermissions] = useState(null);

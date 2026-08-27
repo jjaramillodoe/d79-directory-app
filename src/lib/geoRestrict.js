@@ -54,6 +54,9 @@ function geoDecision(geo, mode = 'off') {
   return mode === 'deny' ? 'deny' : 'log';
 }
 
+/**
+ * @param {{ GEO_RESTRICT?: string }} [env]
+ */
 function geoRestrictMode(env = process.env) {
   const raw = String(env.GEO_RESTRICT || 'off').trim().toLowerCase();
   if (raw === '1' || raw === 'true' || raw === 'deny') return 'deny';

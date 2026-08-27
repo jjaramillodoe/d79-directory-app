@@ -104,7 +104,7 @@ function okJson(body) {
  */
 function mockFetch(overrides = {}) {
   const calls = [];
-  global.fetch = vi.fn(async (url, options = {}) => {
+  global.fetch = /** @type {any} */ (vi.fn(async (url, options = {}) => {
     const href = String(url);
     calls.push({ url: href, method: options.method || 'GET', body: options.body });
 
@@ -121,7 +121,7 @@ function mockFetch(overrides = {}) {
     if (href.includes('/share')) return okJson({ sharedWith: [] });
     if (href.includes('/api/forms/form-1')) return okJson({ form: FORM, userPermission: 'owner' });
     return okJson({});
-  });
+  }));
   return calls;
 }
 

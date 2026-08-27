@@ -10,10 +10,12 @@ import ClientErrorReporter from './ClientErrorReporter';
  * are the parts that only misbehave under exactly the conditions you cannot reproduce by hand.
  */
 
-const ORIGINAL_ENV = process.env.NODE_ENV;
+const env = /** @type {{ NODE_ENV?: string }} */ (process.env);
+const ORIGINAL_ENV = env.NODE_ENV;
 
 function beacons() {
-  return navigator.sendBeacon.mock.calls.map(([url, blob]) => ({ url, blob }));
+  const sendBeacon = /** @type {any} */ (navigator.sendBeacon);
+  return sendBeacon.mock.calls.map(([url, blob]) => ({ url, blob }));
 }
 
 /**
@@ -45,7 +47,7 @@ function dispatchError(message, stack = 'at somewhere') {
 }
 
 function dispatchRejection(reason) {
-  const event = new Event('unhandledrejection', { cancelable: true });
+  const event = /** @type {any} */ (new Event('unhandledrejection', { cancelable: true }));
   event.reason = reason;
   dispatchHandled(event);
 }
@@ -53,12 +55,12 @@ function dispatchRejection(reason) {
 describe('ClientErrorReporter', () => {
   beforeEach(() => {
     // The component is a no-op outside production, so the guards are only reachable here.
-    process.env.NODE_ENV = 'production';
+    env.NODE_ENV = 'production';
     navigator.sendBeacon = vi.fn(() => true);
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = ORIGINAL_ENV;
+    env.NODE_ENV = ORIGINAL_ENV;
   });
 
   it('reports an uncaught error once', () => {
@@ -109,7 +111,7 @@ describe('ClientErrorReporter', () => {
   });
 
   it('does nothing outside production', () => {
-    process.env.NODE_ENV = 'development';
+    env.NODE_ENV = 'development';
     render(<ClientErrorReporter />);
     dispatchError('boom');
 
@@ -127,13 +129,13 @@ describe('ClientErrorReporter', () => {
   it('falls back to fetch when sendBeacon is unavailable', () => {
     navigator.sendBeacon = undefined;
     const fetchMock = vi.fn(() => Promise.resolve());
-    global.fetch = fetchMock;
+    global.fetch = /** @type {any} */ (fetchMock);
 
     render(<ClientErrorReporter />);
     dispatchError('no beacon here');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, options] = fetchMock.mock.calls[0];
+    const [url, options] = /** @type {[string, RequestInit]} */ (fetchMock.mock.calls[0]);
     expect(url).toBe('/api/client-errors');
     expect(options).toMatchObject({ method: 'POST', keepalive: true });
   });

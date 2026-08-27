@@ -3,6 +3,11 @@
 import { useEffect, useState } from 'react';
 import * as logger from '../lib/logger';
 
+/** @returns {any} */
+function autosaveWindow() {
+  return window;
+}
+
 export default function useFormAutoSave({
   formId,
   currentStep,
@@ -276,37 +281,38 @@ export default function useFormAutoSave({
     const stepKeyToSave = actualStepKey;
     const dataToSave = { ...data };
     
-    if (window.autoSaveTimeout) {
-      clearTimeout(window.autoSaveTimeout);
-      window.autoSaveTimeout = null;
+    const win = autosaveWindow();
+    if (win.autoSaveTimeout) {
+      clearTimeout(win.autoSaveTimeout);
+      win.autoSaveTimeout = null;
     }
     
-    if (window.autoSaveInProgress) {
-      window.pendingAutoSaveData = { stepKey: stepKeyToSave, data: dataToSave };
+    if (win.autoSaveInProgress) {
+      win.pendingAutoSaveData = { stepKey: stepKeyToSave, data: dataToSave };
       return;
     }
 
     const flushAutoSave = (saveData) => {
       if (!saveData?.data || Object.keys(saveData.data).length === 0) return;
-      window.autoSaveInProgress = true;
+      win.autoSaveInProgress = true;
       saveStepDataDirectly(saveData.stepKey, saveData.data, true)
         .then(() => {
-          window.autoSaveInProgress = false;
-          const pending = window.pendingAutoSaveData;
-          window.pendingAutoSaveData = null;
+          win.autoSaveInProgress = false;
+          const pending = win.pendingAutoSaveData;
+          win.pendingAutoSaveData = null;
           if (pending) {
-            window.autoSaveTimeout = setTimeout(() => flushAutoSave(pending), 3000);
+            win.autoSaveTimeout = setTimeout(() => flushAutoSave(pending), 3000);
           }
         })
         .catch((error) => {
           logger.error('Auto-save failed:', error);
-          window.autoSaveInProgress = false;
+          win.autoSaveInProgress = false;
         });
     };
     
-    window.autoSaveTimeout = setTimeout(() => {
-      const saveData = window.pendingAutoSaveData || { stepKey: stepKeyToSave, data: dataToSave };
-      window.pendingAutoSaveData = null;
+    win.autoSaveTimeout = setTimeout(() => {
+      const saveData = win.pendingAutoSaveData || { stepKey: stepKeyToSave, data: dataToSave };
+      win.pendingAutoSaveData = null;
       flushAutoSave(saveData);
     }, 3000);
   };
@@ -537,20 +543,21 @@ export default function useFormAutoSave({
   // Backup periodic save in case debounce is skipped while a save is in flight
   useEffect(() => {
     const interval = setInterval(() => {
-      if (window.autoSaveInProgress || window.autoSaveTimeout) {
+      const win = autosaveWindow();
+      if (win.autoSaveInProgress || win.autoSaveTimeout) {
         return;
       }
       
       const stepKey = getStepKey(currentStep);
       const currentStepData = stepData[stepKey]?.data || {};
       if (Object.keys(currentStepData).length > 0) {
-        window.autoSaveInProgress = true;
+        win.autoSaveInProgress = true;
         saveStepDataDirectly(stepKey, currentStepData, true)
           .then(() => {
-            window.autoSaveInProgress = false;
+            win.autoSaveInProgress = false;
           })
           .catch(() => {
-            window.autoSaveInProgress = false;
+            win.autoSaveInProgress = false;
           });
       }
     }, 60000);

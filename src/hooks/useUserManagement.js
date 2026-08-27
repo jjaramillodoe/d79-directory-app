@@ -211,7 +211,7 @@ export default function useUserManagement({ session, toast }) {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const csv = e.target.result;
+      const csv = String(e.target?.result || '');
       const lines = csv.split('\n');
       const headers = lines[0].split(',').map((h) => h.trim().replace(/"/g, ''));
       const data = lines
