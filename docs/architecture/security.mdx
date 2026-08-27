@@ -12,6 +12,7 @@ export const config = {
     '/',
     '/about',
     '/login',
+    '/unavailable',
     '/dashboard',
     '/dashboard/:path*',
     '/form/:path*',
@@ -22,7 +23,7 @@ export const config = {
 };
 ```
 
-Public HTML (`/`, `/about`, `/login`) **is** in the matcher so a New York geo deny can cover them, but those paths skip the session redirect (otherwise `/login` would loop). `GET /api/public/*` returns immediately without a session.
+Public HTML (`/`, `/about`, `/login`) **is** in the matcher so a New York geo deny can cover them, but those paths skip the session redirect (otherwise `/login` would loop). `/unavailable` is also in the matcher so the proxy can let it through after a geo deny; it skips both the geo redirect and the session gate. `GET /api/public/*` returns immediately without a session.
 
 ## Request path
 
@@ -66,6 +67,7 @@ Vercel sets `x-vercel-ip-country` and `x-vercel-ip-country-region` on requests t
 - Allowed: **US** + region **NY** (New York State). Do **not** match `geo_city` to `"New York"` — Brooklyn, Queens, the Bronx, and Staten Island IPs usually geolocate to the borough name and would be locked out.
 - Missing headers (local `next start`) are treated as allowed.
 - App enforcement is off unless `GEO_RESTRICT=deny`. WAF log/challenge rules sit in front of the process; the proxy only hard-denies.
+- HTML denials redirect to **`/unavailable`** (branded page, no API calls). API denials stay **403 JSON**.
 
 See [Environment variables](/deploy/environment).
 
@@ -95,7 +97,7 @@ CSP `script-src` includes `'unsafe-inline'` (Next.js / Once UI). `'unsafe-eval'`
 | Surface | Indexing |
 | --- | --- |
 | `/`, `/about` | Allowed in `src/app/robots.js`; listed in `src/app/sitemap.js` |
-| `/dashboard`, `/admin`, `/form`, `/view`, `/login`, `/api` | `disallow` in robots.txt |
+| `/dashboard`, `/admin`, `/form`, `/view`, `/login`, `/api`, `/unavailable` | `disallow` in robots.txt |
 | Authenticated layouts | `src/lib/privateRobots.js` sets `robots: noindex, nofollow` on HTML |
 
 `metadataBase` follows `NEXTAUTH_URL`.

@@ -27,6 +27,7 @@ flowchart LR
 | --- | --- | --- |
 | `/`, `/about` | Public | Once UI portal shell (`PublicShell`) |
 | `/login` | Public | Google sign-in |
+| `/unavailable` | Public | Shown when `GEO_RESTRICT=deny` blocks an out-of-state HTML request |
 | `/dashboard` | Authenticated | Workspace; `?view=` switches comments, analytics, bulk, year setup |
 | `/form/new` | Level 4+ | Create a blank plan for the current (unarchived) year |
 | `/form/[id]` | Assigned users | Multi-step editor (`FormWorkspace`) |

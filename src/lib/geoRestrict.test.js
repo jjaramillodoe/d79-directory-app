@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { isAllowedNy, geoDecision, readGeo, geoRestrictMode } = require('./geoRestrict');
+const { isAllowedNy, geoDecision, readGeo, geoRestrictMode, geoDenyAction, isGeoErrorPage, GEO_DENY_MESSAGE, GEO_ERROR_PATH } = require('./geoRestrict');
 
 test('isAllowedNy: US + NY is allowed', () => {
   assert.equal(isAllowedNy({ country: 'US', region: 'NY' }), true);
@@ -57,4 +57,18 @@ test('Brooklyn is still New York State — city must not be the allow condition'
   const brooklyn = { country: 'US', region: 'NY', city: 'Brooklyn' };
   assert.equal(isAllowedNy(brooklyn), true);
   assert.equal(geoDecision(brooklyn, 'deny'), 'allow');
+});
+
+test('geoDenyAction: APIs stay JSON 403 so clients do not follow an HTML redirect', () => {
+  assert.deepEqual(geoDenyAction('/api/forms'), {
+    kind: 'json',
+    message: GEO_DENY_MESSAGE,
+  });
+  assert.deepEqual(geoDenyAction('/login'), { kind: 'redirect', path: GEO_ERROR_PATH });
+  assert.deepEqual(geoDenyAction('/dashboard'), { kind: 'redirect', path: GEO_ERROR_PATH });
+});
+
+test('isGeoErrorPage: only the branded unavailable route', () => {
+  assert.equal(isGeoErrorPage('/unavailable'), true);
+  assert.equal(isGeoErrorPage('/login'), false);
 });

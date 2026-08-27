@@ -5,7 +5,7 @@ import { isTokenDenied, rateLimit } from './lib/redis';
 // Admin level policy lives in its own module so a test can assert it stays exhaustive over
 // the filesystem. See the comment there for why the default is level 5.
 import { requiredAdminLevel } from './lib/adminRouteLevels';
-import { geoDecision, geoRestrictMode, readGeo } from './lib/geoRestrict';
+import { geoDecision, geoDenyAction, geoRestrictMode, isGeoErrorPage, readGeo } from './lib/geoRestrict';
 
 function isAuthed(token) {
   return Boolean(token?.userId) && token.isActive !== false && Number(token.level) >= 1;
@@ -31,25 +31,30 @@ function tooMany(retryAfter = 60) {
   );
 }
 
-function geoForbidden(pathname) {
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+function geoForbidden(pathname, request) {
+  const action = geoDenyAction(pathname);
+  if (action.kind === 'json') {
+    return NextResponse.json({ error: action.message }, { status: 403 });
   }
-  return new NextResponse('This application is only available from New York State.', {
-    status: 403,
-    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
-  });
+  const unavailable = new URL(action.path, request.url);
+  return NextResponse.redirect(unavailable);
 }
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const failClosed = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
 
+  // The geo error page must skip the deny below or a redirect to /unavailable
+  // would bounce forever. It is public: no session, no API calls.
+  if (isGeoErrorPage(pathname)) {
+    return NextResponse.next();
+  }
+
   // WAF Challenge/Log happen in front of this process. The proxy only enforces
   // a hard deny, and only when GEO_RESTRICT=deny, so a log-mode misconfig cannot
   // skip the session gate below by returning NextResponse.next() early.
   if (geoDecision(readGeo(request.headers), geoRestrictMode()) === 'deny') {
-    return geoForbidden(pathname);
+    return geoForbidden(pathname, request);
   }
 
   // Public pages are in the matcher so the NY gate above can cover them. They must
@@ -123,6 +128,7 @@ export const config = {
     '/',
     '/about',
     '/login',
+    '/unavailable',
     '/dashboard',
     '/dashboard/:path*',
     '/form/:path*',

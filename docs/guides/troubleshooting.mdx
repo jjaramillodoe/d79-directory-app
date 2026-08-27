@@ -47,8 +47,8 @@ Use this page when the UI loads but an API fails, Google sign-in bounces to `/lo
     Auth no longer throws at **import** time (that broke Vercel Preview when the secret was Production-only). NextAuth still needs `NEXTAUTH_SECRET` at **request** time. Set it on Production **and** Preview. Copy `.env.example` to `.env.local` and run `openssl rand -base64 32`.
   </Accordion>
 
-  <Accordion title="403 This application is only available from New York State">
-    `GEO_RESTRICT=deny` is on, or a WAF deny rule is live. Allowed geo is US + NY state, not city = New York. Local hosts without Vercel geo headers are allowed. Leave `GEO_RESTRICT` unset until Firewall logs look clean.
+  <Accordion title="This site is only available in New York">
+    `GEO_RESTRICT=deny` is on, or a WAF deny rule is live. HTML requests redirect to `/unavailable`. APIs return 403 JSON (`This application is only available from New York State.`). Allowed geo is US + NY state, not city = New York. Local hosts without Vercel geo headers are allowed. Leave `GEO_RESTRICT` unset until Firewall logs look clean.
   </Accordion>
 
   <Accordion title="Production build fails on page.js exports">

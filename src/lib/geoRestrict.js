@@ -18,6 +18,8 @@
 
 const ALLOWED_COUNTRY = 'US';
 const ALLOWED_REGION = 'NY';
+const GEO_ERROR_PATH = '/unavailable';
+const GEO_DENY_MESSAGE = 'This application is only available from New York State.';
 
 function normalize(value) {
   return String(value || '')
@@ -63,11 +65,33 @@ function geoRestrictMode(env = process.env) {
   return 'off';
 }
 
+function isGeoErrorPage(pathname) {
+  return pathname === GEO_ERROR_PATH;
+}
+
+/**
+ * HTML requests go to `/unavailable` so the user sees a branded page instead of
+ * plain text. APIs stay JSON 403 so clients and scripts do not follow a redirect
+ * into an HTML error document.
+ *
+ * @returns {{ kind: 'json', message: string } | { kind: 'redirect', path: string }}
+ */
+function geoDenyAction(pathname) {
+  if (String(pathname || '').startsWith('/api/')) {
+    return { kind: 'json', message: GEO_DENY_MESSAGE };
+  }
+  return { kind: 'redirect', path: GEO_ERROR_PATH };
+}
+
 module.exports = {
   ALLOWED_COUNTRY,
   ALLOWED_REGION,
+  GEO_ERROR_PATH,
+  GEO_DENY_MESSAGE,
   readGeo,
   isAllowedNy,
   geoDecision,
   geoRestrictMode,
+  isGeoErrorPage,
+  geoDenyAction,
 };
