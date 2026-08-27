@@ -10,6 +10,8 @@ export default function ImpersonationBanner() {
 
   const stop = async () => {
     await update({ stopImpersonation: true });
+    // Full reload so NextAuth re-reads the JWT after impersonation ends.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign('/dashboard');
   };
 

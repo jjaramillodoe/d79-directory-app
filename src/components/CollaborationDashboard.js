@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Users, 
   Share2, 
@@ -17,6 +18,7 @@ import Modal from './ui/Modal';
 import * as logger from '../lib/logger';
 
 const CollaborationDashboard = ({ user }) => {
+  const router = useRouter();
   const toast = useAppToast();
   const [schoolUsers, setSchoolUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,14 +45,7 @@ const CollaborationDashboard = ({ user }) => {
     permissions: 'edit'
   });
 
-  useEffect(() => {
-    if (user && user.level >= 4) {
-      fetchSchoolUsers();
-      fetchUserForms();
-    }
-  }, [user]);
-
-  const fetchSchoolUsers = async () => {
+  const fetchSchoolUsers = useCallback(async () => {
     try {
       setError(null);
       const response = await fetch('/api/admin/users/school');
@@ -69,9 +64,9 @@ const CollaborationDashboard = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUserForms = async () => {
+  const fetchUserForms = useCallback(async () => {
     try {
       const response = await fetch('/api/forms');
       if (response.ok) {
@@ -90,7 +85,14 @@ const CollaborationDashboard = ({ user }) => {
     } catch (error) {
       logger.error('Error fetching forms:', error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user && user.level >= 4) {
+      fetchSchoolUsers();
+      fetchUserForms();
+    }
+  }, [user, fetchSchoolUsers, fetchUserForms]);
 
   const handleShareForm = async (formId) => {
     // Reset state
@@ -315,7 +317,7 @@ const CollaborationDashboard = ({ user }) => {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => window.location.href = `/form/${form._id || form.id}`}
+                          onClick={() => router.push(`/form/${form._id || form.id}`)}
                           className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors flex items-center gap-2"
                         >
                           <Eye className="w-4 h-4" />
@@ -372,7 +374,7 @@ const CollaborationDashboard = ({ user }) => {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => window.location.href = `/form/${form._id || form.id}`}
+                          onClick={() => router.push(`/form/${form._id || form.id}`)}
                           className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center gap-2"
                         >
                           <Eye className="w-4 h-4" />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
   FileText, 
@@ -58,14 +58,7 @@ function AdminLogsPageContent() {
     }
   }, [session, status, router]);
 
-  // Fetch logs when component mounts or filters change
-  useEffect(() => {
-    if (session && session.user.level === 5) {
-      fetchLogs();
-    }
-  }, [session, filters, currentPage]);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -106,7 +99,13 @@ function AdminLogsPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, currentPage, pageSize]);
+
+  useEffect(() => {
+    if (session && session.user.level === 5) {
+      fetchLogs();
+    }
+  }, [session, fetchLogs]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));

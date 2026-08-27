@@ -194,8 +194,7 @@ function FormPageContent() {
       toast.error('Invalid form ID. Redirecting to dashboard…');
       setTimeout(() => router.push('/dashboard'), 500);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.email, formId]);
+  }, [session?.user?.email, formId, loadFormData, session, toast, router]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -209,12 +208,18 @@ function FormPageContent() {
   }, [session, status, router]);
 
   useEffect(() => {
+    const reminderRef = saveReminderTimeoutRef;
+    const countdownRef = redirectCountdownRef;
+    const timeoutRef = redirectTimeoutRef;
     return () => {
-      clearInterval(redirectCountdownRef.current);
-      clearTimeout(redirectTimeoutRef.current);
-      clearTimeout(saveReminderTimeoutRef.current);
-      if (window.autoSaveTimeout) {
-        clearTimeout(window.autoSaveTimeout);
+      clearInterval(countdownRef.current);
+      clearTimeout(timeoutRef.current);
+      clearTimeout(reminderRef.current);
+      if (typeof window !== 'undefined') {
+        const win = /** @type {any} */ (window);
+        if (win.autoSaveTimeout) {
+          clearTimeout(win.autoSaveTimeout);
+        }
       }
     };
   }, []);

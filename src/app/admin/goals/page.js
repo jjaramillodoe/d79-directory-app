@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   AlertCircle,
@@ -82,20 +82,7 @@ function AdminGoalsPageContent() {
     }
   }, [session, status, router]);
 
-  // Fetch analysis data
-  useEffect(() => {
-    if (session?.user?.level === 5) {
-      fetchAnalysis();
-    }
-  }, [session]);
-
-  useEffect(() => {
-    if (session?.user?.level === 5) {
-      fetchAnalysis();
-    }
-  }, [schoolYear]);
-
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -111,7 +98,13 @@ function AdminGoalsPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [schoolYear]);
+
+  useEffect(() => {
+    if (session?.user?.level === 5) {
+      fetchAnalysis();
+    }
+  }, [session?.user?.level, schoolYear, fetchAnalysis]);
 
   const handleAnalyze = async () => {
     setAnalyzing(true);

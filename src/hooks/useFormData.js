@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import * as logger from '../lib/logger';
 
 export default function useFormData({
@@ -33,7 +33,7 @@ export default function useFormData({
   const [duplicatedFrom, setDuplicatedFrom] = useState(null);
   const [comments, setComments] = useState([]);
 
-  const loadFormData = async ({ silent = false } = {}) => {
+  const loadFormData = useCallback(async ({ silent = false } = {}) => {
     if (!silent && !formHydratedRef.current) setLoading(true);
     try {
       const response = await fetch(`/api/forms/${formId}`, {
@@ -194,7 +194,7 @@ export default function useFormData({
     } finally {
       setLoading(false);
     }
-  };
+  }, [formId, router, toast, session, bankStepKeysRef, currentStepRef, setCurrentStep]);
 
   return {
     formHydratedRef,

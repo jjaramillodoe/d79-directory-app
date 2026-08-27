@@ -29,6 +29,8 @@ export default function RolePreviewCard() {
     setPending(email);
     try {
       await update({ impersonateEmail: email });
+      // Full reload so NextAuth re-reads the impersonated JWT.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign('/dashboard');
     } catch (error) {
       setPending('');

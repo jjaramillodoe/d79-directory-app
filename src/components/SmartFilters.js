@@ -129,7 +129,7 @@ const SmartFilters = ({ users, onFilteredUsers, onExportFiltered }) => {
   // Update parent component with filtered users
   useEffect(() => {
     onFilteredUsers(filteredUsers);
-  }, [filteredUsers]);
+  }, [filteredUsers, onFilteredUsers]);
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));

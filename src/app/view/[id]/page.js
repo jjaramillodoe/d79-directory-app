@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Column, Row, Text, Button, Card, Spinner, Tag } from '@once-ui-system/core';
 import useQuestionBank from '../../../hooks/useQuestionBank';
@@ -49,22 +49,7 @@ export default function FormViewPage() {
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [downloadingDOCX, setDownloadingDOCX] = useState(false);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, router]);
-
-  useEffect(() => {
-    if (status === 'loading' || !session) return;
-    let cancelled = false;
-    loadFormData(() => cancelled);
-    return () => {
-      cancelled = true;
-    };
-  }, [session, status, formId]);
-
-  const loadFormData = async (isCancelled = () => false) => {
+  const loadFormData = useCallback(async (isCancelled = /** @type {() => boolean} */ (() => false)) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/forms/${formId}`, {
@@ -87,9 +72,8 @@ export default function FormViewPage() {
       setFormData(data.form);
 
       const loadedStepData = data.form.formData || {};
-      const stepKeys = FORM_STEPS.length
-        ? FORM_STEPS.map((step) => step.key)
-        : FALLBACK_STEP_KEYS;
+      const bankKeys = (questionBank.steps || []).map((step) => step.key);
+      const stepKeys = bankKeys.length ? bankKeys : FALLBACK_STEP_KEYS;
 
       const initializedStepData = {};
       stepKeys.forEach((key) => {
@@ -120,7 +104,22 @@ export default function FormViewPage() {
     } finally {
       if (!isCancelled()) setLoading(false);
     }
-  };
+  }, [formId, questionBank]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === 'loading' || !session) return;
+    let cancelled = false;
+    loadFormData(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
+  }, [session, status, formId, loadFormData]);
 
   const handlePrint = () => {
     window.print();

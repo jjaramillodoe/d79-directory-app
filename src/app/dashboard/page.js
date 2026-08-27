@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import ScrollToTop from '../../components/ScrollToTop';
 import DeadlineReminders from '../../components/dashboard/DeadlineReminders';
@@ -33,6 +33,32 @@ const widgetFallback = () => (
     <Spinner size="m" />
   </Column>
 );
+
+function calculateStats(formsData) {
+  const total = formsData.length;
+  const draft = formsData.filter((f) => f.status === 'draft').length;
+  const submitted = formsData.filter((f) => f.status === 'submitted').length;
+  const underReview = formsData.filter((f) => f.status === 'under_review').length;
+  const approved = formsData.filter((f) => f.status === 'approved').length;
+  const rejected = formsData.filter((f) => f.status === 'rejected').length;
+
+  const totalProgress = formsData.reduce((sum, form) => {
+    const completedSteps = completedStepCount(form);
+    return sum + (completedSteps / 14) * 100;
+  }, 0);
+
+  const averageProgress = total > 0 ? Math.round(totalProgress / total) : 0;
+
+  return {
+    total,
+    draft,
+    submitted,
+    underReview,
+    approved,
+    rejected,
+    averageProgress,
+  };
+}
 
 const AnalyticsDashboard = dynamic(() => import('../../components/AnalyticsDashboard'), {
   loading: widgetFallback,
@@ -103,25 +129,8 @@ function DashboardPageContent() {
     }
   }, [status, router]);
 
-  useEffect(() => {
-    if (session?.user) {
-      let cancelled = false;
-      const isCancelled = () => cancelled;
-      fetchForms(isCancelled);
-      if (session.user.level < 4) {
-        fetchNotifications(isCancelled);
-      }
-      if (session.user.level === 4) {
-        fetchTimelineData(isCancelled);
-      }
-      return () => {
-        cancelled = true;
-      };
-    }
-  }, [session]);
-
   // isCancelled defaults to false so the refresh handlers can still call these directly.
-  const fetchForms = async (isCancelled = () => false) => {
+  const fetchForms = useCallback(async (isCancelled = /** @type {() => boolean} */ (() => false)) => {
     setLoading(true);
     try {
       const response = await fetch('/api/forms');
@@ -144,9 +153,9 @@ function DashboardPageContent() {
     } finally {
       if (!isCancelled()) setLoading(false);
     }
-  };
+  }, [session]);
 
-  const fetchNotifications = async (isCancelled = () => false) => {
+  const fetchNotifications = useCallback(async (isCancelled = /** @type {() => boolean} */ (() => false)) => {
     try {
       const response = await fetch('/api/notifications');
       if (response.ok) {
@@ -157,9 +166,9 @@ function DashboardPageContent() {
     } catch (error) {
       logger.error('Error fetching notifications:', error);
     }
-  };
+  }, []);
 
-  const fetchTimelineData = async (isCancelled = () => false) => {
+  const fetchTimelineData = useCallback(async (isCancelled = /** @type {() => boolean} */ (() => false)) => {
     if (!session?.user || session.user.level !== 4) return;
     
     setLoadingTimeline(true);
@@ -203,33 +212,24 @@ function DashboardPageContent() {
     } finally {
       if (!isCancelled()) setLoadingTimeline(false);
     }
-  };
+  }, [session]);
 
-  const calculateStats = (formsData) => {
-    const total = formsData.length;
-    const draft = formsData.filter(f => f.status === 'draft').length;
-    const submitted = formsData.filter(f => f.status === 'submitted').length;
-    const underReview = formsData.filter(f => f.status === 'under_review').length;
-    const approved = formsData.filter(f => f.status === 'approved').length;
-    const rejected = formsData.filter(f => f.status === 'rejected').length;
-    
-    const totalProgress = formsData.reduce((sum, form) => {
-      const completedSteps = completedStepCount(form);
-      return sum + (completedSteps / 14) * 100;
-    }, 0);
-    
-    const averageProgress = total > 0 ? Math.round(totalProgress / total) : 0;
-
-    return {
-      total,
-      draft,
-      submitted,
-      underReview,
-      approved,
-      rejected,
-      averageProgress
-    };
-  };
+  useEffect(() => {
+    if (session?.user) {
+      let cancelled = false;
+      const isCancelled = () => cancelled;
+      fetchForms(isCancelled);
+      if (session.user.level < 4) {
+        fetchNotifications(isCancelled);
+      }
+      if (session.user.level === 4) {
+        fetchTimelineData(isCancelled);
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [session, fetchForms, fetchNotifications, fetchTimelineData]);
 
   if (status === 'loading') {
     return (
