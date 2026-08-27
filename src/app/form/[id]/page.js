@@ -194,7 +194,11 @@ function FormPageContent() {
       toast.error('Invalid form ID. Redirecting to dashboard…');
       setTimeout(() => router.push('/dashboard'), 500);
     }
-  }, [session?.user?.email, formId, loadFormData, session, toast, router]);
+    // session/toast/router are only used for the invalid-id redirect. Including
+    // them re-runs this effect every render in tests (useRouter returns a new
+    // object) and was hanging the save/navigation suite inside `act()`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email, formId, loadFormData]);
 
   useEffect(() => {
     if (status === 'loading') return;

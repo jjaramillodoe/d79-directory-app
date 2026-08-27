@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import * as logger from '../lib/logger';
 
 export default function useFormData({
@@ -33,7 +33,23 @@ export default function useFormData({
   const [duplicatedFrom, setDuplicatedFrom] = useState(null);
   const [comments, setComments] = useState([]);
 
+  // toast/router/session identities change every render in tests (and toast did in
+  // production too). Keep the callback identity on `formId` and read the rest from
+  // refs so the page load effect does not refetch in a loop.
+  const sessionRef = useRef(session);
+  const toastRef = useRef(toast);
+  const routerRef = useRef(router);
+  useEffect(() => {
+    sessionRef.current = session;
+    toastRef.current = toast;
+    routerRef.current = router;
+  }, [session, toast, router]);
+
   const loadFormData = useCallback(async ({ silent = false } = {}) => {
+    const currentSession = sessionRef.current;
+    const currentToast = toastRef.current;
+    const currentRouter = routerRef.current;
+
     if (!silent && !formHydratedRef.current) setLoading(true);
     try {
       const response = await fetch(`/api/forms/${formId}`, {
@@ -50,8 +66,8 @@ export default function useFormData({
         
         // If it's a permission error, redirect to dashboard
         if (response.status === 403 || response.status === 401) {
-          toast.error(`Access denied: ${errorMessage}`);
-          router.push('/dashboard');
+          currentToast.error(`Access denied: ${errorMessage}`);
+          currentRouter.push('/dashboard');
           return;
         }
         
@@ -101,15 +117,15 @@ export default function useFormData({
         } else {
           // Fallback: Determine user permissions from form data
           const formUserId = data.form.userId?._id?.toString() || data.form.userId?.toString();
-          const currentUserId = session?.user?.id || session?.user?._id;
+          const currentUserId = currentSession?.user?.id || currentSession?.user?._id;
           const isOwner = formUserId === currentUserId;
-          const isSuperAdmin = session?.user?.level === 5;
-          const isPrincipal = session?.user?.level === 4;
-          const isLevel2 = session?.user?.level === 2;
-          const isAssistantPrincipal = session?.user?.level === 3;
+          const isSuperAdmin = currentSession?.user?.level === 5;
+          const isPrincipal = currentSession?.user?.level === 4;
+          const isLevel2 = currentSession?.user?.level === 2;
+          const isAssistantPrincipal = currentSession?.user?.level === 3;
           // Level 2 and Level 4 users can edit forms from their school
-          const isSameSchool = (isPrincipal || isLevel2) && session?.user?.schoolName && data.form.schoolName && 
-                             session.user.schoolName === data.form.schoolName;
+          const isSameSchool = (isPrincipal || isLevel2) && currentSession?.user?.schoolName && data.form.schoolName && 
+                             currentSession.user.schoolName === data.form.schoolName;
           
           let permissions = null;
           if (isOwner || isSuperAdmin) {
@@ -185,16 +201,16 @@ export default function useFormData({
       const errorMessage = error.message || 'Unknown error occurred';
       
       // Show error to user before redirecting
-      toast.error(`Failed to load form: ${errorMessage}`);
+      currentToast.error(`Failed to load form: ${errorMessage}`);
       
       // Redirect back to dashboard after showing error
       setTimeout(() => {
-        router.push('/dashboard');
+        currentRouter.push('/dashboard');
       }, 1000);
     } finally {
       setLoading(false);
     }
-  }, [formId, router, toast, session, bankStepKeysRef, currentStepRef, setCurrentStep]);
+  }, [formId, bankStepKeysRef, currentStepRef, setCurrentStep]);
 
   return {
     formHydratedRef,

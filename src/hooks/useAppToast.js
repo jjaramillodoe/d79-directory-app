@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useToast } from '@once-ui-system/core';
 
 export default function useAppToast() {
@@ -23,5 +23,8 @@ export default function useAppToast() {
     [addToast]
   );
 
-  return { success, error, warning };
+  return useMemo(
+    () => ({ success, error, warning }),
+    [success, error, warning]
+  );
 }
