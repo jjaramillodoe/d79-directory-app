@@ -5,6 +5,7 @@ import { isTokenDenied, rateLimit } from './lib/redis';
 // Admin level policy lives in its own module so a test can assert it stays exhaustive over
 // the filesystem. See the comment there for why the default is level 5.
 import { requiredAdminLevel } from './lib/adminRouteLevels';
+import { geoDecision, geoRestrictMode, readGeo } from './lib/geoRestrict';
 
 function isAuthed(token) {
   return Boolean(token?.userId) && token.isActive !== false && Number(token.level) >= 1;
@@ -30,9 +31,32 @@ function tooMany(retryAfter = 60) {
   );
 }
 
+function geoForbidden(pathname) {
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  return new NextResponse('This application is only available from New York State.', {
+    status: 403,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const failClosed = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+
+  // WAF Challenge/Log happen in front of this process. The proxy only enforces
+  // a hard deny, and only when GEO_RESTRICT=deny, so a log-mode misconfig cannot
+  // skip the session gate below by returning NextResponse.next() early.
+  if (geoDecision(readGeo(request.headers), geoRestrictMode()) === 'deny') {
+    return geoForbidden(pathname);
+  }
+
+  // Public pages are in the matcher so the NY gate above can cover them. They must
+  // skip the session redirect or /login loops into itself.
+  if (pathname === '/' || pathname === '/login' || pathname === '/about') {
+    return NextResponse.next();
+  }
 
   if (pathname.startsWith('/api/auth')) {
     if (request.method === 'POST') {
@@ -96,6 +120,9 @@ export async function proxy(request) {
 
 export const config = {
   matcher: [
+    '/',
+    '/about',
+    '/login',
     '/dashboard',
     '/dashboard/:path*',
     '/form/:path*',
