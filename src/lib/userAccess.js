@@ -1,6 +1,6 @@
 const connectDB = require('./mongodb');
 const User = require('../models/User');
-const { canManageTarget, schoolUserListFilter } = require('./canManageUser');
+const { canManageTarget, canAssignLevel, schoolUserListFilter } = require('./canManageUser');
 
 function jsonError(status, error, extraHeaders = {}) {
   return new Response(JSON.stringify({ error }), {
@@ -65,10 +65,9 @@ function bulkTargetFilter(actor, userIds = []) {
 
   const match = {
     _id: { $in: ids },
-    level: { $lt: actor.level },
   };
 
-  if (actor.level < 5) {
+  if (Number(actor.level) < 5) {
     match.schoolName = actor.schoolName;
     match.level = { $lte: 3 };
   }
@@ -83,6 +82,7 @@ module.exports = {
   productionFailClosed,
   requireAdminActor,
   canManageTarget,
+  canAssignLevel,
   schoolUserListFilter,
   schoolScopeFilter,
   bulkTargetFilter,

@@ -4,6 +4,7 @@ import { authOptions } from '../../../../../lib/auth';
 import connectDB from '../../../../../lib/mongodb';
 import User from '../../../../../models/User';
 import { reportError } from '../../../../../lib/reportError';
+import { canAssignLevel } from '../../../../../lib/canManageUser';
 
 // GET: school users for collaboration (relative imports — Turbopack does not resolve @/)
 export async function GET(request) {
@@ -92,19 +93,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Level must be between 1 and 5' }, { status: 400 });
     }
 
-    // Nobody may mint an account at or above their own level, so a Super Admin
-    // cannot create another Super Admin here.
-    if (newLevel >= Number(session.user.level)) {
+    if (!canAssignLevel(session.user, newLevel)) {
       return NextResponse.json(
-        { error: 'You cannot create a user at or above your own level.' },
-        { status: 403 }
-      );
-    }
-
-    // Level 4 (Principal) users can only create Level 1-3 users
-    if (Number(session.user.level) === 4 && newLevel > 3) {
-      return NextResponse.json(
-        { error: 'You can only create users with Level 1, 2, or 3. Only Super Admins can create Level 4 users.' },
+        {
+          error:
+            Number(session.user.level) < 5 && newLevel > 3
+              ? 'You can only create users with Level 1, 2, or 3. Only Super Admins can create Level 4 or 5 users.'
+              : 'You cannot create a user at or above your own level.',
+        },
         { status: 403 }
       );
     }

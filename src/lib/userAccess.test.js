@@ -70,11 +70,11 @@ test('schoolScopeFilter can target a different field', () => {
   assert.deepEqual(schoolScopeFilter({ level: 4, schoolName: 'PS 1' }, 'school'), { school: 'PS 1' });
 });
 
-test('bulkTargetFilter excludes the actor and caps by level', () => {
+test('bulkTargetFilter excludes the actor and lets Super Admin target any other account', () => {
   const actor = { _id: 'a1', level: 5, schoolName: 'PS 1' };
   const { ids, match } = bulkTargetFilter(actor, ['a1', 'b2', 'c3']);
   assert.deepEqual(ids, ['b2', 'c3'], 'the actor must not be able to bulk-act on themselves');
-  assert.deepEqual(match.level, { $lt: 5 });
+  assert.equal(match.level, undefined, 'super admins are not capped below their own level');
   assert.equal(match.schoolName, undefined, 'super admins are not school-scoped');
 });
 

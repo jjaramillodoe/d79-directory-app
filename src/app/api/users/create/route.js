@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/auth';
 import connectDB from '../../../../lib/mongodb';
 import User from '../../../../models/User';
-import { jsonError, requireAdminActor, enforceRateLimit } from '../../../../lib/userAccess';
+import { jsonError, requireAdminActor, canAssignLevel, enforceRateLimit } from '../../../../lib/userAccess';
 import { reportError } from '../../../../lib/reportError';
 import { logUserCreated } from '../../../../lib/auditLogger';
 
@@ -35,11 +35,13 @@ export async function POST(request) {
     if (!Number.isInteger(nextLevel) || nextLevel < 1 || nextLevel > 5) {
       return jsonError(400, 'Level must be between 1 and 5');
     }
-    if (nextLevel >= actor.level) {
-      return jsonError(403, 'Forbidden: You cannot create a user at or above your own level');
-    }
-    if (actor.level < 5 && nextLevel > 3) {
-      return jsonError(403, 'Forbidden: You can only create users with Level 1, 2, or 3');
+    if (!canAssignLevel(actor, nextLevel)) {
+      return jsonError(
+        403,
+        actor.level < 5 && nextLevel > 3
+          ? 'Forbidden: You can only create users with Level 1, 2, or 3'
+          : 'Forbidden: You cannot create a user at or above your own level'
+      );
     }
 
     const nextSchool = actor.level < 5

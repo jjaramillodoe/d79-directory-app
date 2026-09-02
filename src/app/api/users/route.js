@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/auth';
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/User';
-import { jsonError, requireAdminActor, canManageTarget, schoolUserListFilter, enforceRateLimit } from '../../../lib/userAccess';
+import { jsonError, requireAdminActor, canManageTarget, canAssignLevel, schoolUserListFilter, enforceRateLimit } from '../../../lib/userAccess';
 import { reportError } from '../../../lib/reportError';
 import { logUserUpdated, logUserDeleted } from '../../../lib/auditLogger';
 
@@ -41,7 +41,7 @@ export async function PUT(request) {
     if (auth.error) return auth.error;
     const { actor } = auth;
 
-    const { userId, level, schoolName, title, isActive } = await request.json();
+    const { userId, name, level, schoolName, title, isActive } = await request.json();
 
     if (!userId) {
       return jsonError(400, 'User ID is required');
@@ -57,16 +57,22 @@ export async function PUT(request) {
       return jsonError(403, 'Forbidden: You cannot modify this user');
     }
 
+    if (name !== undefined && !String(name).trim()) {
+      return jsonError(400, 'Name is required');
+    }
+
     if (level !== undefined) {
       const nextLevel = Number(level);
       if (!Number.isInteger(nextLevel) || nextLevel < 1 || nextLevel > 5) {
         return jsonError(400, 'Level must be between 1 and 5');
       }
-      if (nextLevel >= actor.level) {
-        return jsonError(403, 'Forbidden: You cannot assign a level at or above your own');
-      }
-      if (actor.level < 5 && nextLevel > 3) {
-        return jsonError(403, 'Forbidden: You can only assign users to Level 1, 2, or 3');
+      if (!canAssignLevel(actor, nextLevel)) {
+        return jsonError(
+          403,
+          actor.level < 5 && nextLevel > 3
+            ? 'Forbidden: You can only assign users to Level 1, 2, or 3'
+            : 'Forbidden: You cannot assign a level at or above your own'
+        );
       }
     }
 
@@ -77,6 +83,7 @@ export async function PUT(request) {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
+        ...(name !== undefined && { name: String(name).trim() }),
         ...(level !== undefined && { level: Number(level) }),
         ...(schoolName !== undefined && { schoolName }),
         ...(title !== undefined && { title }),
@@ -90,6 +97,9 @@ export async function PUT(request) {
     }
 
     const changes = {};
+    if (name !== undefined && String(name).trim() !== userBeforeUpdate.name) {
+      changes.name = `${userBeforeUpdate.name} -> ${String(name).trim()}`;
+    }
     if (level !== undefined && Number(level) !== userBeforeUpdate.level) {
       changes.level = `${userBeforeUpdate.level} -> ${level}`;
     }

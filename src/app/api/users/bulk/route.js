@@ -53,7 +53,7 @@ export async function POST(request) {
         result = await User.updateMany(
           {
             ...match,
-            level: actor.level < 5 ? { $lt: 3 } : { $lt: 4 },
+            level: actor.level < 5 ? { $lt: 3 } : { $lt: 5 },
           },
           { $inc: { level: 1 } }
         );

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { canManageTarget, schoolUserListFilter } = require('./canManageUser');
+const { canManageTarget, canAssignLevel, schoolUserListFilter } = require('./canManageUser');
 
 // This is the policy that decides who may edit or delete another account, so the cases below
 // are written as the escalation each one is meant to block rather than as line coverage.
@@ -49,8 +49,10 @@ test('canManageTarget: below level 5, management is confined to your own school'
   assert.equal(canManageTarget(schoolAdmin, ownSchoolStaff), true);
 });
 
-test('canManageTarget: a level-5 actor is not confined to one school', () => {
+test('canManageTarget: a Super Admin can update every other account, including Super Admins', () => {
+  const otherSuper = { _id: 's2', email: 'other@d79.nyc', level: 5, schoolName: 'District Office' };
   const anySchoolStaff = { _id: 'd1', email: 's@ps9.nyc', level: 4, schoolName: 'PS 9' };
+  assert.equal(canManageTarget(superAdmin, otherSuper), true);
   assert.equal(canManageTarget(superAdmin, anySchoolStaff), true);
 });
 
@@ -96,9 +98,24 @@ test('canManageTarget: an actor above level 5 is not school-scoped', () => {
 
 test('canManageTarget: string levels from form input compare numerically', () => {
   // Levels arriving as strings would make '10' < '4' under lexicographic comparison.
-  const actor = { id: 'f1', email: 'a@ps1.nyc', level: '5', schoolName: 'PS 1' };
+  const actor = { id: 'f1', email: 'a@ps1.nyc', level: '4', schoolName: 'PS 1' };
   const target = { _id: 'f2', email: 'b@ps1.nyc', level: '10', schoolName: 'PS 1' };
-  assert.equal(canManageTarget(actor, target), false, 'level 10 outranks level 5');
+  assert.equal(canManageTarget(actor, target), false, 'level 10 outranks level 4');
+});
+
+test('canAssignLevel: Super Admin may assign levels 1-5', () => {
+  for (const level of [1, 2, 3, 4, 5]) {
+    assert.equal(canAssignLevel(superAdmin, level), true);
+  }
+  assert.equal(canAssignLevel(superAdmin, 0), false);
+  assert.equal(canAssignLevel(superAdmin, 6), false);
+});
+
+test('canAssignLevel: principals may only assign 1-3', () => {
+  assert.equal(canAssignLevel(schoolAdmin, 1), true);
+  assert.equal(canAssignLevel(schoolAdmin, 3), true);
+  assert.equal(canAssignLevel(schoolAdmin, 4), false);
+  assert.equal(canAssignLevel(schoolAdmin, 5), false);
 });
 
 test('schoolUserListFilter: level 5 sees everyone', () => {

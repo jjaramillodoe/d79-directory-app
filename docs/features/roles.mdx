@@ -56,7 +56,8 @@ Levels are stored on `User.level` (1–5) and copied onto the JWT. Route handler
 `src/lib/canManageUser.js`:
 
 - Nobody manages themselves
-- Actor level must be **strictly higher** than the target
+- Super Admin (level 5) may list and update **every other account**, including other Super Admins, and may assign levels 1–5
+- Below Super Admin, actor level must be **strictly higher** than the target
 - Principals only see/manage people at **their school** with **level ≤ 3** (list filter is `level: { $lt: 5 }` so Super Admins at that school do not appear)
 - Principals cannot create or promote to level 4 or 5
 

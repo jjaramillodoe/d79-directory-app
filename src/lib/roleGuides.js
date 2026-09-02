@@ -91,7 +91,7 @@ export const ROLE_GUIDES = {
     summary: 'You can see every school. Use Preview school roles to check what a principal or AP sees.',
     can: [
       'View and review plans across the district',
-      'Manage users at any school, including principals',
+      'Manage users at any school, including other Super Admins',
       'Add, rename, and deactivate schools in Admin → Schools',
       'Publish questions, set goals, and run year setup',
       'Set table columns to Text or Dropdown, then convert copied text lists into table rows from Year setup',
