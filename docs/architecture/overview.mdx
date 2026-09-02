@@ -35,7 +35,7 @@ flowchart LR
 | `/view/[id]` | Authenticated with access | Read-only viewer |
 | `/admin/submissions` | Super Admin | District submissions + year-scoped export |
 | `/admin/users` | Level 4–5 | School users (4) or all users (5) |
-| `/admin/schools` | Super Admin | Create, rename, and deactivate schools |
+| `/admin/schools` | Super Admin | [School catalog](/features/schools): create, rename, and deactivate schools |
 | `/admin/questions` | Super Admin | Draft / publish question bank |
 | `/admin/goals` | Super Admin | Goals clustered by school year |
 | `/admin/system` | Super Admin | API, MongoDB, and Redis health |
@@ -57,6 +57,8 @@ flowchart LR
 | `src/lib/redis.js` | Shared Redis client, cache, SCAN, save rate limit |
 | `src/lib/systemHealth.js` | Super Admin health snapshot (API / Mongo / Redis) |
 | `src/lib/formAccess.js` | `canViewForm` / `canEditForm` (same-school levels 2–4) |
+| `src/lib/branding.js` | Product name (`APP_NAME`) for tabs, headers, and exports |
+| `src/lib/populateFormFromBank.js` | Super Admin seed empty shells or filled answers onto a plan |
 | `src/lib/schools.js` | Super Admin school catalog (create / rename / deactivate) |
 | `src/lib/auditLogger.js` | Writes `AuditLog` rows |
 | `src/lib/geoRestrict.js` | NY-state geo headers; `GEO_RESTRICT=deny` |

@@ -15,7 +15,8 @@ Unless noted, these routes require **level 5**. Status codes and limits: [Errors
 | `PUT` | `/api/school-year` | Super Admin. `{ schoolYear, archived?, questionBankVersion?, deadlines?, districtGoals? }` |
 | `POST` | `/api/admin/forms/rollover` | `{ sourceYear, targetYear, force? }` |
 | `GET` | `/api/admin/forms/export?schoolYear=2026-2027&format=csv` | `format`: `csv` \| `html` |
-| `GET` `POST` | `/api/admin/forms/populate-bank` | Super Admin. Seed a plan from a published question bank. `POST { formId, apply: true, fillAnswers?, force?, label?, version? }`. `fillAnswers: true` writes sample responses for every question. |
+| `GET` `POST` | `/api/admin/forms/populate-bank` | Super Admin. Seed a plan from a published question bank. `POST { formId, apply: true, fillAnswers?, force?, label?, version? }`. `fillAnswers: true` writes sample responses for every question. CLI: `src/scripts/populate-form-from-bank.js` (`--answers --apply --force`). |
+| `GET` `POST` | `/api/admin/forms/migrate-contacts` | Super Admin. Convert old textarea contact answers into table rows. `GET ?year=` lists questions. `POST { year, questionId, apply?, formIds? }` |
 
 ## Question bank
 

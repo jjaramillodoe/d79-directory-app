@@ -31,7 +31,8 @@ Outstanding captures:
 - `features/question-bank.mdx` — **Table columns editor**: /admin/questions table type with Staff contact preset, column blueprint textarea, and Text vs Dropdown per column.
 - `features/reviews-exports.mdx` — **Review comments**: a Super Admin comment on a step and the principal dashboard Comments view.
 - `features/role-preview.mdx` — **Preview school roles**: Add screenshot of the Overview Preview school roles card and the yellow impersonation banner.
-- `features/roles.mdx` — **Dashboard by role**: Super Admin sidebar (Submissions, Users, Goals, Question bank, System, Audit logs, Year setup) versus a principal sidebar.
+- `features/roles.mdx` — **Dashboard by role**: Super Admin sidebar (Forms, Users, Schools, Goals, Question bank, System, Audit logs, Year setup) versus a principal sidebar.
+- `features/schools.mdx` — **School catalog**: /admin/schools with add school, DBN, active toggle, and rename.
 - `features/school-plans.mdx` — **Step navigator**: FormWorkspace: school + year header, section list with completion checks, quiet question cards, sticky Previous/Next, and autosave status.
 - `features/school-plans.mdx` — **Table question**: a GenericFormStep table with staff-contact headers, Add row, and the Excel-paste hint.
 - `features/school-year.mdx` — **Year setup**: Super Admin Year setup (dashboard ?view=bulk-create) with rollover controls, archive toggle, deadlines, and pinned question-bank version.

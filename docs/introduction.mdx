@@ -24,8 +24,11 @@ The **Consolidated School & Youth Development Plan** is a Next.js App Router app
   <Card title="System health" icon="heart-pulse" href="/features/system">
     Super Admin snapshot of API, MongoDB size, Redis, and env checklist.
   </Card>
+  <Card title="School catalog" icon="school" href="/features/schools">
+    Super Admin list of schools for new plans and user dropdowns.
+  </Card>
   <Card title="Data models" icon="database" href="/database/models">
-    Mongoose schemas for users, plans, question bank, comments, and audit logs.
+    Mongoose schemas for users, schools, plans, question bank, comments, and audit logs.
   </Card>
   <Card title="Troubleshooting" icon="life-ring" href="/guides/troubleshooting">
     401/403/429, OAuth bounce, Redis, and role-preview FAQ.
@@ -35,6 +38,7 @@ The **Consolidated School & Youth Development Plan** is a Next.js App Router app
 ## What this system does
 
 - Stores one school plan per school per academic year (`YYYY-YYYY`).
+- Super Admins maintain a **[school catalog](/features/schools)** used by new-plan and user dropdowns.
 - Renders plan sections from a **published question bank** (`FormTemplate`), with `src/data/formQuestions.json` as fallback.
 - Copies **all answers** when duplicating a plan into the next year. Reviews, comments, and sharing are not copied.
 - Locks archived years as read-only after district rollover.
@@ -64,5 +68,5 @@ formData[stepKey].data[question.id]
 Do **not** rename question IDs, delete questions that already have answers, or rewrite `formData` during question-bank edits. Existing plans keep the `questionBankVersion` they were created with.
 
 <Callout type="warning">
-  Super Admin (level 5) is the only role that can publish the question bank, run year rollover, manage district-wide submissions/goals, add review comments, and open System health.
+  Super Admin (level 5) is the only role that can publish the question bank, run year rollover, manage the [school catalog](/features/schools), manage district-wide submissions/goals, add review comments, and open System health.
 </Callout>

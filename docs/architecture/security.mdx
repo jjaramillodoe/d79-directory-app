@@ -51,7 +51,7 @@ flowchart TD
     `/admin/questions`, `/admin/logs`, `/admin/system`, `/admin/goals`, `/admin/submissions`, `/admin/schools`
   </Accordion>
   <Accordion title="Super Admin API prefixes (level 5)">
-    `/api/admin/questions`, `/api/admin/health`, `/api/admin/goals`, `/api/admin/forms/rollover`, `/api/admin/forms/live`, `/api/admin/forms/export`, `/api/admin/schools`
+    `/api/admin/questions`, `/api/admin/health`, `/api/admin/goals`, `/api/admin/forms/rollover`, `/api/admin/forms/live`, `/api/admin/forms/export`, `/api/admin/forms/populate-bank`, `/api/admin/forms/migrate-contacts`, `/api/admin/schools`
   </Accordion>
   <Accordion title="School admin (level ≥ 4)">
     Other `/admin/*` and `/api/admin/*` paths (for example `/admin/users` and `/api/admin/users/school`) require a principal or Super Admin JWT. Route handlers still reload `User` from MongoDB for the real permission check.

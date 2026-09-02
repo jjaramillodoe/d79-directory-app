@@ -1,0 +1,28 @@
+---
+title: School catalog
+description: Super Admin list of District 79 schools used by new plans and user dropdowns.
+icon: school
+---
+
+Super Admin (level 5) maintains the school catalog at `/admin/schools`. Principals cannot add or rename schools. New-plan and user-management dropdowns read **active** catalog rows (`GET /api/admin/schools?active=1`).
+
+{/* Screenshot needed: School catalog — /admin/schools with add school, DBN, active toggle, and rename. */}
+
+The first Super Admin list load upserts the static District 79 names plus any names already on users or plans (`$setOnInsert` only — deactivated rows stay deactivated).
+
+## What rename and delete do
+
+| Action | Effect |
+| --- | --- |
+| Rename | Updates matching `User.schoolName` and `FormSubmission.schoolName` |
+| Delete | Refused while users or plans still use the name; deactivate instead (`isActive: false`) |
+| Deactivate | Drops the school from new-plan and user dropdowns; existing plans keep the name |
+
+## Routes
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` `POST` | `/api/admin/schools` | Super Admin. `POST` `{ name, dbn?, notes? }` (20 / 60s) |
+| `PATCH` `DELETE` | `/api/admin/schools/[id]` | Super Admin. Rename, DBN, notes, `isActive`; delete only if unused |
+
+Audit actions: `school_created`, `school_updated`, `school_deleted`. Model fields: [Database models](/database/models#school).

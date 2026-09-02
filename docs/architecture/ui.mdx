@@ -23,9 +23,11 @@ RootLayout
 
 `src/components/public/PublicShell.js` is a render-prop layout:
 
-- Header: logo, year tag, Home / About, Sign in or Open dashboard
+- Header: `BrandMark` (`src/components/BrandMark.js`) — District 79 plus the product name from `src/lib/branding.js` (`Consolidated School & Youth Development Plan`), year tag, Home / About, Sign in or Open dashboard
 - Main: page body
 - Footer: Javier Jaramillo and Veronica Pichardo mailto links, D79 + NYC Public Schools logos
+
+The same `APP_NAME` string is the browser tab title, login/home headings, PDF/Word headers, and district export titles. Do not hard-code a second product name in UI copy.
 
 Home and About fetch `/api/public/overview` through `usePublicOverview()`.
 
@@ -35,10 +37,12 @@ Home and About fetch `/api/public/overview` through `usePublicOverview()`.
 
 Sidebar groups depend on `session.user.level`:
 
-- **All:** Overview, How to (`/dashboard?view=howto`)
+- **All:** Overview, **Forms** (Super Admin → `/admin/submissions`; others → `/dashboard?view=forms`), How to (`/dashboard?view=howto`)
 - **Level ≥ 4:** Comments, analytics, notifications, bulk, performance, new form
-- **Level 4:** School users, collaboration
-- **Level 5:** Year setup (`/dashboard?view=bulk-create`), submissions, all users, goals, question bank, **System**, audit logs, [role preview](/features/role-preview) on Overview
+- **Level 4:** School forms, school users, collaboration
+- **Level 5:** Year setup (`/dashboard?view=bulk-create`), Forms, all users, **Schools**, goals, question bank, collaboration, **System**, audit logs, [role preview](/features/role-preview) on Overview
+
+The sidebar heading is District 79; the subtitle is the product name from `src/lib/branding.js`. Compact mode shows `D79`.
 
 ## Form editor hierarchy
 

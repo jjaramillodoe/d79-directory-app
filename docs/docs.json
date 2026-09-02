@@ -38,6 +38,7 @@
               "features/roles",
               "features/role-preview",
               "features/school-plans",
+              "features/schools",
               "features/school-year",
               "features/question-bank",
               "features/collaboration",

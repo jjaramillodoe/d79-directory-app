@@ -32,7 +32,7 @@ Table answers print as real grids in PDF and Word (`src/lib/exportTables.js`). D
 
 <Steps>
   <Step title="Export one plan (PDF or Word)">
-    Open `/form/[id]` or `/view/[id]` and use **PDF** / **Word**, or call `GET /api/forms/[id]/export/pdf` and `.../docx`. Anyone with [form view access](/features/roles) can download. Locked table columns (from the [question bank](/features/question-bank#how-to-configure-a-table-question)) are the headers in the file. Empty tables still show the header row so the paper copy can be filled in.
+    Open `/form/[id]` or `/view/[id]` and use **PDF** / **Word**, or call `GET /api/forms/[id]/export/pdf` and `.../docx`. Anyone with [form view access](/features/roles) can download. The file header uses the product name from `src/lib/branding.js`. Locked table columns (from the [question bank](/features/question-bank#how-to-configure-a-table-question)) are the headers in the file. Empty tables still show the header row so the paper copy can be filled in.
   </Step>
   <Step title="Export a submissions report CSV">
     Super Admin → `/admin/submissions` → generate report. That `POST`s `/api/admin/reports` with optional `startDate`, `endDate`, and `status`. Columns are school, principal, status, progress, review fields — not the inner table cells. Principals (level 4) hitting the same route only receive **their school** (`schoolScopeFilter`).

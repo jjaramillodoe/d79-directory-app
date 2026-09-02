@@ -22,6 +22,7 @@ The live form UI reads questions from a published `FormTemplate`. If Mongo has n
 | `PATCH` | `/api/admin/questions` | `{ stepKey, questionId, updates }` |
 | `POST` | `/api/admin/questions/add` | new question on a step |
 | `POST` | `/api/admin/questions/add-step` | new step |
+| `PATCH` | `/api/admin/questions/step` | `{ stepKey, updates }` |
 | `POST` | `/api/admin/questions/reorder` | step/question order |
 | `POST` | `/api/admin/questions/seed` | seed from JSON |
 | `POST` | `/api/admin/questions/publish` | `{ confirm: true, schoolYear? }` |
@@ -31,7 +32,27 @@ Authenticated users load the bank they should render:
 
 `GET /api/question-bank?schoolYear=2026-2027&version=3`
 
-Empty plans do not copy the question schema onto `FormSubmission`. Super Admin can seed `formData` from the published bank and pin `questionBankVersion` with `POST /api/admin/forms/populate-bank` `{ "formId", "apply": true, "label": "2026-2027 Draft v23" }`. Default is empty shells. Pass `"fillAnswers": true` to write sample responses for every question (checkboxes true, yes/no `yes`, tables with two rows) and mark steps complete. If the named version is still a draft clone of last published, the service uses the published bank. It refuses to overwrite a form that already has answers unless `"force": true`.
+## Seed a plan from the published bank
+
+Empty plans do not copy the question schema onto `FormSubmission`. Super Admin can seed `formData` and pin `questionBankVersion` with `POST /api/admin/forms/populate-bank`.
+
+| Body field | Meaning |
+| --- | --- |
+| `formId` | Target `FormSubmission` |
+| `apply` | `true` writes; omit or `false` for a dry-run preview |
+| `fillAnswers` | `false` (default): empty shells. `true`: sample answers for every question |
+| `force` | Overwrite a plan that already has answers |
+| `label` / `version` | e.g. `"2026-2027 Draft v23"`. If that version is still a draft clone of last published, the service uses the published bank |
+
+Filled seeds mark checkboxes `true`, yes/no `yes` (so gate questions stay visible), tables with two rows, and every step complete.
+
+```bash
+node src/scripts/populate-form-from-bank.js --form <formId>
+node src/scripts/populate-form-from-bank.js --form <formId> --answers
+node src/scripts/populate-form-from-bank.js --form <formId> --answers --apply --force
+```
+
+Dry-run is the default. `--answers` writes sample responses instead of empty shells. Load env with `node --env-file=.env.local` when running outside Next.
 
 ## How to configure a table question
 

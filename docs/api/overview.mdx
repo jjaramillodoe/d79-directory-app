@@ -25,6 +25,7 @@ Base URL (local): `http://localhost:3000`
   <Accordion title="Public and auth">
     - `GET` `POST` `/api/auth/[...nextauth]` — NextAuth (POST auth limited to 20 / 60s per IP)
     - `GET` `/api/public/overview` — unauthenticated district snapshot (Redis 60s)
+    - `POST` `/api/client-errors` — unauthenticated browser error sink (10 / 5 min per IP; no session so a broken login page can still report)
     - `GET` `/api/question-bank` — published or JSON bank for the editor
     - `GET` `POST` `PUT` `/api/school-year` — year settings; POST/PUT Super Admin
   </Accordion>
@@ -48,7 +49,7 @@ Base URL (local): `http://localhost:3000`
     Details: [Forms API](/api/forms).
   </Accordion>
   <Accordion title="Admin">
-    Question bank, rollover, live override, year CSV, goals, reports, timeline, health — [Admin API](/api/admin) and [System health](/features/system).
+    Question bank, school catalog, populate-bank, contact-table migrate, rollover, live override, year CSV, goals, reports, timeline, health — [Admin API](/api/admin) and [System health](/features/system).
   </Accordion>
   <Accordion title="Users">
     `GET` `PUT` `DELETE` `/api/users` · `POST` `/api/users/create` · `POST` `/api/users/bulk` · `POST` `/api/users/bulk-import` · `GET` `/api/users/audit-logs`
