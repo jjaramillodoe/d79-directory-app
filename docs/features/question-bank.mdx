@@ -31,6 +31,8 @@ Authenticated users load the bank they should render:
 
 `GET /api/question-bank?schoolYear=2026-2027&version=3`
 
+Empty plans do not copy the question schema onto `FormSubmission`. Super Admin can seed empty `formData` shells (preserving step and question order) and pin `questionBankVersion` with `POST /api/admin/forms/populate-bank` `{ "formId", "apply": true, "label": "2026-2027 Draft v23" }`. If the named version is still a draft clone of last published, the service uses the published bank. It refuses to overwrite a form that already has answers.
+
 ## How to configure a table question
 
 Set **Type** to **Table (Excel paste)** on the question. Staff then get a grid on the plan ([how they fill it](/features/school-plans#how-to-fill-a-table-question)). Column definitions live on `question.columns` and survive publish because `FormTemplate` questions are `strict: false`.

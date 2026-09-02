@@ -101,6 +101,7 @@ test('the district-wide admin routes all sit at level 5', () => {
     '/api/admin/forms/export',
     '/api/admin/forms/live',
     '/api/admin/forms/migrate-contacts',
+    '/api/admin/forms/populate-bank',
     '/api/admin/forms/rollover',
     '/api/admin/schools',
     '/api/admin/schools/[id]',
