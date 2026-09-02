@@ -580,7 +580,7 @@ export default function AdminSubmissionsPage() {
       sidebar={<DashboardSidebar session={session} userLevel={session.user.level} />}
       header={
         <DashboardHeader
-          title="Submissions"
+          title="Forms"
           description="Review and approve school plans across all schools"
           session={session}
           userLevel={session.user.level}

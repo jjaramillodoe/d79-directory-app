@@ -23,10 +23,12 @@ export default function FormsOverview({
   loading,
   isAdmin,
   userLevel,
+  showAll = false,
   onDuplicated,
 }) {
   const [formToDuplicate, setFormToDuplicate] = useState(null);
   const title = isAdmin ? 'All Form Submissions' : 'Your Form Submissions';
+  const visibleForms = showAll ? forms : forms.slice(0, 10);
 
   return (
     <DashboardSection title={title}>
@@ -75,7 +77,7 @@ export default function FormsOverview({
             </Text>
           </Row>
 
-          {forms.slice(0, 10).map((form) => {
+          {visibleForms.map((form) => {
             const completed = completedStepCount(form);
             const progress = stepProgressPercent(form, TOTAL_STEPS);
 
@@ -130,7 +132,7 @@ export default function FormsOverview({
             );
           })}
 
-          {forms.length > 10 && (
+          {!showAll && forms.length > 10 && (
             <Row fillWidth horizontal="center" paddingY="8">
               <Text variant="body-default-s" onBackground="neutral-weak">
                 Showing first 10 submissions.

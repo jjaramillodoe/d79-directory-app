@@ -386,7 +386,7 @@ export default function SubmissionsWorkspace({
         </Column>
       </Card>
 
-      <DashboardSection title={`Submissions (${filteredSubmissions.length})`}>
+      <DashboardSection title={`Forms (${filteredSubmissions.length})`}>
         {loading ? (
           <Column horizontal="center" vertical="center" paddingY="48" gap="16">
             <Spinner size="l" />

@@ -16,7 +16,6 @@ import {
 import {
   LayoutDashboard,
   FileText,
-  Search,
   Users,
   School,
   ClipboardList,
@@ -40,6 +39,12 @@ function getNavGroups(userLevel) {
       label: 'Workspace',
       items: [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard, href: '/dashboard' },
+        {
+          id: 'forms',
+          label: 'Forms',
+          icon: FileText,
+          href: userLevel === 5 ? '/admin/submissions' : '/dashboard?view=forms',
+        },
         { id: 'howto', label: 'How to', icon: CircleHelp, href: '/dashboard?view=howto' },
       ],
     },
@@ -69,7 +74,7 @@ function getNavGroups(userLevel) {
     groups.push({
       label: 'Admin',
       items: [
-        { id: 'submissions', label: 'Submissions', icon: Search, href: '/admin/submissions' },
+        { id: 'submissions', label: 'Forms', icon: FileText, href: '/admin/submissions' },
         { id: 'users', label: 'Users', icon: Users, href: '/admin/users' },
         { id: 'schools', label: 'Schools', icon: School, href: '/admin/schools' },
         { id: 'goals', label: 'Goals', icon: Target, href: '/admin/goals' },
@@ -85,6 +90,7 @@ function getNavGroups(userLevel) {
     groups.push({
       label: 'School',
       items: [
+        { id: 'school-forms', label: 'School forms', icon: FileText, href: '/dashboard?view=forms' },
         { id: 'users', label: 'School users', icon: Users, href: '/admin/users' },
         { id: 'collaboration', label: 'Collaboration', icon: Share2, href: '/admin/users?tab=collaboration' },
       ],

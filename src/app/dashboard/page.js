@@ -249,6 +249,7 @@ function DashboardPageContent() {
   const isOverview = activeView === 'overview';
   const viewTitles = {
     overview: 'Overview',
+    forms: 'Forms',
     howto: 'How to',
     comments: 'Comments',
     analytics: 'Analytics',
@@ -280,6 +281,8 @@ function DashboardPageContent() {
                     ? 'What you can do in this role, and what stays with someone else'
                     : activeView === 'bulk-create'
                     ? 'Set up the next school year, copy last year’s plans, or create blank drafts'
+                    : activeView === 'forms'
+                    ? 'Open a school plan to continue editing, compare years, or duplicate it'
                     : undefined
           }
           session={session}
@@ -527,12 +530,13 @@ function DashboardPageContent() {
           <ReviewNotifications notifications={notifications} />
         )}
 
-        {isOverview && (
+        {(isOverview || activeView === 'forms') && (
           <FormsOverview
             forms={forms}
             loading={loading}
             isAdmin={isAdmin}
             userLevel={userLevel}
+            showAll={activeView === 'forms'}
             onDuplicated={fetchForms}
           />
         )}

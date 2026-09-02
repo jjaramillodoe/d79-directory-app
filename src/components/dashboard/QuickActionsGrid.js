@@ -3,7 +3,6 @@
 import { Grid } from '@once-ui-system/core';
 import {
   FileText,
-  Search,
   Users,
   School,
   ClipboardList,
@@ -16,13 +15,22 @@ function getActions(userLevel, onBulkCreate) {
   const actions = [];
 
   if (userLevel >= 4) {
-    actions.push({
-      key: 'new-form',
-      title: 'Start New Form',
-      description: 'Begin a new school plan submission',
-      href: '/form/new',
-      icon: FileText,
-    });
+    actions.push(
+      {
+        key: 'forms',
+        title: 'Forms',
+        description: 'Open school plans to continue editing or review progress',
+        href: userLevel === 5 ? '/admin/submissions' : '/dashboard?view=forms',
+        icon: FileText,
+      },
+      {
+        key: 'new-form',
+        title: 'Start New Form',
+        description: 'Begin a new school plan submission',
+        href: '/form/new',
+        icon: FileText,
+      }
+    );
   }
 
   if (userLevel === 5) {
@@ -34,13 +42,6 @@ function getActions(userLevel, onBulkCreate) {
         onClick: onBulkCreate,
         icon: FileText,
         badge: 'Super Admin Only',
-      },
-      {
-        key: 'review-submissions',
-        title: 'Review All Submissions',
-        description: 'Review and approve all forms across all schools',
-        href: '/admin/submissions',
-        icon: Search,
       },
       {
         key: 'manage-users',
