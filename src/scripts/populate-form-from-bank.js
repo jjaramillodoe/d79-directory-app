@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 /**
- * Seed an empty plan's formData from a published question bank.
+ * Seed a plan from a published question bank.
  *
- *   node src/scripts/populate-form-from-bank.js
- *   node src/scripts/populate-form-from-bank.js --form 6a984358b830c20bfe0b9d8c --label "2026-2027 Draft v23"
+ * Empty shells (default):
+ *   node src/scripts/populate-form-from-bank.js --form 6a984358b830c20bfe0b9d8c
  *   node src/scripts/populate-form-from-bank.js --form 6a984358b830c20bfe0b9d8c --apply
+ *
+ * Fill every response:
+ *   node src/scripts/populate-form-from-bank.js --form 6a984358b830c20bfe0b9d8c --answers
+ *   node src/scripts/populate-form-from-bank.js --form 6a984358b830c20bfe0b9d8c --answers --apply --force
  */
 
 const connectDB = require('../lib/mongodb');
@@ -26,11 +30,18 @@ async function main() {
   const label = argValue('--label', '2026-2027 Draft v23');
   const apply = process.argv.includes('--apply');
   const force = process.argv.includes('--force');
+  const fillAnswers = process.argv.includes('--answers');
 
   await connectDB();
 
   if (!apply) {
-    const preview = await previewFormPopulation({ formId, version, schoolYear, label });
+    const preview = await previewFormPopulation({
+      formId,
+      version,
+      schoolYear,
+      label,
+      fillAnswers,
+    });
     console.log(JSON.stringify({ mode: 'dry-run', ...preview }, null, 2));
     process.exit(0);
   }
@@ -41,6 +52,7 @@ async function main() {
     schoolYear,
     label,
     force,
+    fillAnswers,
   });
   console.log(JSON.stringify({ mode: 'apply', ...result }, null, 2));
   process.exit(0);

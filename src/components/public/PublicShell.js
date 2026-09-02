@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { Column, Row, Text, Button, Tag } from '@once-ui-system/core';
 import { currentSchoolYear, previousSchoolYear } from '../../lib/schoolYear';
 import AppFooter from '../AppFooter';
+import BrandMark from '../BrandMark';
 
 export function usePublicOverview() {
   const fallbackYear = currentSchoolYear();
@@ -55,22 +55,7 @@ export default function PublicShell({ activePage = 'home', children }) {
         wrap
         style={{ borderBottom: '1px solid var(--neutral-alpha-medium)' }}
       >
-        <Row gap="12" vertical="center" href="/" as="a" style={{ textDecoration: 'none' }}>
-          <Image
-            src="/images/d79logo.png"
-            alt="District 79"
-            width={40}
-            height={40}
-            style={{ width: 'auto', height: 'auto', objectFit: 'contain' }}
-            priority
-          />
-          <Column gap="2">
-            <Text variant="label-strong-m">District 79 Directory</Text>
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              NYC Alternative Schools
-            </Text>
-          </Column>
-        </Row>
+        <BrandMark href="/" />
         <Row gap="8" vertical="center" wrap>
           <Tag size="s" variant="brand" label={overview.currentYear} />
           <Button size="s" variant={activePage === 'home' ? 'secondary' : 'tertiary'} href="/">

@@ -18,6 +18,7 @@ import useAppToast from '../hooks/useAppToast';
 import { TableDisplay } from './form-steps/TableAnswerField';
 import { isTableValue } from '../lib/tableAnswer';
 import { visibleQuestions, formatYesNo, isGateQuestion } from '../lib/questionBankUtils';
+import { APP_NAME } from '../lib/branding';
 import QuestionPrompt from './QuestionPrompt';
 import FormattedCopy from './FormattedCopy';
 import * as logger from '../lib/logger';
@@ -362,7 +363,7 @@ const FormViewer = ({ form }) => {
             <Award className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">
-            School Plan Form - Approved
+            {APP_NAME} — Approved
           </h1>
           <p className="text-blue-600 text-lg">
             Official Approved Submission

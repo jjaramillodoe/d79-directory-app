@@ -31,6 +31,7 @@ function optionsFrom(request, body = {}) {
     label: String(body.label || url.searchParams.get('label') || '2026-2027 Draft v23').trim(),
     requirePublished: body.requirePublished !== false,
     force: Boolean(body.force),
+    fillAnswers: Boolean(body.fillAnswers) || url.searchParams.get('fillAnswers') === 'true',
   };
 }
 
@@ -79,7 +80,9 @@ export async function POST(request) {
       action: 'form_edited',
       targetType: 'form',
       targetId: result.formId,
-      details: `Populated empty form from question bank v${result.questionBankVersion}`,
+      details: result.fillAnswers
+        ? `Seeded form responses from question bank v${result.questionBankVersion}`
+        : `Populated empty form from question bank v${result.questionBankVersion}`,
       metadata: result,
       request: auditRequest(request),
     });

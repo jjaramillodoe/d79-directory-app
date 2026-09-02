@@ -1,6 +1,6 @@
-# District 79 Directory docs (Mintlify)
+# Consolidated School & Youth Development Plan docs (Mintlify)
 
-This folder is a [Mintlify](https://mintlify.com) documentation site for the Consolidated School Plan app.
+This folder is a [Mintlify](https://mintlify.com) documentation site for the District 79 Consolidated School & Youth Development Plan app.
 
 ## Preview locally
 

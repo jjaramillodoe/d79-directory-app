@@ -1,13 +1,13 @@
-import Image from 'next/image';
 import { Column, Row, Heading, Text, Button, Card, Tag, Flex } from '@once-ui-system/core';
 import { MapPin } from 'lucide-react';
 import AppFooter from '../../components/AppFooter';
+import BrandMark from '../../components/BrandMark';
 import { metadata as noIndex } from '../../lib/privateRobots';
+import { APP_NAME, ORG_NAME } from '../../lib/branding';
 
 export const metadata = {
   title: 'Not available from this location',
-  description:
-    'District 79 Consolidated School Plans can only be opened from New York State.',
+  description: `${ORG_NAME} ${APP_NAME} can only be opened from New York State.`,
   robots: noIndex.robots,
 };
 
@@ -25,22 +25,7 @@ export default function UnavailablePage() {
         wrap
         style={{ borderBottom: '1px solid var(--neutral-alpha-medium)' }}
       >
-        <Row gap="12" vertical="center">
-          <Image
-            src="/images/d79logo.png"
-            alt="District 79"
-            width={40}
-            height={40}
-            style={{ width: 'auto', height: 'auto', objectFit: 'contain' }}
-            priority
-          />
-          <Column gap="2">
-            <Text variant="label-strong-m">District 79 Directory</Text>
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              NYC Alternative Schools
-            </Text>
-          </Column>
-        </Row>
+        <BrandMark />
         <Tag size="s" variant="neutral" label="New York State only" />
       </Row>
 
@@ -67,7 +52,7 @@ export default function UnavailablePage() {
                 onBackground="neutral-weak"
                 style={{ textAlign: 'center' }}
               >
-                District 79 Consolidated School Plans can only be opened from New York
+                {ORG_NAME} {APP_NAME} can only be opened from New York
                 State. That keeps student and staff data on school and DOE networks in
                 the state.
               </Text>

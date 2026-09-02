@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import PublicShell from '../../components/public/PublicShell';
 import formQuestionsData from '../../data/formQuestions.json';
+import { APP_NAME, ORG_NAME } from '../../lib/branding';
 
 const FEATURES = [
   {
@@ -141,7 +142,7 @@ export default function AboutPage() {
                   How the plan works
                 </Heading>
                 <Text variant="body-default-l" onBackground="neutral-weak">
-                  The District 79 Consolidated School Plan is the digital workspace for principals
+                  The {ORG_NAME} {APP_NAME} is the digital workspace for principals
                   and authorized staff. Copy {overview.previousYear} into a {overview.currentYear}{' '}
                   draft, update the required sections, compare years, then submit for review.
                 </Text>

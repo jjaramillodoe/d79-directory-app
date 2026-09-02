@@ -15,7 +15,7 @@ Unless noted, these routes require **level 5**. Status codes and limits: [Errors
 | `PUT` | `/api/school-year` | Super Admin. `{ schoolYear, archived?, questionBankVersion?, deadlines?, districtGoals? }` |
 | `POST` | `/api/admin/forms/rollover` | `{ sourceYear, targetYear, force? }` |
 | `GET` | `/api/admin/forms/export?schoolYear=2026-2027&format=csv` | `format`: `csv` \| `html` |
-| `GET` `POST` | `/api/admin/forms/populate-bank` | Super Admin. Seed an empty plan from a published question bank. `POST { formId, apply: true, label?, version? }` |
+| `GET` `POST` | `/api/admin/forms/populate-bank` | Super Admin. Seed a plan from a published question bank. `POST { formId, apply: true, fillAnswers?, force?, label?, version? }`. `fillAnswers: true` writes sample responses for every question. |
 
 ## Question bank
 

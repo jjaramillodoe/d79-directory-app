@@ -10,6 +10,7 @@ import { getPublishedOrJson } from '../../../../../lib/questionBank';
 import { COMPARE_STEPS, formatAnswer, getYearSettings } from '../../../../../lib/schoolYearSettings';
 import { enforceRateLimit } from '../../../../../lib/userAccess';
 import { reportError } from '../../../../../lib/reportError';
+import { APP_NAME, ORG_NAME } from '../../../../../lib/branding';
 
 function csvCell(value) {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -84,7 +85,7 @@ export async function GET(request) {
       });
 
       const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${schoolYear} school plans</title>
+<html><head><meta charset="utf-8"><title>${schoolYear} ${APP_NAME}</title>
 <style>
   body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
   h1 { margin-bottom: 8px; }
@@ -95,7 +96,7 @@ export async function GET(request) {
   th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; vertical-align: top; }
   th { background: #f3f4f6; width: 40%; }
 </style></head><body>
-  <h1>District 79 school plans · ${schoolYear}</h1>
+  <h1>${ORG_NAME} ${APP_NAME} · ${schoolYear}</h1>
   <p>${forms.length} school${forms.length === 1 ? '' : 's'}</p>
   ${sections.map((section) => `
     <section class="school">

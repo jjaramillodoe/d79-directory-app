@@ -8,29 +8,33 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeInit } from '@once-ui-system/core';
 import { style, dataStyle } from '../resources/once-ui.config';
 import ClientErrorReporter from '../components/ClientErrorReporter';
+import { APP_NAME, APP_TITLE, APP_DESCRIPTION, ORG_NAME } from '../lib/branding';
 
 export const metadata = {
-  title: 'District 79 - Consolidated School Plan',
-  description: 'School plans management system for the 2026-2027 academic year',
-  keywords: ['District 79', 'NYC Schools', 'School Plans', 'Education Management', 'NYC Public Schools', '2026-2027 Academic Year'],
+  title: {
+    default: APP_TITLE,
+    template: `%s · ${APP_NAME}`,
+  },
+  description: APP_DESCRIPTION,
+  keywords: [ORG_NAME, APP_NAME, 'NYC Schools', 'Youth Development', 'Education Management', 'NYC Public Schools'],
   authors: [{ name: 'Javier Jaramillo', url: 'https://district79.schoolplans.nyc' }],
   creator: 'Javier Jaramillo',
-  publisher: 'NYC District 79',
+  publisher: `NYC ${ORG_NAME}`,
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://district79.school'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'District 79 - Consolidated School Plan',
-    description: 'School plans management system for the 2026-2027 academic year. Copy last year’s answers, compare years, and submit the new plan.',
+    title: APP_TITLE,
+    description: APP_DESCRIPTION,
     url: process.env.NEXTAUTH_URL || 'https://district79.school',
-    siteName: 'District 79 Directory',
+    siteName: APP_NAME,
     images: [
       {
         url: '/images/d79logo.png',
         width: 1200,
         height: 630,
-        alt: 'District 79 Directory Logo',
+        alt: `${APP_NAME} logo`,
       },
     ],
     locale: 'en_US',
@@ -38,8 +42,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'District 79 - Consolidated School Plan',
-    description: 'School plans management system for the 2026-2027 academic year.',
+    title: APP_TITLE,
+    description: APP_DESCRIPTION,
     images: ['/images/d79logo.png'],
     creator: '@district79',
     site: '@district79',

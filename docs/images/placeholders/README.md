@@ -36,5 +36,5 @@ Outstanding captures:
 - `features/school-plans.mdx` — **Table question**: a GenericFormStep table with staff-contact headers, Add row, and the Excel-paste hint.
 - `features/school-year.mdx` — **Year setup**: Super Admin Year setup (dashboard ?view=bulk-create) with rollover controls, archive toggle, deadlines, and pinned question-bank version.
 - `features/system.mdx` — **System health**: /admin/system with API, MongoDB, and Redis cards, overall health tag, and Flush caches.
-- `introduction.mdx` — **District 79 Directory homepage**: the public portal homepage with year tags, Sign in, and the live district snapshot.
+- `introduction.mdx` — **homepage**: the public portal homepage with year tags, Sign in, and the live district snapshot.
 - `quickstart.mdx` — **Login screen**: the Google sign-in card and the @schools.nyc.gov restriction notice.

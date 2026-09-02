@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { APP_NAME } from '../lib/branding';
 
 /**
  * Last-resort boundary for crashes in the root layout itself.
@@ -35,7 +36,7 @@ export default function GlobalError({ error, reset }) {
         }}
       >
         <h1 style={{ fontSize: '1.5rem', fontWeight: 600, margin: 0 }}>
-          District 79 is temporarily unavailable
+          {APP_NAME} is temporarily unavailable
         </h1>
         <p style={{ margin: 0, maxWidth: '32rem', color: '#52525b', lineHeight: 1.5 }}>
           The application failed to start. Please try again in a moment. If this continues,

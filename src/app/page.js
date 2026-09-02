@@ -14,6 +14,7 @@ import {
 } from '@once-ui-system/core';
 import { Copy, Columns, Archive, Lock, School, Users, Landmark } from 'lucide-react';
 import PublicShell from '../components/public/PublicShell';
+import { APP_NAME } from '../lib/branding';
 
 const PLAN_SECTIONS = [
   'Table of Contents',
@@ -69,7 +70,7 @@ export default function Home() {
                     <Tag size="s" variant="neutral" label={`${overview.previousYear} archived`} />
                   </Row>
                   <Heading as="h1" variant="display-strong-l">
-                    Consolidated School Plans
+                    {APP_NAME}
                   </Heading>
                   <Text variant="body-default-l" onBackground="neutral-weak">
                     Principals copy last year’s answers into a {overview.currentYear} draft, compare

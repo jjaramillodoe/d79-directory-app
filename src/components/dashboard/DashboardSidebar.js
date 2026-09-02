@@ -13,6 +13,7 @@ import {
   Badge,
   useLayout,
 } from '@once-ui-system/core';
+import { APP_NAME, ORG_NAME } from '../../lib/branding';
 import {
   LayoutDashboard,
   FileText,
@@ -183,11 +184,11 @@ function DashboardSidebarInner({ session, userLevel }) {
     >
       <Column gap="4" horizontal={compact ? 'center' : 'start'}>
         <Heading variant={compact ? 'heading-strong-s' : 'heading-strong-m'}>
-          {compact ? 'D79' : 'District 79'}
+          {compact ? 'D79' : ORG_NAME}
         </Heading>
         {!compact && (
           <Text variant="label-default-s" onBackground="neutral-weak">
-            School plans
+            {APP_NAME}
           </Text>
         )}
       </Column>

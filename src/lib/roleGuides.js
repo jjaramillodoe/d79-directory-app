@@ -1,3 +1,5 @@
+import { APP_NAME } from './branding';
+
 export const ROLE_GUIDES = {
   1: {
     title: 'Viewer',
@@ -22,7 +24,7 @@ export const ROLE_GUIDES = {
     title: 'School staff',
     summary: 'You can work in your school’s plan. You cannot create a second plan or manage accounts.',
     can: [
-      'Open the Consolidated School Plan for your school',
+      `Open the ${APP_NAME} for your school`,
       'Edit answers — they autosave, and Save draft keeps the plan without submitting',
       'Paste Excel or Google Sheets tables into table questions without losing columns',
       'Compare last year with this year when the principal has both plans',

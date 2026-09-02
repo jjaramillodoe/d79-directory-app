@@ -11,6 +11,7 @@ import DashboardHeader from '../../../components/dashboard/DashboardHeader';
 import DashboardSection from '../../../components/dashboard/DashboardSection';
 import { currentSchoolYear, previousSchoolYear } from '../../../lib/schoolYear';
 import useSchoolOptions from '../../../hooks/useSchoolOptions';
+import { APP_NAME } from '../../../lib/branding';
 import * as logger from '../../../lib/logger';
 
 export default function NewFormPage() {
@@ -109,7 +110,7 @@ export default function NewFormPage() {
       header={
         <DashboardHeader
           title="New school plan"
-          description={`Start a ${thisYear} Consolidated School Plan`}
+          description={`Start a ${thisYear} ${APP_NAME}`}
           session={session}
           userLevel={session.user.level}
           actions={
@@ -239,7 +240,7 @@ export default function NewFormPage() {
               <Tag size="s" variant="brand" label={thisYear} />
             </Row>
             <Text variant="body-default-s" onBackground="neutral-weak">
-              This is the district Consolidated School Plan: child safety, attendance, temporary housing, counseling, and the other required sections for the year.
+              This is the district {APP_NAME}: child safety, attendance, temporary housing, counseling, and the other required sections for the year.
             </Text>
             <Column gap="16">
               <Column gap="4">

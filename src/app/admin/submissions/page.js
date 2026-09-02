@@ -13,6 +13,7 @@ import SubmissionsWorkspace from '../../../components/admin/SubmissionsWorkspace
 import DuplicateFormModal from '../../../components/admin/DuplicateFormModal';
 import { Spinner, Column, Row, Text, Heading, Button, Card } from '@once-ui-system/core';
 import { currentSchoolYear } from '../../../lib/schoolYear';
+import { APP_NAME } from '../../../lib/branding';
 import useAppToast from '../../../hooks/useAppToast';
 import Modal from '../../../components/ui/Modal';
 import * as logger from '../../../lib/logger';
@@ -333,7 +334,7 @@ export default function AdminSubmissionsPage() {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Submissions Report - ${schoolYearFilter === 'all' ? 'All years' : schoolYearFilter} - ${currentDate}</title>
+          <title>${APP_NAME} — Submissions Report - ${schoolYearFilter === 'all' ? 'All years' : schoolYearFilter} - ${currentDate}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { color: #1f2937; text-align: center; margin-bottom: 30px; }
@@ -349,7 +350,7 @@ export default function AdminSubmissionsPage() {
           </style>
         </head>
         <body>
-          <h1>School Plan Submissions Report</h1>
+          <h1>${APP_NAME} — Submissions Report</h1>
           <p><strong>Generated:</strong> ${currentDate}</p>
           <p><strong>Total Submissions:</strong> ${filteredSubmissions.length}</p>
           
@@ -389,7 +390,7 @@ export default function AdminSubmissionsPage() {
           </table>
           
           <div class="footer">
-            <p>Report generated from School Plan Management System</p>
+            <p>Report generated from ${APP_NAME}</p>
           </div>
         </body>
         </html>

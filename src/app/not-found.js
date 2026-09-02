@@ -1,7 +1,7 @@
 import { Button, Column, Heading, Row, Text } from '@once-ui-system/core';
 
 export const metadata = {
-  title: 'Page not found - District 79',
+  title: 'Page not found',
 };
 
 export default function NotFound() {

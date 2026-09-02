@@ -1,4 +1,4 @@
-# District 79 Directory - School Plans Management System
+# District 79 Consolidated School & Youth Development Plan
 
 A comprehensive Next.js application for managing school plan submissions in NYC District 79, with MongoDB authentication and Google OAuth integration.
 

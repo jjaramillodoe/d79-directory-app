@@ -11,7 +11,8 @@ const {
   hasUnpublishedChanges,
   summarizeTemplate,
 } = require('./questionBankUtils');
-const { normalizeTable } = require('./tableAnswer');
+const { normalizeTable, normalizeColumnDefs } = require('./tableAnswer');
+const { buildCompletedSteps } = require('./stepSave');
 
 const LOG_PREFIX = '[populate-form-from-bank]';
 
@@ -37,6 +38,133 @@ function defaultAnswerForQuestion(question) {
     return normalizeTable({}, { columns: question.columns });
   }
   return '';
+}
+
+function headerKey(header) {
+  return String(header || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+const SEED_STAFF = [
+  {
+    first: 'Jordan',
+    last: 'Rivera',
+    title: 'Coordinator',
+    email: 'jordan.rivera@schools.nyc.gov',
+    phone: '718-555-0142',
+  },
+  {
+    first: 'Casey',
+    last: 'Chen',
+    title: 'Assistant Principal',
+    email: 'casey.chen@schools.nyc.gov',
+    phone: '718-555-0143',
+  },
+];
+
+function pickSelectOption(options, matcher) {
+  const list = Array.isArray(options) ? options.filter(Boolean) : [];
+  if (!list.length) return '';
+  const hit = matcher ? list.find((option) => matcher.test(String(option))) : null;
+  return hit || list[0];
+}
+
+function seedCellForColumn(column, ctx = {}, rowIndex = 0) {
+  const key = headerKey(column?.header);
+  const person = SEED_STAFF[rowIndex % SEED_STAFF.length];
+  const year = ctx.schoolYear || '2026-2027';
+  const school = ctx.schoolName || 'School';
+
+  if (column?.type === 'select' && column.options?.length) {
+    if (key.includes('certified')) return pickSelectOption(column.options, /^yes$/i);
+    if (key.includes('grade')) return pickSelectOption(column.options, /^all$/i);
+    if (key.includes('timeline')) return pickSelectOption(column.options, /september to june/i);
+    return column.options[0];
+  }
+
+  if (key === 'name' || key.includes('first name')) return person.first;
+  if (key.includes('last name') || key === 'lastname') return person.last;
+  if (key.includes('title') || key.includes('member role')) return person.title;
+  if (key.includes('email')) return person.email;
+  if (key.includes('phone') || key.includes('telephone')) return person.phone;
+  if (key.includes('certified') || key.includes('certfied')) return 'Yes';
+  if (key.includes('training date') || key === 'date') return '10/15/2026';
+  if (key.includes('start time')) return '8:00 AM';
+  if (key.includes('end time')) return '3:00 PM';
+  if (key === 'time') return '3:00 PM';
+  if (key.includes('room')) return '201';
+  if (key.includes('program')) return `${school} advisory`;
+  if (key.includes('grade')) return 'All';
+  if (key.includes('timeline')) return 'September to June';
+  if (key.includes('days')) return 'Mon–Thu';
+  if (key.includes('escort') || key.includes('instructor')) return `${person.first} ${person.last}`;
+  if (key.includes('attendance committee')) return 'Yes';
+  if (key.includes('training')) return "Chancellor's Regulation training";
+  if (key.includes('notification')) return 'Email blast and morning PA';
+  if (key.includes('personal category') || key.includes('person category')) return 'Staff and families';
+  if (key.includes('technique')) return 'Verbal de-escalation';
+  if (key.includes('notes')) return `Seeded ${year} response`;
+  return `Seeded ${year}`;
+}
+
+function seededText(question, ctx = {}) {
+  const year = ctx.schoolYear || '2026-2027';
+  const school = ctx.schoolName || 'School';
+  const principal = ctx.principalName || 'the principal';
+  const title = String(question?.title || question?.id || 'question')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 140);
+  return `SEED ${year} — ${school}: ${title}. ${principal} confirms this ${year} response is in place for students and families.`;
+}
+
+function seededAnswerForQuestion(question, ctx = {}) {
+  const type = String(question?.type || 'textarea');
+  if (type === 'checkbox') return true;
+  if (type === 'yesno') return 'yes';
+  if (type === 'select') {
+    const options = Array.isArray(question?.options) ? question.options : [];
+    return pickSelectOption(options) || 'Yes';
+  }
+  if (type === 'table') {
+    const columns = normalizeColumnDefs(question.columns);
+    const rows = [0, 1].map((rowIndex) =>
+      columns.map((column) => seedCellForColumn(column, ctx, rowIndex))
+    );
+    return normalizeTable({ headers: columns.map((column) => column.header), rows }, { columns: question.columns });
+  }
+  if (type === 'text') {
+    const title = String(question?.title || '').toLowerCase();
+    if (title.includes('how many') || title.includes('total number') || title.includes('participate')) {
+      return '24';
+    }
+    return `SEED ${ctx.schoolYear || '2026-2027'} — ${ctx.schoolName || 'School'}`;
+  }
+  return seededText(question, ctx);
+}
+
+function seededFormDataFromSteps(steps, ctx = {}) {
+  const ordered = cloneSteps(steps);
+  assertBankSchema(ordered);
+  const now = new Date();
+  const formData = {};
+  ordered.forEach((step) => {
+    const data = {};
+    sortQuestions(step.questions).forEach((question) => {
+      data[question.id] = seededAnswerForQuestion(question, ctx);
+    });
+    formData[step.key] = {
+      completed: true,
+      data,
+      startedAt: now,
+      lastUpdated: now,
+      timeSpent: 0,
+      revisionCount: 1,
+    };
+  });
+  return formData;
 }
 
 function assertBankSchema(steps) {
@@ -238,12 +366,20 @@ async function withMongoTransaction(work) {
   }
 }
 
+function nextFormDataFromBank(steps, { fillAnswers = false, schoolName, schoolYear, principalName } = {}) {
+  if (fillAnswers) {
+    return seededFormDataFromSteps(steps, { schoolName, schoolYear, principalName });
+  }
+  return emptyFormDataFromSteps(steps);
+}
+
 async function previewFormPopulation({
   formId,
   version = 23,
   schoolYear = '2026-2027',
   label = '2026-2027 Draft v23',
   requirePublished = true,
+  fillAnswers = false,
 } = {}) {
   if (!formId || !mongoose.Types.ObjectId.isValid(String(formId))) {
     throw httpError(400, 'A valid form id is required');
@@ -259,13 +395,21 @@ async function previewFormPopulation({
   const resolved = await resolveSourceTemplate({ version, schoolYear, label, requirePublished });
   const empty = formIsEmpty(form.formData);
   const existingAnswers = collectAnswers(form.formData);
-  const nextFormData = emptyFormDataFromSteps(resolved.source.steps);
+  const nextFormData = nextFormDataFromBank(resolved.source.steps, {
+    fillAnswers,
+    schoolName: form.schoolName,
+    schoolYear: form.schoolYear || resolved.source.schoolYear || schoolYear,
+    principalName: form.principalName,
+  });
+  const nextAnswers = collectAnswers(nextFormData);
 
   logPopulate('preview.ok', {
     formId: String(form._id),
     schoolName: form.schoolName,
     empty,
+    fillAnswers,
     existingAnswerCount: existingAnswers.length,
+    nextAnswerCount: nextAnswers.length,
     currentBankVersion: form.questionBankVersion || null,
     nextBankVersion: resolved.source.version,
     bank: bankSummary(resolved.source.steps),
@@ -291,9 +435,11 @@ async function previewFormPopulation({
       summary: summarizeTemplate(resolved.source),
       bank: bankSummary(resolved.source.steps),
     },
+    fillAnswers,
     wouldWrite: empty,
     nextQuestionBankVersion: resolved.source.version,
     nextStepKeys: Object.keys(nextFormData),
+    nextAnswerCount: nextAnswers.length,
   };
 }
 
@@ -304,6 +450,7 @@ async function populateEmptyFormFromBank({
   label = '2026-2027 Draft v23',
   requirePublished = true,
   force = false,
+  fillAnswers = false,
   actor = null,
 } = {}) {
   if (!formId || !mongoose.Types.ObjectId.isValid(String(formId))) {
@@ -317,6 +464,7 @@ async function populateEmptyFormFromBank({
     label,
     requirePublished,
     force,
+    fillAnswers,
     actorEmail: actor?.email || null,
   });
 
@@ -343,8 +491,14 @@ async function populateEmptyFormFromBank({
       );
     }
 
-    const nextFormData = emptyFormDataFromSteps(resolved.source.steps);
+    const nextFormData = nextFormDataFromBank(resolved.source.steps, {
+      fillAnswers,
+      schoolName: form.schoolName,
+      schoolYear: form.schoolYear || resolved.source.schoolYear || schoolYear,
+      principalName: form.principalName,
+    });
     const previousVersion = form.questionBankVersion || null;
+    const nextAnswers = collectAnswers(nextFormData);
 
     form.formData = nextFormData;
     form.questionBankVersion = resolved.source.version;
@@ -352,9 +506,10 @@ async function populateEmptyFormFromBank({
       form.schoolYear = resolved.source.schoolYear || schoolYear;
     }
     form.currentStep = 1;
-    form.completedSteps = [];
+    form.completedSteps = fillAnswers ? buildCompletedSteps(nextFormData, resolved.source.steps) : [];
     form.needsUpdate = [];
     form.markModified('formData');
+    form.markModified('completedSteps');
     form.updatedAt = new Date();
     await form.save({ session: dbSession });
 
@@ -366,11 +521,14 @@ async function populateEmptyFormFromBank({
       sourceStatus: resolved.source.status,
       requestedVersion: resolved.requested.version,
       resolvedFromDraft: resolved.resolvedFromDraft,
+      fillAnswers,
       stepCount: Object.keys(nextFormData).length,
       questionCount: Object.values(nextFormData).reduce(
         (sum, step) => sum + Object.keys(step.data || {}).length,
         0
       ),
+      answerCount: nextAnswers.length,
+      completedSteps: form.completedSteps,
       stepKeys: Object.keys(nextFormData),
       overwrittenAnswers: force && !empty ? existingAnswers.length : 0,
     };
@@ -392,6 +550,9 @@ module.exports = {
   LOG_PREFIX,
   parseBankLabel,
   defaultAnswerForQuestion,
+  seedCellForColumn,
+  seededAnswerForQuestion,
+  seededFormDataFromSteps,
   assertBankSchema,
   emptyFormDataFromSteps,
   formIsEmpty,

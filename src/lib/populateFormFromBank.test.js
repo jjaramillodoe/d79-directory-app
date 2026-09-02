@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const {
   parseBankLabel,
   defaultAnswerForQuestion,
+  seededAnswerForQuestion,
+  seededFormDataFromSteps,
   assertBankSchema,
   emptyFormDataFromSteps,
   formIsEmpty,
@@ -80,4 +82,45 @@ test('formIsEmpty ignores empty shells and empty tables', () => {
   seeded.childAbuseIntervention.data.q2 = 'filled';
   assert.equal(formIsEmpty(seeded), false);
   assert.deepEqual(collectAnswers(seeded), [{ stepKey: 'childAbuseIntervention', questionId: 'q2' }]);
+});
+
+test('seededAnswerForQuestion fills every type with a meaningful value', () => {
+  const ctx = { schoolName: 'Pathway to Graduation Main', schoolYear: '2026-2027', principalName: 'Javier Jaramillo' };
+  assert.equal(seededAnswerForQuestion({ type: 'checkbox' }, ctx), true);
+  assert.equal(seededAnswerForQuestion({ type: 'yesno' }, ctx), 'yes');
+  assert.equal(seededAnswerForQuestion({ type: 'text', title: 'Total number of students' }, ctx), '24');
+  assert.match(seededAnswerForQuestion({ type: 'textarea', title: 'Describe outreach' }, ctx), /SEED 2026-2027/);
+
+  const table = seededAnswerForQuestion(
+    {
+      type: 'table',
+      columns: [
+        { header: 'First Name', type: 'text' },
+        { header: 'LastName', type: 'text' },
+        { header: 'Certified', type: 'select', options: ['Yes', 'No'] },
+        { header: 'Grade Level', type: 'select', options: ['All', '9'] },
+      ],
+    },
+    ctx
+  );
+  assert.deepEqual(table.headers, ['First Name', 'LastName', 'Certified', 'Grade Level']);
+  assert.equal(table.rows.length, 2);
+  assert.equal(table.rows[0][0], 'Jordan');
+  assert.equal(table.rows[0][1], 'Rivera');
+  assert.equal(table.rows[0][2], 'Yes');
+  assert.equal(table.rows[0][3], 'All');
+  assert.equal(table.rows[1][0], 'Casey');
+});
+
+test('seededFormDataFromSteps marks every step complete and every question answered', () => {
+  const formData = seededFormDataFromSteps(SAMPLE_STEPS, {
+    schoolName: 'Pathway to Graduation Main',
+    schoolYear: '2026-2027',
+  });
+  assert.equal(formData.tableOfContents.completed, true);
+  assert.equal(formData.tableOfContents.data.toc, true);
+  assert.equal(formData.childAbuseIntervention.data.q1, true);
+  assert.match(formData.childAbuseIntervention.data.q2, /SEED 2026-2027/);
+  assert.equal(formIsEmpty(formData), false);
+  assert.equal(collectAnswers(formData).length, 3);
 });

@@ -16,6 +16,7 @@ import path from 'path';
 import fs from 'fs';
 import { reportError } from '../../../../../../lib/reportError';
 import { inferSchoolYear } from '../../../../../../lib/schoolYear';
+import { APP_NAME } from '../../../../../../lib/branding';
 
 // Helper function to load form questions
 async function loadFormQuestions(form) {
@@ -146,7 +147,16 @@ export async function GET(request, { params }) {
     // Title
     children.push(
       new Paragraph({
-        text: `${form.schoolName} - Consolidated Plan`,
+        text: APP_NAME,
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 80 },
+      })
+    );
+
+    children.push(
+      new Paragraph({
+        text: form.schoolName || 'School',
         heading: HeadingLevel.TITLE,
         alignment: AlignmentType.CENTER,
         spacing: { after: 200 },

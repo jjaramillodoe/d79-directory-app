@@ -16,6 +16,7 @@ import path from 'path';
 import fs from 'fs';
 import { reportError } from '../../../../../../lib/reportError';
 import { inferSchoolYear } from '../../../../../../lib/schoolYear';
+import { APP_NAME } from '../../../../../../lib/branding';
 
 // The one deliberate `require` left in the API routes, which are otherwise all ESM imports.
 // It cannot become an `import` for two reasons: the CJS entry has to be addressed directly
@@ -217,7 +218,8 @@ export async function GET(request, { params }) {
       const safePrincipalName = String(form.principalName || 'N/A').replace(/[^\x20-\x7E]/g, '');
       const safeStatus = String(form.status || 'Draft').replace(/[^\x20-\x7E]/g, '');
       
-      doc.fontSize(20).text(`${safeSchoolName} - Consolidated Plan`, { align: 'center' });
+      doc.fontSize(14).text(APP_NAME, { align: 'center' });
+      doc.fontSize(20).text(safeSchoolName, { align: 'center' });
       doc.moveDown();
       doc.fontSize(12).text(`Principal: ${safePrincipalName}`, { align: 'center' });
       doc.fontSize(10).text(`Status: ${safeStatus}`, { align: 'center' });

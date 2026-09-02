@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
-import Image from 'next/image';
 import {
   Column,
   Row,
@@ -18,7 +17,9 @@ import {
 } from '@once-ui-system/core';
 import { Copy, Columns, Archive, Lock, Shield } from 'lucide-react';
 import AppFooter from '../../components/AppFooter';
+import BrandMark from '../../components/BrandMark';
 import { usePublicOverview } from '../../components/public/PublicShell';
+import { APP_NAME } from '../../lib/branding';
 
 function safeCallbackUrl(value) {
   if (!value || typeof value !== 'string') return '/dashboard';
@@ -144,22 +145,7 @@ export default function LoginPage() {
         wrap
         style={{ borderBottom: '1px solid var(--neutral-alpha-medium)' }}
       >
-        <Row gap="12" vertical="center" href="/" as="a" style={{ textDecoration: 'none' }}>
-          <Image
-            src="/images/d79logo.png"
-            alt="District 79"
-            width={40}
-            height={40}
-            style={{ width: 'auto', height: 'auto', objectFit: 'contain' }}
-            priority
-          />
-          <Column gap="2">
-            <Text variant="label-strong-m">District 79 Directory</Text>
-            <Text variant="label-default-s" onBackground="neutral-weak">
-              NYC Alternative Schools
-            </Text>
-          </Column>
-        </Row>
+        <BrandMark href="/" />
         <Row gap="8" vertical="center" wrap>
           <Tag size="s" variant="brand" label={overview.currentYear} />
           <Button size="s" variant="tertiary" href="/">
@@ -180,7 +166,7 @@ export default function LoginPage() {
                 <Tag size="s" variant="neutral" label={`${overview.previousYear} archived`} />
               </Row>
               <Heading as="h1" variant="display-strong-l">
-                Consolidated School Plan
+                {APP_NAME}
               </Heading>
               <Text variant="body-default-l" onBackground="neutral-weak">
                 Sign in with your NYC Public Schools account to copy last year’s answers, compare

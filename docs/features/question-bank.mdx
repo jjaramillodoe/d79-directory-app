@@ -31,7 +31,7 @@ Authenticated users load the bank they should render:
 
 `GET /api/question-bank?schoolYear=2026-2027&version=3`
 
-Empty plans do not copy the question schema onto `FormSubmission`. Super Admin can seed empty `formData` shells (preserving step and question order) and pin `questionBankVersion` with `POST /api/admin/forms/populate-bank` `{ "formId", "apply": true, "label": "2026-2027 Draft v23" }`. If the named version is still a draft clone of last published, the service uses the published bank. It refuses to overwrite a form that already has answers.
+Empty plans do not copy the question schema onto `FormSubmission`. Super Admin can seed `formData` from the published bank and pin `questionBankVersion` with `POST /api/admin/forms/populate-bank` `{ "formId", "apply": true, "label": "2026-2027 Draft v23" }`. Default is empty shells. Pass `"fillAnswers": true` to write sample responses for every question (checkboxes true, yes/no `yes`, tables with two rows) and mark steps complete. If the named version is still a draft clone of last published, the service uses the published bank. It refuses to overwrite a form that already has answers unless `"force": true`.
 
 ## How to configure a table question
 
