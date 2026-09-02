@@ -1,6 +1,6 @@
 ---
 title: Data relationships
-description: How User, FormSubmission, FormTemplate, SchoolYearSettings, FormComment, and AuditLog connect.
+description: How User, FormSubmission, School, FormTemplate, SchoolYearSettings, FormComment, and AuditLog connect.
 icon: diagram-project
 ---
 
@@ -15,6 +15,8 @@ erDiagram
   FormSubmission ||--o{ FormComment : has
   FormSubmission }o--o| FormTemplate : pins
   FormSubmission }o--o| SchoolYearSettings : year
+  User }o--o| School : schoolName
+  FormSubmission }o--o| School : schoolName
   FormSubmission ||--o{ FormSubmission : duplicatedFrom
 
   User {
@@ -39,6 +41,12 @@ erDiagram
     number version
     string status
     array steps
+  }
+
+  School {
+    string name
+    string nameKey
+    boolean isActive
   }
 
   SchoolYearSettings {
@@ -92,7 +100,7 @@ Existing answers stay keyed by `formData[stepKey].data[question.id]`. Publishing
 
 - `FormComment.formId` → `FormSubmission`. Optional `stepKey` / `stepNumber`. General comments (no step) can move form `status` to `under_review` / `approved` / `rejected`.
 - `AuditLog` is append-only. Many user mutations also push onto `User.activityLog[]`.
-- Indexes of note: `users.email` unique; `formsubmissions` partial unique `{ schoolName, schoolYear }` as `schoolName_schoolYear_unique`; `formtemplates.version` unique; `schoolyearsettings.schoolYear` unique.
+- Indexes of note: `users.email` unique; `schools.nameKey` unique; `formsubmissions` partial unique `{ schoolName, schoolYear }` as `schoolName_schoolYear_unique`; `formtemplates.version` unique; `schoolyearsettings.schoolYear` unique.
 
 <Callout type="tip">
   Super Admin System health reports whether `schoolName_schoolYear_unique` exists. Create and duplicate routes return `409` when a school already has a plan for that year.

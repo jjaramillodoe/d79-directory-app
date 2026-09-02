@@ -1,8 +1,8 @@
 'use client';
 
 import { Users, UserPlus, Shield, Download, Loader2, BarChart3 } from 'lucide-react';
-import SCHOOL_NAMES from '../../constants/schools';
 import Modal from '../ui/Modal';
+import useSchoolOptions from '../../hooks/useSchoolOptions';
 
 export default function UserManagementModals({
   session,
@@ -38,6 +38,11 @@ export default function UserManagementModals({
   onCloseCsv,
   onResetCsv,
 }) {
+  const schoolOptions = useSchoolOptions({
+    enabled: session?.user?.level === 5,
+    extraName: formData?.schoolName || '',
+  });
+
   return (
       <div className="legacy-ui">
         {/* Modal for Create/Edit User */}
@@ -114,7 +119,7 @@ export default function UserManagementModals({
                     }`}
                   >
                     <option value="">Select a school...</option>
-                    {SCHOOL_NAMES.map((schoolName) => (
+                    {schoolOptions.map((schoolName) => (
                       <option key={schoolName} value={schoolName}>
                         {schoolName}
                       </option>

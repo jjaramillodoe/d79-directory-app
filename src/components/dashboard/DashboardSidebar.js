@@ -18,6 +18,7 @@ import {
   FileText,
   Search,
   Users,
+  School,
   ClipboardList,
   Target,
   Share2,
@@ -70,6 +71,7 @@ function getNavGroups(userLevel) {
       items: [
         { id: 'submissions', label: 'Submissions', icon: Search, href: '/admin/submissions' },
         { id: 'users', label: 'Users', icon: Users, href: '/admin/users' },
+        { id: 'schools', label: 'Schools', icon: School, href: '/admin/schools' },
         { id: 'goals', label: 'Goals', icon: Target, href: '/admin/goals' },
         { id: 'questions', label: 'Question bank', icon: ClipboardList, href: '/admin/questions' },
         { id: 'collaboration', label: 'Collaboration', icon: Share2, href: '/admin/users?tab=collaboration' },

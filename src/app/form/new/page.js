@@ -5,12 +5,12 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Column, Row, Text, Heading, Button, Card, Spinner, Grid, Tag } from '@once-ui-system/core';
 import PrincipalEmailAutocomplete from '../../../components/PrincipalEmailAutocomplete';
-import SCHOOL_NAMES from '../../../constants/schools';
 import DashboardShell from '../../../components/dashboard/DashboardShell';
 import DashboardSidebar from '../../../components/dashboard/DashboardSidebar';
 import DashboardHeader from '../../../components/dashboard/DashboardHeader';
 import DashboardSection from '../../../components/dashboard/DashboardSection';
 import { currentSchoolYear, previousSchoolYear } from '../../../lib/schoolYear';
+import useSchoolOptions from '../../../hooks/useSchoolOptions';
 import * as logger from '../../../lib/logger';
 
 export default function NewFormPage() {
@@ -23,6 +23,10 @@ export default function NewFormPage() {
   const [existingFormId, setExistingFormId] = useState('');
   const thisYear = currentSchoolYear();
   const lastYear = previousSchoolYear(thisYear);
+  const schoolOptions = useSchoolOptions({
+    enabled: session?.user?.level === 5,
+    extraName: schoolName,
+  });
 
   useEffect(() => {
     if (session?.user?.schoolName) {
@@ -169,7 +173,7 @@ export default function NewFormPage() {
                     required
                   >
                     <option value="">Select your school…</option>
-                    {SCHOOL_NAMES.map((name) => (
+                    {schoolOptions.map((name) => (
                       <option key={name} value={name}>
                         {name}
                       </option>
@@ -182,7 +186,7 @@ export default function NewFormPage() {
                 )}
                 <Text variant="body-default-s" onBackground="neutral-weak">
                   {isSuperAdmin
-                    ? `The plan is stored as ${thisYear} for this school. Each school can only have one plan for the year.`
+                    ? `The plan is stored as ${thisYear} for this school. Each school can only have one plan for the year. Add a missing school from Schools in Admin.`
                     : `Principals can only start a plan for their own school. This ${thisYear} plan will be stored for ${lockedSchool || 'your school'}.`}
                 </Text>
               </Column>

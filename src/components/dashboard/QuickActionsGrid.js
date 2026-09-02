@@ -5,6 +5,7 @@ import {
   FileText,
   Search,
   Users,
+  School,
   ClipboardList,
   Target,
   Share2,
@@ -47,6 +48,14 @@ function getActions(userLevel, onBulkCreate) {
         description: 'Manage all users across all schools',
         href: '/admin/users',
         icon: Users,
+      },
+      {
+        key: 'manage-schools',
+        title: 'Manage schools',
+        description: 'Add and rename District 79 schools',
+        href: '/admin/schools',
+        icon: School,
+        badge: 'Super Admin Only',
       },
       {
         key: 'manage-goals',

@@ -102,6 +102,8 @@ test('the district-wide admin routes all sit at level 5', () => {
     '/api/admin/forms/live',
     '/api/admin/forms/migrate-contacts',
     '/api/admin/forms/rollover',
+    '/api/admin/schools',
+    '/api/admin/schools/[id]',
   ];
   for (const route of mustBeSuperAdmin) {
     assert.equal(requiredAdminLevel(route), 5, `${route} must require level 5`);

@@ -12,6 +12,17 @@ const ACCENT_MAP = {
   averageProgress: 'accent-strong',
 };
 
+/**
+ * @param {{
+ *   label: any,
+ *   value: any,
+ *   suffix?: string,
+ *   accentKey?: string,
+ *   onClick?: (event: any) => void,
+ *   selected?: boolean,
+ *   hint?: string,
+ * }} props
+ */
 export default function StatCard({ label, value, suffix = '', accentKey, onClick, selected, hint }) {
   const accent = ACCENT_MAP[accentKey] || 'neutral-strong';
 

@@ -10,6 +10,16 @@ import {
   Flex,
 } from '@once-ui-system/core';
 
+/**
+ * @param {{
+ *   title: any,
+ *   description: any,
+ *   href?: string,
+ *   onClick?: (event: any) => void,
+ *   badge?: string,
+ *   icon?: any,
+ * }} props
+ */
 export default function QuickActionCard({
   title,
   description,

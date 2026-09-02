@@ -48,10 +48,10 @@ flowchart TD
 
 <AccordionGroup>
   <Accordion title="Super Admin page prefixes (level 5)">
-    `/admin/questions`, `/admin/logs`, `/admin/system`, `/admin/goals`, `/admin/submissions`
+    `/admin/questions`, `/admin/logs`, `/admin/system`, `/admin/goals`, `/admin/submissions`, `/admin/schools`
   </Accordion>
   <Accordion title="Super Admin API prefixes (level 5)">
-    `/api/admin/questions`, `/api/admin/health`, `/api/admin/goals`, `/api/admin/forms/rollover`, `/api/admin/forms/live`, `/api/admin/forms/export`
+    `/api/admin/questions`, `/api/admin/health`, `/api/admin/goals`, `/api/admin/forms/rollover`, `/api/admin/forms/live`, `/api/admin/forms/export`, `/api/admin/schools`
   </Accordion>
   <Accordion title="School admin (level ≥ 4)">
     Other `/admin/*` and `/api/admin/*` paths (for example `/admin/users` and `/api/admin/users/school`) require a principal or Super Admin JWT. Route handlers still reload `User` from MongoDB for the real permission check.

@@ -113,9 +113,14 @@ function AdminUsersPageContent() {
                 Bulk actions
               </Button>
               {session.user.level === 5 && (
-                <Button size="s" variant="secondary" href="/admin/logs">
-                  System logs
-                </Button>
+                <>
+                  <Button size="s" variant="secondary" href="/admin/schools">
+                    Schools
+                  </Button>
+                  <Button size="s" variant="secondary" href="/admin/logs">
+                    System logs
+                  </Button>
+                </>
               )}
               <Button size="s" variant="secondary" onClick={() => usersApi.setShowAuditModal(true)}>
                 Audit log

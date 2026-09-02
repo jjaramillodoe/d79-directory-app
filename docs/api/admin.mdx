@@ -1,6 +1,6 @@
 ---
 title: Admin API
-description: Super Admin question bank, rollover, exports, goals, and sharing.
+description: Super Admin question bank, schools, rollover, exports, goals, and sharing.
 icon: screwdriver-wrench
 ---
 
@@ -32,13 +32,15 @@ POST /api/admin/questions/publish
 { "confirm": true, "schoolYear": "2026-2027" }
 ```
 
-## Users and principals (admin)
+## Users, principals, and schools (admin)
 
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | `/api/admin/principals` | Level 4 list for assignment UIs |
 | `GET` `POST` | `/api/admin/users/school` | School-scoped user listing / create helpers |
 | `POST` `GET` `DELETE` | `/api/admin/forms/share` | Collaboration assignments |
+| `GET` `POST` | `/api/admin/schools` | Super Admin school catalog. `GET ?active=1` for dropdowns. `POST` `{ name, dbn?, notes? }` (20 / 60s) |
+| `PATCH` `DELETE` | `/api/admin/schools/:id` | Super Admin. Rename updates users and plans. Delete only if unused; otherwise deactivate |
 
 ## Analytics and health
 

@@ -32,6 +32,18 @@ const SIZE_CLASS = {
  * direct-child selector; an extra wrapper would break every modal's width. The backdrop is
  * the dialog container in any case, so the semantics land in the right place.
  */
+/**
+ * @param {{
+ *   onClose?: () => void,
+ *   label?: string,
+ *   labelledBy?: string,
+ *   size?: string,
+ *   variant?: string,
+ *   closeOnBackdrop?: boolean,
+ *   className?: string,
+ *   children: any,
+ * }} props
+ */
 export default function Modal({
   onClose,
   label,

@@ -14,6 +14,7 @@ import {
   FileText,
   Users,
   ClipboardList,
+  School,
 } from 'lucide-react';
 import {
   Spinner,
@@ -323,6 +324,19 @@ function AdminSystemPageContent() {
                     </Row>
                     <Text variant="body-default-s" onBackground="neutral-weak">
                       {mongo.users?.active ?? 0} active · {mongo.users?.inactive ?? 0} inactive
+                    </Text>
+                  </Column>
+                </Card>
+              </Link>
+              <Link href="/admin/schools" style={{ textDecoration: 'none' }}>
+                <Card padding="16" radius="l" fillWidth>
+                  <Column gap="8">
+                    <Row gap="8" vertical="center">
+                      <School size={16} />
+                      <Text variant="label-strong-s">Schools</Text>
+                    </Row>
+                    <Text variant="body-default-s" onBackground="neutral-weak">
+                      Add and rename schools for plans and accounts
                     </Text>
                   </Column>
                 </Card>

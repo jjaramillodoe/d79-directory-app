@@ -43,6 +43,9 @@ const AuditLogSchema = new mongoose.Schema({
       'csv_import',
       'export',
       'settings_changed',
+      'school_created',
+      'school_updated',
+      'school_deleted',
       'question_bank_seeded',
       'question_bank_updated',
       'question_bank_published',
@@ -51,7 +54,7 @@ const AuditLogSchema = new mongoose.Schema({
   },
   targetType: {
     type: String,
-    enum: ['user', 'form', 'system', 'other'],
+    enum: ['user', 'form', 'system', 'school', 'other'],
     default: 'other',
   },
   targetId: {

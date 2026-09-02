@@ -1,8 +1,8 @@
 {
-  "total": 266,
+  "total": 204,
   "byDirectory": {
-    "src/app": 79,
-    "src/components": 123,
+    "src/app": 66,
+    "src/components": 74,
     "src/hooks": 2,
     "src/lib": 46,
     "src/models": 16

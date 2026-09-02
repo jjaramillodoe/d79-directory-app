@@ -92,6 +92,7 @@ export const ROLE_GUIDES = {
     can: [
       'View and review plans across the district',
       'Manage users at any school, including principals',
+      'Add, rename, and deactivate schools in Admin → Schools',
       'Publish questions, set goals, and run year setup',
       'Set table columns to Text or Dropdown, then convert copied text lists into table rows from Year setup',
       'Preview the app as a principal or assistant principal',

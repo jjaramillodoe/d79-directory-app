@@ -311,6 +311,9 @@ function AdminLogsPageContent() {
                     <option value="form_approved">Form Approved</option>
                     <option value="form_rejected">Form Rejected</option>
                     <option value="form_shared">Form Shared</option>
+                    <option value="school_created">School Created</option>
+                    <option value="school_updated">School Updated</option>
+                    <option value="school_deleted">School Deleted</option>
                     <option value="permission_changed">Permission Changed</option>
                   </select>
                 </div>
@@ -334,6 +337,7 @@ function AdminLogsPageContent() {
                     <option value="">All Types</option>
                     <option value="user">User</option>
                     <option value="form">Form</option>
+                    <option value="school">School</option>
                     <option value="system">System</option>
                     <option value="other">Other</option>
                   </select>

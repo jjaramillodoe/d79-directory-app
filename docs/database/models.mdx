@@ -28,6 +28,23 @@ Collection: `users`
 
 Indexes: `{ email, isActive }`, `{ schoolName, isActive }`, `{ assignedForms.formId }`.
 
+`schoolName` is a denormalized display string. Super Admins maintain the catalog in `School`; renaming a school updates matching `User.schoolName` and `FormSubmission.schoolName` values.
+
+## `School`
+
+Collection: `schools`. Super Admin catalog at `/admin/schools`. First list load upserts the static District 79 names plus any names already on users or plans (`$setOnInsert` only — deactivated rows stay deactivated).
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `name` | String | display name, required |
+| `nameKey` | String | unique lowercase key (`"PS  1"` and `"ps 1"` collide) |
+| `dbn` | String | optional |
+| `notes` | String | optional |
+| `isActive` | Boolean | default true; inactive schools drop out of new-plan and user dropdowns |
+| `createdBy` | ObjectId → User | |
+
+Delete is refused while users or plans still use the name; deactivate instead.
+
 ## `FormSubmission`
 
 Collection: `formsubmissions`
@@ -105,6 +122,6 @@ Collection: `auditlogs`
 
 How-to and field list: [Audit logs and admin tables](/features/audit-logs).
 
-`action` enum: `login`, `logout`, `user_created`, `user_updated`, `user_deleted`, `user_activated`, `user_deactivated`, `form_created`, `form_duplicated`, `form_attested`, `form_edited`, `form_submitted`, `form_approved`, `form_rejected`, `form_shared`, `form_unshared`, `form_ownership_transferred`, `permission_changed`, `bulk_action`, `csv_import`, `export`, `settings_changed`, `question_bank_seeded`, `question_bank_updated`, `question_bank_published`, `other`.
+`action` enum: `login`, `logout`, `user_created`, `user_updated`, `user_deleted`, `user_activated`, `user_deactivated`, `form_created`, `form_duplicated`, `form_attested`, `form_edited`, `form_submitted`, `form_approved`, `form_rejected`, `form_shared`, `form_unshared`, `form_ownership_transferred`, `permission_changed`, `bulk_action`, `csv_import`, `export`, `settings_changed`, `school_created`, `school_updated`, `school_deleted`, `question_bank_seeded`, `question_bank_updated`, `question_bank_published`, `other`.
 
-`targetType`: `user` \| `form` \| `system` \| `other`. Also `userName`, `userEmail`, `targetId`, `details`, `metadata`, `ipAddress`, `userAgent`, `timestamp`.
+`targetType`: `user` \| `form` \| `system` \| `school` \| `other`. Also `userName`, `userEmail`, `targetId`, `details`, `metadata`, `ipAddress`, `userAgent`, `timestamp`.
