@@ -4,7 +4,6 @@ import { authOptions } from '../../../../lib/auth';
 import connectDB from '../../../../lib/mongodb';
 import FormSubmission from '../../../../models/FormSubmission';
 import User from '../../../../models/User';
-import mongoose from 'mongoose';
 import { reportError } from '../../../../lib/reportError';
 
 export async function POST(request) {
@@ -61,21 +60,21 @@ export async function POST(request) {
     form.principalName = newOwner.name;
     form.principalEmail = newOwner.email;
     
-    // Get the current user's ID from session
-    const currentUserId = session.user.id || session.user._id || session.user.email;
-    
+    // Get the current user from database to ensure valid ObjectId
+    const currentUser = await User.findOne({
+      $or: [
+        { email: session.user.email },
+        { _id: session.user.id || session.user._id }
+      ]
+    });
 
-    
-    if (!currentUserId) {
-      return NextResponse.json({ 
-        error: 'Unable to identify current user for transfer history' 
+    if (!currentUser) {
+      return NextResponse.json({
+        error: 'Unable to identify current user for transfer history'
       }, { status: 400 });
     }
 
-    // Convert string ID to ObjectId if needed
-    const currentUserObjectId = typeof currentUserId === 'string' && currentUserId.length === 24 
-      ? new mongoose.Types.ObjectId(currentUserId)
-      : currentUserId;
+    const currentUserObjectId = currentUser._id;
 
     // Add transfer history
     if (!form.transferHistory) {
