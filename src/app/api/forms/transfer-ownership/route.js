@@ -41,15 +41,23 @@ export async function POST(request) {
     // Find the new owner
     const newOwner = await User.findOne({ email: newOwnerEmail });
     if (!newOwner) {
-      return NextResponse.json({ 
-        error: 'New owner not found' 
+      return NextResponse.json({
+        error: 'New owner not found'
       }, { status: 404 });
     }
 
     // Verify the new owner is a Level 4 (Admin Principal)
     if (newOwner.level !== 4) {
-      return NextResponse.json({ 
-        error: 'New owner must be a Level 4 (Admin Principal) user' 
+      return NextResponse.json({
+        error: 'New owner must be a Level 4 (Admin Principal) user'
+      }, { status: 400 });
+    }
+
+    // Verify the new owner has required fields
+    if (!newOwner.name || !newOwner.schoolName) {
+      return NextResponse.json({
+        error: 'New owner is missing required profile information (name or school)',
+        details: `name: ${newOwner.name || 'missing'}, schoolName: ${newOwner.schoolName || 'missing'}`
       }, { status: 400 });
     }
 
@@ -91,10 +99,27 @@ export async function POST(request) {
     try {
       await form.save();
     } catch (saveError) {
-      reportError(saveError, { route: '/api/forms/transfer-ownership', detail: 'Error saving form with transfer history' });
-      return NextResponse.json({ 
+      const errorInfo = {
+        message: saveError.message,
+        name: saveError.name,
+        errors: saveError.errors ? Object.keys(saveError.errors).map(k => ({
+          field: k,
+          message: saveError.errors[k].message
+        })) : [],
+        formData: {
+          id: form._id,
+          userId: form.userId,
+          schoolName: form.schoolName,
+          principalEmail: form.principalEmail,
+          principalName: form.principalName
+        }
+      };
+      reportError(saveError, { route: '/api/forms/transfer-ownership', detail: 'Error saving form with transfer history', errorInfo });
+      return NextResponse.json({
         error: 'Failed to save form transfer history',
-        details: saveError.message
+        details: saveError.message,
+        type: saveError.name,
+        fields: saveError.errors ? Object.keys(saveError.errors) : []
       }, { status: 500 });
     }
 
