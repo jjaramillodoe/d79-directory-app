@@ -69,16 +69,28 @@ export async function POST(request) {
     form.principalEmail = newOwner.email;
     
     // Get the current user from database to ensure valid ObjectId
-    const currentUser = await User.findOne({
-      $or: [
-        { email: session.user.email },
-        { _id: session.user.id || session.user._id }
-      ]
-    });
+    let currentUser;
+
+    // Try to find by ID first if available
+    if (session.user.id || session.user._id) {
+      const userId = session.user.id || session.user._id;
+      try {
+        currentUser = await User.findById(userId);
+      } catch (e) {
+        // Invalid ObjectId format, try email instead
+        currentUser = null;
+      }
+    }
+
+    // Fall back to email search if ID didn't work
+    if (!currentUser && session.user.email) {
+      currentUser = await User.findOne({ email: session.user.email });
+    }
 
     if (!currentUser) {
       return NextResponse.json({
-        error: 'Unable to identify current user for transfer history'
+        error: 'Unable to identify current user for transfer history',
+        debug: { email: session.user.email, id: session.user.id, _id: session.user._id }
       }, { status: 400 });
     }
 

@@ -378,11 +378,14 @@ FormSubmissionSchema.index({ principalEmail: 1 });
 FormSubmissionSchema.index({ status: 1, createdAt: -1 });
 FormSubmissionSchema.index({ notificationSent: 1, reviewedAt: 1 });
 FormSubmissionSchema.index(
-  { schoolName: 1, schoolYear: 1 },
+  { schoolName: 1, schoolYear: 1, status: 1 },
   {
     unique: true,
     name: 'schoolName_schoolYear_unique',
-    partialFilterExpression: { schoolYear: { $type: 'string', $gt: '' } },
+    partialFilterExpression: {
+      schoolYear: { $type: 'string', $gt: '' },
+      status: { $in: ['submitted', 'under_review', 'approved', 'rejected'] }
+    },
   }
 );
 
