@@ -16,15 +16,20 @@ function isTableValue(value) {
   );
 }
 
-function cleanCell(value) {
+// Keeps leading/trailing spaces: a cell being typed in is mid-word, and trimming
+// "Assistant " on each keystroke makes the space bar appear to do nothing.
+function cleanEditingCell(value) {
   return String(value ?? '')
     .replace(/\u00a0/g, ' ')
-    .replace(/\r/g, '')
-    .trim();
+    .replace(/\r/g, '');
 }
 
-function padRow(row, width) {
-  const next = (row || []).slice(0, width).map(cleanCell);
+function cleanCell(value) {
+  return cleanEditingCell(value).trim();
+}
+
+function padRow(row, width, clean = cleanCell) {
+  const next = (row || []).slice(0, width).map((cell) => clean(cell));
   while (next.length < width) next.push('');
   return next;
 }
@@ -299,19 +304,25 @@ function gridToTable(grid, { columns } = {}) {
   return applyColumnTypes({ headers, rows }, columns);
 }
 
-function normalizeTable(value, { columns } = {}) {
+function normalizeTable(value, { columns, keepWhitespace = false } = {}) {
   if (isTableValue(value)) {
+    const clean = keepWhitespace ? cleanEditingCell : cleanCell;
     const locked = columnHeaders(columns);
-    const headers = (locked.length ? locked : (value.headers || []).map(cleanCell))
-      .filter(Boolean)
-      .slice(0, MAX_COLS);
+    // Blank headers keep their slot: dropping one would shift or cut off row data.
+    const headers = (
+      locked.length
+        ? locked
+        : (value.headers || []).map(
+            (header, index) => clean(header) || (keepWhitespace ? '' : `Column ${index + 1}`)
+          )
+    ).slice(0, MAX_COLS);
     const width = headers.length || 3;
     const nextHeaders = headers.length ? headers : defaultHeaders(width);
     const sourceRows = Array.isArray(value.rows) && value.rows.length ? value.rows : [[]];
     return applyColumnTypes(
       {
         headers: nextHeaders,
-        rows: sourceRows.slice(0, MAX_ROWS).map((row) => padRow(row, nextHeaders.length)),
+        rows: sourceRows.slice(0, MAX_ROWS).map((row) => padRow(row, nextHeaders.length, clean)),
       },
       columns
     );

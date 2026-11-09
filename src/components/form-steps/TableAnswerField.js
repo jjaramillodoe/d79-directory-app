@@ -142,11 +142,11 @@ export default function TableAnswerField({
   const columnDefs = normalizeColumnDefs(columns);
   const lockedColumns = columnDefs.length ? columns : undefined;
   const hasSelectColumns = columnDefs.some((column) => column.type === 'select');
-  const table = normalizeTable(value, { columns: lockedColumns });
+  const table = normalizeTable(value, { columns: lockedColumns, keepWhitespace: true });
 
   const emit = (next) => {
     if (readOnly || !onChange) return;
-    onChange(normalizeTable(next, { columns: lockedColumns }));
+    onChange(normalizeTable(next, { columns: lockedColumns, keepWhitespace: true }));
   };
 
   const handlePaste = (event) => {

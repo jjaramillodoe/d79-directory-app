@@ -4,8 +4,49 @@ const {
   parseColumnBlueprint,
   formatColumnBlueprint,
   normalizeColumnDefs,
+  normalizeTable,
+  isTableAnswered,
   TABLE_COLUMN_PRESETS,
 } = require('./tableAnswer');
+
+test('keepWhitespace leaves a trailing space so a second word can be typed', () => {
+  const value = { headers: ['Title'], rows: [['Assistant ']] };
+  const table = normalizeTable(value, { keepWhitespace: true });
+  assert.equal(table.rows[0][0], 'Assistant ');
+});
+
+test('keepWhitespace still applies to unlocked headers and cleans nbsp', () => {
+  const table = normalizeTable(
+    { headers: ['Start '], rows: [['a ']] },
+    { keepWhitespace: true }
+  );
+  assert.equal(table.headers[0], 'Start ');
+  assert.equal(table.rows[0][0], 'a ');
+});
+
+test('display normalization still trims saved cells', () => {
+  const table = normalizeTable({ headers: ['Title'], rows: [['Principal ']] });
+  assert.equal(table.rows[0][0], 'Principal');
+});
+
+test('clearing a header while editing keeps the column and its data', () => {
+  const table = normalizeTable(
+    { headers: ['Name', '', 'Room'], rows: [['Ana', 'AP', '101']] },
+    { keepWhitespace: true }
+  );
+  assert.deepEqual(table.headers, ['Name', '', 'Room']);
+  assert.deepEqual(table.rows[0], ['Ana', 'AP', '101']);
+});
+
+test('a saved blank header displays a fallback name without shifting data', () => {
+  const table = normalizeTable({ headers: ['Name', '', 'Room'], rows: [['Ana', 'AP', '101']] });
+  assert.deepEqual(table.headers, ['Name', 'Column 2', 'Room']);
+  assert.deepEqual(table.rows[0], ['Ana', 'AP', '101']);
+});
+
+test('a row of only spaces does not count as answered', () => {
+  assert.equal(isTableAnswered({ headers: ['Title'], rows: [['   ']] }), false);
+});
 
 test('one column name per line becomes text columns', () => {
   const columns = parseColumnBlueprint(
