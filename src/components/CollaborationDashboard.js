@@ -27,6 +27,9 @@ const CollaborationDashboard = ({ user }) => {
   const [showShareForm, setShowShareForm] = useState(false);
   const [userForms, setUserForms] = useState([]);
   const [activeTab, setActiveTab] = useState('collaboration');
+  const [shares, setShares] = useState([]);
+  const [sharesError, setSharesError] = useState(null);
+  const [removingKey, setRemovingKey] = useState(null);
 
   // Form creation state
   const [newUser, setNewUser] = useState({
@@ -87,12 +90,29 @@ const CollaborationDashboard = ({ user }) => {
     }
   }, [user]);
 
+  const fetchShares = useCallback(async () => {
+    try {
+      setSharesError(null);
+      const response = await fetch('/api/admin/forms/share');
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setShares(data.shares || []);
+      } else {
+        setSharesError(data.error || 'Failed to load who forms are shared with');
+      }
+    } catch (err) {
+      logger.error('Error fetching form shares:', err);
+      setSharesError('Failed to load who forms are shared with');
+    }
+  }, []);
+
   useEffect(() => {
     if (user && user.level >= 4) {
       fetchSchoolUsers();
       fetchUserForms();
+      fetchShares();
     }
-  }, [user, fetchSchoolUsers, fetchUserForms]);
+  }, [user, fetchSchoolUsers, fetchUserForms, fetchShares]);
 
   const handleShareForm = async (formId) => {
     // Reset state
@@ -128,7 +148,8 @@ const CollaborationDashboard = ({ user }) => {
         const data = await response.json();
         toast.success('Form shared');
         setShowShareForm(false);
-        fetchUserForms(); // Refresh
+        fetchUserForms();
+        fetchShares();
       } else {
         const error = await response.json();
         toast.error(error.error || 'Request failed');
@@ -139,8 +160,11 @@ const CollaborationDashboard = ({ user }) => {
     }
   };
 
-  const handleUnshareForm = async (formId) => {
-    if (!confirm('Are you sure you want to unshare this form? This will remove access for all users.')) {
+  const handleUnshareForm = async (formId, schoolName) => {
+    const message = user?.level === 5
+      ? `Remove everyone this form is shared with${schoolName ? ` (${schoolName})` : ''}, including email shares?`
+      : `Remove everyone this form is shared with${schoolName ? ` (${schoolName})` : ''}?`;
+    if (!confirm(message)) {
       return;
     }
 
@@ -153,7 +177,8 @@ const CollaborationDashboard = ({ user }) => {
 
       if (response.ok) {
         toast.success('Form unshared');
-        fetchUserForms(); // Refresh
+        fetchUserForms();
+        fetchShares();
       } else {
         const error = await response.json();
         toast.error(error.error || 'Request failed');
@@ -161,6 +186,39 @@ const CollaborationDashboard = ({ user }) => {
     } catch (error) {
       logger.error('Error unsharing form:', error);
       toast.error('Failed to unshare form');
+    }
+  };
+
+  const handleRemovePerson = async (formId, person) => {
+    const who = person.name && person.name !== person.email ? `${person.name} (${person.email})` : person.email;
+    if (!confirm(`Remove ${who} from this form?`)) return;
+
+    setRemovingKey(`${formId}:${person.key}`);
+    try {
+      const response = await fetch('/api/admin/forms/share', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          person.kind === 'email' ? { formId, email: person.email } : { formId, userId: person.userId }
+        ),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        toast.success(
+          person.retainsAccess
+            ? `Share removed. ${person.name} can still open it as school staff.`
+            : `${person.name} no longer has access`
+        );
+        fetchUserForms();
+        fetchShares();
+      } else {
+        toast.error(data.error || 'Request failed');
+      }
+    } catch (err) {
+      logger.error('Error removing person from form:', err);
+      toast.error('Failed to remove access');
+    } finally {
+      setRemovingKey(null);
     }
   };
 
@@ -211,6 +269,12 @@ const CollaborationDashboard = ({ user }) => {
   const level3Users = schoolUsers.filter(
     (u) => u.level === 3 && u.isActive !== false && u.canCollaborate !== false
   );
+
+  // Forms stay shareable after the first share, so more people can be added later.
+  const shareableForms = userForms.filter(
+    (form) => user?.level === 5 || form.schoolName === user?.schoolName
+  );
+  const shareCountByForm = new Map(shares.map((entry) => [entry.formId, entry.people.length]));
 
   return (
     <div>
@@ -285,28 +349,24 @@ const CollaborationDashboard = ({ user }) => {
               </p>
             </div>
             <div className="divide-y divide-gray-200">
-              {userForms.filter(form => {
-                const notShared = !form.isShared;
-                // For Level 5, show all forms; for Level 4, only from their school
-                const schoolMatch = user?.level === 5 || form.schoolName === user?.schoolName;
-                return notShared && schoolMatch;
-              }).length === 0 ? (
+              {shareableForms.length === 0 ? (
                 <div className="px-6 py-8 text-center text-gray-500">
                   <p>No forms available to share from your school.</p>
                   <p className="text-sm mt-2">Create a new form to get started.</p>
                 </div>
               ) : (
-                userForms
-                  .filter(form => {
-                    const notShared = !form.isShared;
-                    // For Level 5, show all forms; for Level 4, only from their school
-                    const schoolMatch = user?.level === 5 || form.schoolName === user?.schoolName;
-                    return notShared && schoolMatch;
-                  })
+                shareableForms
                   .map((form) => (
                     <div key={form._id || form.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                       <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-gray-900">{form.schoolName}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-900">{form.schoolName}</h4>
+                          {shareCountByForm.get(String(form._id || form.id)) ? (
+                            <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full font-medium">
+                              Shared with {shareCountByForm.get(String(form._id || form.id))}
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="text-sm text-gray-600">
                           Status: <span className="font-medium">{form.status}</span> | 
                           Progress: {form.completedSteps?.length || 0}/14 steps
@@ -337,61 +397,97 @@ const CollaborationDashboard = ({ user }) => {
             </div>
           </div>
 
-          {/* Shared Forms */}
+          {/* Who each form is shared with */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 bg-green-50 border-b border-green-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Shared Forms
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900">Shared With</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Forms that have been shared with Level 3 users
+                Everyone each form has been shared with. Remove one person, or unshare the form from everyone.
               </p>
             </div>
-            <div className="divide-y divide-gray-200">
-              {userForms.filter(form => form.isShared).length === 0 ? (
-                <div className="px-6 py-8 text-center text-gray-500">
-                  <p>No forms have been shared yet.</p>
-                </div>
-              ) : (
-                userForms
-                  .filter(form => form.isShared)
-                  .map((form) => (
-                    <div key={form._id || form.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-gray-900">{form.schoolName}</h4>
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
-                            Shared
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          Status: <span className="font-medium">{form.status}</span> | 
-                          Permissions: <span className="font-medium">{form.collaborationPermissions || 'edit'}</span>
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Shared on: {form.assignedAt ? new Date(form.assignedAt).toLocaleDateString() : 'Unknown'}
+            {sharesError ? (
+              <div className="px-6 py-4 text-sm text-red-800 bg-red-50">{sharesError}</div>
+            ) : shares.length === 0 ? (
+              <div className="px-6 py-8 text-center text-gray-500">
+                <p>No forms have been shared yet.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {shares.map((entry) => (
+                  <div key={entry.formId} className="px-6 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900">{entry.schoolName}</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {entry.schoolYear}
+                          {entry.status ? ` · ${entry.status}` : ''}
+                          {` · ${entry.people.length} ${entry.people.length === 1 ? 'person' : 'people'}`}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => router.push(`/form/${form._id || form.id}`)}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center gap-2"
+                          type="button"
+                          onClick={() => router.push(`/form/${entry.formId}`)}
+                          className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center gap-2"
                         >
                           <Eye className="w-4 h-4" />
                           Open
                         </button>
                         <button
-                          onClick={() => handleUnshareForm(form._id || form.id)}
-                          className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors flex items-center gap-2"
+                          type="button"
+                          onClick={() => handleUnshareForm(entry.formId, entry.schoolName)}
+                          className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors flex items-center gap-2"
                         >
                           <UserX className="w-4 h-4" />
-                          Unshare
+                          Unshare all
                         </button>
                       </div>
                     </div>
-                  ))
-              )}
-            </div>
+                    <ul className="border border-gray-200 rounded-md divide-y divide-gray-100">
+                      {entry.people.map((person) => {
+                        const canRemove = person.kind === 'user' || user?.level === 5;
+                        const busy = removingKey === `${entry.formId}:${person.key}`;
+                        return (
+                          <li key={person.key} className="px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 break-words">
+                                {person.name}
+                                {person.title ? <span className="font-normal text-gray-500"> · {person.title}</span> : null}
+                              </p>
+                              <p className="text-xs text-gray-500 break-all">
+                                {person.name !== person.email ? `${person.email} · ` : ''}
+                                {person.permissions === 'view' ? 'View only' : 'Can edit'}
+                                {person.kind === 'email' ? ' · Shared by email' : ''}
+                                {person.sharedAt ? ` · ${new Date(person.sharedAt).toLocaleDateString()}` : ''}
+                                {person.sharedBy ? ` by ${person.sharedBy}` : ''}
+                              </p>
+                              {person.retainsAccess ? (
+                                <p className="text-xs text-amber-700 mt-0.5">
+                                  Still has access as school staff after removal
+                                </p>
+                              ) : null}
+                            </div>
+                            {canRemove ? (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => handleRemovePerson(entry.formId, person)}
+                                aria-label={`Remove ${person.name} from ${entry.schoolName}`}
+                                className="px-3 py-1 text-xs text-red-700 border border-red-200 rounded hover:bg-red-50 disabled:opacity-50"
+                              >
+                                {busy ? 'Removing…' : 'Remove'}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400">Super Admin can remove</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

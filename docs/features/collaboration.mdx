@@ -19,7 +19,19 @@ Level 4 (same school) or Super Admin:
 }
 ```
 
-Empty `sections` = all steps. Also supports `GET` (list shares) and `DELETE` (unshare). Super Admin can additionally share by email on the form document (`sharedWithEmails`).
+Empty `sections` = all steps. Super Admin can additionally share by email on the form document (`sharedWithEmails`).
+
+`GET /api/admin/forms/share?formId=…` lists one form's assignments. Without `formId` it returns `shares`: every form in scope (own school for Level 4, all for Super Admin) with the people it is shared with, from both `assignedForms` and `sharedWithEmails`. Each person carries `retainsAccess: true` when another grant (same-school staff, Super Admin, principal email) keeps them in after the share is removed.
+
+`DELETE /api/admin/forms/share` body:
+
+| Body | Effect |
+| --- | --- |
+| `{ "formId" }` | Removes every assignment; Super Admin also clears `sharedWithEmails` |
+| `{ "formId", "userId" }` | Removes one user's assignment |
+| `{ "formId", "email" }` | Removes one email share (Super Admin only) |
+
+The Collaboration tab (`/admin/users?tab=collaboration`) shows this list under **Shared With**, with per-person **Remove** and per-form **Unshare all**.
 
 Assistant Principals (level 3) **do not** inherit edit access from `schoolName` alone. They must appear in `assignedForms` (this route) or `sharedWithEmails`.
 
