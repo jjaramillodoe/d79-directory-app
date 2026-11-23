@@ -16,6 +16,7 @@ import {
 import useAppToast from '../hooks/useAppToast';
 import Modal from './ui/Modal';
 import * as logger from '../lib/logger';
+import { FORM_SORT_OPTIONS, DEFAULT_FORM_SORT, sortForms, filterForms } from '../lib/formSort';
 
 const CollaborationDashboard = ({ user }) => {
   const router = useRouter();
@@ -30,6 +31,8 @@ const CollaborationDashboard = ({ user }) => {
   const [shares, setShares] = useState([]);
   const [sharesError, setSharesError] = useState(null);
   const [removingKey, setRemovingKey] = useState(null);
+  const [formSort, setFormSort] = useState(DEFAULT_FORM_SORT);
+  const [formQuery, setFormQuery] = useState('');
 
   // Form creation state
   const [newUser, setNewUser] = useState({
@@ -275,6 +278,9 @@ const CollaborationDashboard = ({ user }) => {
     (form) => user?.level === 5 || form.schoolName === user?.schoolName
   );
   const shareCountByForm = new Map(shares.map((entry) => [entry.formId, entry.people.length]));
+  const visibleForms = sortForms(filterForms(shareableForms, formQuery), formSort, {
+    shareCount: (form) => shareCountByForm.get(String(form._id || form.id)) || 0,
+  });
 
   return (
     <div>
@@ -335,18 +341,49 @@ const CollaborationDashboard = ({ user }) => {
       {/* Collaboration Tab */}
       {activeTab === 'collaboration' && (
         <div className="space-y-6">
-          {/* My Forms - Available to Share */}
+          {/* All forms in scope, searchable and sortable */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                My Forms - Available to Share
+                All Forms ({shareableForms.length})
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                {user?.level === 5 
+                {user?.level === 5
                   ? 'Forms from all schools that can be shared with Level 3 users'
                   : `Forms from ${user?.schoolName} that can be shared with Level 3 users`
                 }
               </p>
+              {shareableForms.length > 0 && (
+                <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:items-center">
+                  <input
+                    type="search"
+                    value={formQuery}
+                    onChange={(e) => setFormQuery(e.target.value)}
+                    placeholder="Search school, status, year, or principal"
+                    aria-label="Search forms"
+                    className="w-full sm:flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <label className="flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap">
+                    Sort by
+                    <select
+                      value={formSort}
+                      onChange={(e) => setFormSort(e.target.value)}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {FORM_SORT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
+              {formQuery.trim() && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Showing {visibleForms.length} of {shareableForms.length}
+                </p>
+              )}
             </div>
             <div className="divide-y divide-gray-200">
               {shareableForms.length === 0 ? (
@@ -354,8 +391,12 @@ const CollaborationDashboard = ({ user }) => {
                   <p>No forms available to share from your school.</p>
                   <p className="text-sm mt-2">Create a new form to get started.</p>
                 </div>
+              ) : visibleForms.length === 0 ? (
+                <div className="px-6 py-8 text-center text-gray-500">
+                  <p>No forms match “{formQuery.trim()}”.</p>
+                </div>
               ) : (
-                shareableForms
+                visibleForms
                   .map((form) => (
                     <div key={form._id || form.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                       <div className="flex-1">
@@ -372,7 +413,9 @@ const CollaborationDashboard = ({ user }) => {
                           Progress: {form.completedSteps?.length || 0}/14 steps
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Created: {new Date(form.createdAt).toLocaleDateString()}
+                          {form.schoolYear ? `${form.schoolYear} · ` : ''}
+                          Created: {form.createdAt ? new Date(form.createdAt).toLocaleDateString() : '—'}
+                          {form.updatedAt ? ` · Updated: ${new Date(form.updatedAt).toLocaleDateString()}` : ''}
                         </p>
                       </div>
                       <div className="flex gap-2">
