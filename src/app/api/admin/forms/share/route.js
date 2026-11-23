@@ -6,6 +6,43 @@ import User from '../../../../../models/User';
 import FormSubmission from '../../../../../models/FormSubmission';
 import { clientSafeMessage } from '../../../../../lib/userAccess';
 import { reportError } from '../../../../../lib/reportError';
+import { buildShareList } from '../../../../../lib/formShares';
+
+const SHARE_USER_FIELDS = 'name email title level schoolName isActive assignedForms';
+
+// Forms with any share in the admin's scope (Level 4: own school; Level 5: all).
+async function listShares(sessionUser) {
+  const level = Number(sessionUser.level);
+  const scope = level === 5 ? {} : { schoolName: sessionUser.schoolName };
+
+  const assignees = await User.find({ 'assignedForms.0': { $exists: true } })
+    .select(SHARE_USER_FIELDS)
+    .populate('assignedForms.assignedBy', 'name email')
+    .lean();
+  const assignedFormIds = new Set(
+    assignees.flatMap((u) => (u.assignedForms || []).map((a) => String(a.formId)))
+  );
+
+  const forms = await FormSubmission.find({
+    ...scope,
+    $or: [
+      { _id: { $in: [...assignedFormIds] } },
+      { 'sharedWithEmails.0': { $exists: true } },
+    ],
+  })
+    .select('schoolName schoolYear status userId principalEmail sharedWithEmails createdAt')
+    .populate('sharedWithEmails.sharedBy', 'name email')
+    .lean();
+
+  const sharedEmails = [
+    ...new Set(forms.flatMap((f) => (f.sharedWithEmails || []).map((s) => String(s.email).toLowerCase()))),
+  ];
+  const emailUsers = sharedEmails.length
+    ? await User.find({ email: { $in: sharedEmails } }).select(SHARE_USER_FIELDS).lean()
+    : [];
+
+  return buildShareList(forms, assignees, emailUsers);
+}
 
 // POST: Share a form with users for collaboration
 export async function POST(request) {
@@ -150,7 +187,12 @@ export async function GET(request) {
     const formId = searchParams.get('formId');
 
     if (!formId) {
-      return NextResponse.json({ error: 'Form ID is required' }, { status: 400 });
+      // No form given: list everyone each in-scope form is shared with.
+      if (session.user.level < 4) {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+      }
+      await connectDB();
+      return NextResponse.json({ success: true, shares: await listShares(session.user) });
     }
 
     await connectDB();
@@ -227,7 +269,10 @@ export async function GET(request) {
   }
 }
 
-// DELETE: Unshare a form (remove all user assignments)
+// DELETE: Unshare a form.
+//   { formId }          removes every user assignment (and, for Super Admins, every email share)
+//   { formId, userId }  removes one user's assignment
+//   { formId, email }   removes one email share (Super Admins only, matching /api/forms/[id]/share)
 export async function DELETE(request) {
   try {
     const session = await getServerSession(authOptions);
@@ -241,8 +286,10 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { formId } = body;
+    const body = await request.json().catch(() => ({}));
+    const formId = body?.formId ? String(body.formId) : '';
+    const userId = body?.userId ? String(body.userId) : '';
+    const email = body?.email ? String(body.email).trim().toLowerCase() : '';
 
     // Validate required fields
     if (!formId) {
@@ -263,6 +310,42 @@ export async function DELETE(request) {
     // For level 4 (principals), verify they own this form
     if (session.user.level === 4 && form.schoolName !== session.user.schoolName) {
       return NextResponse.json({ error: 'Unauthorized - form not in your school' }, { status: 403 });
+    }
+
+    if (email) {
+      if (Number(session.user.level) !== 5) {
+        return NextResponse.json({ error: 'Only Super Admins can remove email shares' }, { status: 403 });
+      }
+      const before = form.sharedWithEmails.length;
+      form.sharedWithEmails = form.sharedWithEmails.filter((share) => share.email !== email);
+      const removedCount = before - form.sharedWithEmails.length;
+      if (!removedCount) {
+        return NextResponse.json({ error: 'That email is not on this form' }, { status: 404 });
+      }
+      await form.save();
+      return NextResponse.json({ success: true, message: `Removed ${email}`, removedCount });
+    }
+
+    if (userId) {
+      const target = await User.findOne({ _id: userId, 'assignedForms.formId': formId });
+      if (!target) {
+        return NextResponse.json({ error: 'That user is not shared on this form' }, { status: 404 });
+      }
+      await target.removeFormAssignment(formId);
+      await target.logActivity('form_unshared', formId, `Access removed by ${session.user.name}`);
+      const principal = await User.findById(session.user.id);
+      if (principal) {
+        await principal.logActivity('form_unshared', formId, `Removed ${target.email} from form`);
+      }
+      return NextResponse.json({ success: true, message: `Removed ${target.name || target.email}`, removedCount: 1 });
+    }
+
+    // Super Admins clearing a form also clear its email shares.
+    let removedEmails = 0;
+    if (Number(session.user.level) === 5 && form.sharedWithEmails?.length) {
+      removedEmails = form.sharedWithEmails.length;
+      form.sharedWithEmails = [];
+      await form.save();
     }
 
     // Find all users who have this form assigned
@@ -302,8 +385,9 @@ export async function DELETE(request) {
 
     return NextResponse.json({
       success: true,
-      message: `Form unshared successfully. Removed from ${removedCount} users.`,
-      removedCount
+      message: `Form unshared. Removed ${removedCount} user(s)${removedEmails ? ` and ${removedEmails} email share(s)` : ''}.`,
+      removedCount,
+      removedEmails
     });
 
   } catch (error) {
